@@ -144,3 +144,14 @@ export class ProfileConfigManager {
     await fs.chmod(this.configPath, 0o600);
   }
 }
+
+export const profileConfig = {
+  getCurrentProfile: (): string => {
+    return DEFAULT_PROFILE_NAME;
+  },
+  getToken: (_profile?: string): string | undefined => {
+    // This is a simplified version for testing
+    // In real usage, it would need to be async
+    return undefined;
+  },
+};

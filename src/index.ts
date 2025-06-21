@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { configCommand } from './commands/config';
 import { sendCommand } from './commands/send';
+import { setupChannelsCommand } from './commands/channels';
 
 const program = new Command();
 
@@ -9,5 +10,6 @@ program.name('slack-cli').description('CLI tool to send messages via Slack API')
 
 configCommand(program);
 sendCommand(program);
+program.addCommand(setupChannelsCommand());
 
 program.parse();

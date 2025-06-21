@@ -11,7 +11,11 @@ export function setupHistoryCommand(): Command {
   const historyCommand = new Command('history')
     .description('Get message history from a Slack channel')
     .requiredOption('-c, --channel <channel>', 'Target channel name or ID')
-    .option('-n, --number <number>', 'Number of messages to retrieve', API_LIMITS.DEFAULT_MESSAGE_COUNT.toString())
+    .option(
+      '-n, --number <number>',
+      'Number of messages to retrieve',
+      API_LIMITS.DEFAULT_MESSAGE_COUNT.toString()
+    )
     .option('--since <date>', 'Get messages since specific date (YYYY-MM-DD HH:MM:SS)')
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook('preAction', (thisCommand) => {
@@ -20,8 +24,14 @@ export function setupHistoryCommand(): Command {
       // Validate number option
       if (options.number) {
         const num = parseInt(options.number, 10);
-        if (isNaN(num) || num < API_LIMITS.MIN_MESSAGE_COUNT || num > API_LIMITS.MAX_MESSAGE_COUNT) {
-          thisCommand.error(`Error: Message count must be between ${API_LIMITS.MIN_MESSAGE_COUNT} and ${API_LIMITS.MAX_MESSAGE_COUNT}`);
+        if (
+          isNaN(num) ||
+          num < API_LIMITS.MIN_MESSAGE_COUNT ||
+          num > API_LIMITS.MAX_MESSAGE_COUNT
+        ) {
+          thisCommand.error(
+            `Error: Message count must be between ${API_LIMITS.MIN_MESSAGE_COUNT} and ${API_LIMITS.MAX_MESSAGE_COUNT}`
+          );
         }
       }
 

@@ -36,7 +36,9 @@ export function setupSendCommand(): Command {
           try {
             messageContent = await fs.readFile(options.file, 'utf-8');
           } catch (error) {
-            throw new FileError(ERROR_MESSAGES.FILE_READ_ERROR(options.file, extractErrorMessage(error)));
+            throw new FileError(
+              ERROR_MESSAGES.FILE_READ_ERROR(options.file, extractErrorMessage(error))
+            );
           }
         } else {
           messageContent = options.message!; // This is safe because of preAction validation

@@ -28,7 +28,10 @@ async function handleSpecificChannelUnread(
   }
 }
 
-async function handleAllChannelsUnread(client: SlackApiClient, options: UnreadOptions): Promise<void> {
+async function handleAllChannelsUnread(
+  client: SlackApiClient,
+  options: UnreadOptions
+): Promise<void> {
   const channels = await client.listUnreadChannels();
 
   if (channels.length === 0) {

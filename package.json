@@ -1,0 +1,49 @@
+{
+  "name": "slack-cli",
+  "version": "1.0.0",
+  "description": "A command-line tool for sending messages to Slack",
+  "main": "dist/index.js",
+  "bin": {
+    "slack-cli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "slack",
+    "cli",
+    "command-line",
+    "messaging",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/web-api": "^6.9.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/inquirer": "^8.2.10",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "@vitest/coverage-v8": "^1.0.4",
+    "eslint": "^8.55.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2",
+    "vitest": "^1.0.4"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

@@ -93,11 +93,7 @@ export class SlackApiClient {
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {
     // First, resolve channel name to ID if needed
     let channelId = channel;
-    if (
-      !channel.startsWith('C') &&
-      !channel.startsWith('D') &&
-      !channel.startsWith('G')
-    ) {
+    if (!channel.startsWith('C') && !channel.startsWith('D') && !channel.startsWith('G')) {
       // It's a name, not an ID - need to find the ID
       const channels = await this.listChannels({
         types: 'public_channel,private_channel,im,mpim',

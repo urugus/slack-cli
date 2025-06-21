@@ -3,6 +3,7 @@ import { program } from 'commander';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
 import { slackApiClient } from '../../src/utils/slack-api-client';
 import { setupChannelsCommand } from '../../src/commands/channels';
+import { ERROR_MESSAGES } from '../../src/utils/constants';
 
 vi.mock('../../src/utils/profile-config');
 vi.mock('../../src/utils/slack-api-client');
@@ -84,7 +85,7 @@ describe('channels command', () => {
       await expect(channelsCommand.parseAsync(['channels'], { from: 'user' }))
         .rejects.toThrow('process.exit');
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith('✗ Error:', 'No token configured for profile: default');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('✗ Error:', 'No configuration found for profile "default". Use "slack-cli config set --token <token> --profile default" to set up.');
     });
   });
 
@@ -273,7 +274,7 @@ describe('channels command', () => {
       const channelsCommand = setupChannelsCommand();
       await channelsCommand.parseAsync(['channels'], { from: 'user' });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('No channels found');
+      expect(consoleLogSpy).toHaveBeenCalledWith(ERROR_MESSAGES.NO_CHANNELS_FOUND);
     });
   });
 });

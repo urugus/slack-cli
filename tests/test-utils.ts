@@ -17,7 +17,9 @@ export function setupMockConsole(): MockConsole {
 
 export function createTestProgram(): Command {
   const program = new Command();
-  program.exitOverride();
+  program.exitOverride((err) => {
+    throw new Error('process.exit');
+  });
   return program;
 }
 

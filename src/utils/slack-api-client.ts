@@ -1,6 +1,6 @@
 import { WebClient, ChatPostMessageResponse } from '@slack/web-api';
 
-interface Channel {
+export interface Channel {
   id: string;
   name: string;
   is_channel?: boolean;
@@ -30,7 +30,7 @@ interface Channel {
   };
 }
 
-interface ListChannelsOptions {
+export interface ListChannelsOptions {
   types: string;
   exclude_archived: boolean;
   limit: number;

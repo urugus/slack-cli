@@ -3,12 +3,28 @@ export const TOKEN_MIN_LENGTH = 9;
 export const DEFAULT_PROFILE_NAME = 'default';
 
 export const ERROR_MESSAGES = {
+  // Configuration errors
   NO_CONFIG: (profileName: string) =>
     `No configuration found for profile "${profileName}". Use "slack-cli config set --token <token> --profile ${profileName}" to set up.`,
-  NO_MESSAGE_OR_FILE: 'You must specify either --message or --file',
-  BOTH_MESSAGE_AND_FILE: 'Cannot use both --message and --file',
   PROFILE_NOT_FOUND: (profileName: string) => `Profile "${profileName}" not found`,
   NO_PROFILES_FOUND: 'No profiles found. Use "slack-cli config set --token <token>" to create one.',
+  INVALID_CONFIG_FORMAT: 'Invalid config file format',
+
+  // Validation errors
+  NO_MESSAGE_OR_FILE: 'You must specify either --message or --file',
+  BOTH_MESSAGE_AND_FILE: 'Cannot use both --message and --file',
+
+  // API errors
+  API_ERROR: (error: string) => `API Error: ${error}`,
+  CHANNEL_NOT_FOUND: (channel: string) => `Channel not found: ${channel}`,
+
+  // File errors
+  FILE_READ_ERROR: (file: string, error: string) => `Error reading file ${file}: ${error}`,
+  FILE_NOT_FOUND: (file: string) => `File not found: ${file}`,
+
+  // Channels command errors
+  NO_CHANNELS_FOUND: 'No channels found',
+  ERROR_LISTING_CHANNELS: (error: string) => `Error listing channels: ${error}`,
 } as const;
 
 export const SUCCESS_MESSAGES = {

@@ -4,8 +4,8 @@ import { ProfileConfigManager } from '../utils/profile-config';
 import { wrapCommand, getProfileName } from '../utils/command-wrapper';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
 
-export function configCommand(program: Command): void {
-  const config = program.command('config').description('Manage Slack CLI configuration');
+export function setupConfigCommand(): Command {
+  const config = new Command('config').description('Manage Slack CLI configuration');
 
   config
     .command('set')
@@ -99,4 +99,6 @@ export function configCommand(program: Command): void {
         console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.PROFILE_CLEARED(profileName)}`));
       })
     );
+
+  return config;
 }

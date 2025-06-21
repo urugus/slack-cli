@@ -1,14 +1,15 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { ProfileConfigManager } from '../utils/profile-config';
 import { SlackApiClient } from '../utils/slack-api-client';
-import { wrapCommand, getProfileName } from '../utils/command-wrapper';
+import { wrapCommand } from '../utils/command-wrapper';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
+import { getConfigOrThrow } from '../utils/config-helper';
+import { FileError } from '../utils/errors';
+import { SendOptions } from '../types/commands';
 import * as fs from 'fs/promises';
 
-export function sendCommand(program: Command): void {
-  program
-    .command('send')
+export function setupSendCommand(): Command {
+  const sendCommand = new Command('send')
     .description('Send a message to a Slack channel')
     .requiredOption('-c, --channel <channel>', 'Target channel name or ID')
     .option('-m, --message <message>', 'Message to send')
@@ -24,15 +25,9 @@ export function sendCommand(program: Command): void {
       }
     })
     .action(
-      wrapCommand(async (options) => {
+      wrapCommand(async (options: SendOptions) => {
         // Get configuration
-        const configManager = new ProfileConfigManager();
-        const config = await configManager.getConfig(options.profile);
-
-        if (!config) {
-          const profileName = await getProfileName(configManager, options.profile);
-          throw new Error(ERROR_MESSAGES.NO_CONFIG(profileName));
-        }
+        const config = await getConfigOrThrow(options.profile);
 
         // Get message content
         let messageContent: string;
@@ -40,10 +35,11 @@ export function sendCommand(program: Command): void {
           try {
             messageContent = await fs.readFile(options.file, 'utf-8');
           } catch (error) {
-            throw new Error(`Error reading file: ${error}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new FileError(ERROR_MESSAGES.FILE_READ_ERROR(options.file, errorMessage));
           }
         } else {
-          messageContent = options.message;
+          messageContent = options.message!; // This is safe because of preAction validation
         }
 
         // Send message
@@ -53,4 +49,6 @@ export function sendCommand(program: Command): void {
         console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SENT(options.channel)}`));
       })
     );
+
+  return sendCommand;
 }

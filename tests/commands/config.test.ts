@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { configCommand } from '../../src/commands/config';
+import { setupConfigCommand } from '../../src/commands/config';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
 import type { Config, Profile } from '../../src/types/config';
 import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
@@ -20,7 +20,7 @@ describe('profile config command', () => {
     
     mockConsole = setupMockConsole();
     program = createTestProgram();
-    configCommand(program);
+    program.addCommand(setupConfigCommand());
   });
 
   afterEach(() => {

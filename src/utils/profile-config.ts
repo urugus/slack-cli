@@ -2,7 +2,12 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
-import { TOKEN_MASK_LENGTH, TOKEN_MIN_LENGTH, DEFAULT_PROFILE_NAME } from './constants';
+import {
+  TOKEN_MASK_LENGTH,
+  TOKEN_MIN_LENGTH,
+  DEFAULT_PROFILE_NAME,
+  ERROR_MESSAGES,
+} from './constants';
 
 export class ProfileConfigManager {
   private configPath: string;
@@ -130,7 +135,7 @@ export class ProfileConfigManager {
         return { profiles: {} };
       }
       if (error instanceof SyntaxError) {
-        throw new Error('Invalid config file format');
+        throw new Error(ERROR_MESSAGES.INVALID_CONFIG_FORMAT);
       }
       throw error;
     }

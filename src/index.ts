@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { configCommand } from './commands/config';
-import { sendCommand } from './commands/send';
+import { setupConfigCommand } from './commands/config';
+import { setupSendCommand } from './commands/send';
 import { setupChannelsCommand } from './commands/channels';
 
 const program = new Command();
 
 program.name('slack-cli').description('CLI tool to send messages via Slack API').version('1.0.0');
 
-configCommand(program);
-sendCommand(program);
+program.addCommand(setupConfigCommand());
+program.addCommand(setupSendCommand());
 program.addCommand(setupChannelsCommand());
 
 program.parse();

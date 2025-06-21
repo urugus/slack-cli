@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
+import { TOKEN_MASK_LENGTH, TOKEN_MIN_LENGTH, DEFAULT_PROFILE_NAME } from './constants';
 
 export class ProfileConfigManager {
   private configPath: string;
@@ -13,7 +14,7 @@ export class ProfileConfigManager {
 
   async setToken(token: string, profile?: string): Promise<void> {
     const store = await this.getConfigStore();
-    const profileName = profile || store.defaultProfile || 'default';
+    const profileName = profile || store.defaultProfile || DEFAULT_PROFILE_NAME;
     const config: Config = {
       token,
       updatedAt: new Date().toISOString(),
@@ -22,7 +23,7 @@ export class ProfileConfigManager {
     store.profiles[profileName] = config;
 
     // Set as default profile if it's the first one or explicitly setting default
-    if (!store.defaultProfile || profileName === 'default') {
+    if (!store.defaultProfile || profileName === DEFAULT_PROFILE_NAME) {
       store.defaultProfile = profileName;
     }
 
@@ -31,14 +32,14 @@ export class ProfileConfigManager {
 
   async getConfig(profile?: string): Promise<Config | null> {
     const store = await this.getConfigStore();
-    const profileName = profile || store.defaultProfile || 'default';
+    const profileName = profile || store.defaultProfile || DEFAULT_PROFILE_NAME;
 
     return store.profiles[profileName] || null;
   }
 
   async listProfiles(): Promise<Profile[]> {
     const store = await this.getConfigStore();
-    const currentProfile = store.defaultProfile || 'default';
+    const currentProfile = store.defaultProfile || DEFAULT_PROFILE_NAME;
 
     return Object.entries(store.profiles).map(([name, config]) => ({
       name,
@@ -60,12 +61,12 @@ export class ProfileConfigManager {
 
   async getCurrentProfile(): Promise<string> {
     const store = await this.getConfigStore();
-    return store.defaultProfile || 'default';
+    return store.defaultProfile || DEFAULT_PROFILE_NAME;
   }
 
   async clearConfig(profile?: string): Promise<void> {
     const store = await this.getConfigStore();
-    const profileName = profile || store.defaultProfile || 'default';
+    const profileName = profile || store.defaultProfile || DEFAULT_PROFILE_NAME;
 
     delete store.profiles[profileName];
 
@@ -91,12 +92,12 @@ export class ProfileConfigManager {
   }
 
   maskToken(token: string): string {
-    if (token.length <= 9) {
+    if (token.length <= TOKEN_MIN_LENGTH) {
       return '****';
     }
 
-    const prefix = token.substring(0, 4);
-    const suffix = token.substring(token.length - 4);
+    const prefix = token.substring(0, TOKEN_MASK_LENGTH);
+    const suffix = token.substring(token.length - TOKEN_MASK_LENGTH);
 
     return `${prefix}-****-****-${suffix}`;
   }
@@ -114,8 +115,8 @@ export class ProfileConfigManager {
         };
 
         const newStore: ConfigStore = {
-          profiles: { default: oldConfig },
-          defaultProfile: 'default',
+          profiles: { [DEFAULT_PROFILE_NAME]: oldConfig },
+          defaultProfile: DEFAULT_PROFILE_NAME,
         };
 
         // Save migrated config

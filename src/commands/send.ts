@@ -2,6 +2,8 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { ProfileConfigManager } from '../utils/profile-config';
 import { SlackApiClient } from '../utils/slack-api-client';
+import { wrapCommand, getProfileName } from '../utils/command-wrapper';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
 import * as fs from 'fs/promises';
 
 export function sendCommand(program: Command): void {
@@ -15,26 +17,21 @@ export function sendCommand(program: Command): void {
     .hook('preAction', (thisCommand) => {
       const options = thisCommand.opts();
       if (!options.message && !options.file) {
-        thisCommand.error('Error: You must specify either --message or --file');
+        thisCommand.error(`Error: ${ERROR_MESSAGES.NO_MESSAGE_OR_FILE}`);
       }
       if (options.message && options.file) {
-        thisCommand.error('Error: Cannot use both --message and --file');
+        thisCommand.error(`Error: ${ERROR_MESSAGES.BOTH_MESSAGE_AND_FILE}`);
       }
     })
-    .action(async (options) => {
-      try {
+    .action(
+      wrapCommand(async (options) => {
         // Get configuration
         const configManager = new ProfileConfigManager();
         const config = await configManager.getConfig(options.profile);
 
         if (!config) {
-          const profileName = options.profile || (await configManager.getCurrentProfile());
-          console.error(
-            chalk.red(
-              `✗ No configuration found for profile "${profileName}". Use "slack-cli config set --token <token> --profile ${profileName}" to set up.`
-            )
-          );
-          process.exit(1);
+          const profileName = await getProfileName(configManager, options.profile);
+          throw new Error(ERROR_MESSAGES.NO_CONFIG(profileName));
         }
 
         // Get message content
@@ -43,8 +40,7 @@ export function sendCommand(program: Command): void {
           try {
             messageContent = await fs.readFile(options.file, 'utf-8');
           } catch (error) {
-            console.error(chalk.red(`✗ Error reading file: ${error}`));
-            process.exit(1);
+            throw new Error(`Error reading file: ${error}`);
           }
         } else {
           messageContent = options.message;
@@ -54,10 +50,7 @@ export function sendCommand(program: Command): void {
         const client = new SlackApiClient(config.token);
         await client.sendMessage(options.channel, messageContent);
 
-        console.log(chalk.green(`✓ Message sent successfully to #${options.channel}`));
-      } catch (error) {
-        console.error(chalk.red('✗ Error sending message:'), error);
-        process.exit(1);
-      }
-    });
+        console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SENT(options.channel)}`));
+      })
+    );
 }

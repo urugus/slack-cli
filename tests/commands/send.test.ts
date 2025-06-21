@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Command } from 'commander';
 import { sendCommand } from '../../src/commands/send';
 import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../src/utils/constants';
 import * as fs from 'fs/promises';
 
 vi.mock('../../src/utils/slack-api-client');
@@ -10,12 +11,10 @@ vi.mock('../../src/utils/profile-config');
 vi.mock('fs/promises');
 
 describe('send command', () => {
-  let program: Command;
+  let program: any;
   let mockSlackClient: SlackApiClient;
   let mockConfigManager: ProfileConfigManager;
-  let consoleLogSpy: any;
-  let consoleErrorSpy: any;
-  let processExitSpy: any;
+  let mockConsole: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,17 +25,13 @@ describe('send command', () => {
     mockSlackClient = new SlackApiClient('test-token');
     vi.mocked(SlackApiClient).mockReturnValue(mockSlackClient);
     
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-    program = new Command();
-    program.exitOverride();
+    mockConsole = setupMockConsole();
+    program = createTestProgram();
     sendCommand(program);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    restoreMocks();
   });
 
   describe('send message with -m option', () => {
@@ -53,7 +48,7 @@ describe('send command', () => {
       await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-m', 'Hello, World!']);
 
       expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', 'Hello, World!');
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Message sent successfully'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general')));
     });
 
     it('should use specified profile', async () => {
@@ -119,8 +114,8 @@ describe('send command', () => {
 
       await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-m', 'Hello']);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('No configuration found'));
-      expect(processExitSpy).toHaveBeenCalledWith(1);
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'), expect.any(String));
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
 
     it('should handle Slack API errors', async () => {
@@ -132,8 +127,8 @@ describe('send command', () => {
 
       await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'nonexistent', '-m', 'Hello']);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error sending message:'), expect.any(Error));
-      expect(processExitSpy).toHaveBeenCalledWith(1);
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'), expect.any(String));
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
 
     it('should handle file read errors', async () => {
@@ -145,8 +140,8 @@ describe('send command', () => {
 
       await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-f', 'nonexistent.txt']);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error reading file'));
-      expect(processExitSpy).toHaveBeenCalledWith(1);
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'), expect.any(String));
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
 });

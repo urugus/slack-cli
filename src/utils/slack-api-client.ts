@@ -1,4 +1,4 @@
-import { WebClient } from '@slack/web-api';
+import { WebClient, ChatPostMessageResponse } from '@slack/web-api';
 
 export class SlackApiClient {
   private client: WebClient;
@@ -10,11 +10,7 @@ export class SlackApiClient {
   async sendMessage(
     channel: string,
     text: string
-  ): Promise<{
-    ok: boolean;
-    ts?: string;
-    error?: string;
-  }> {
+  ): Promise<ChatPostMessageResponse> {
     return await this.client.chat.postMessage({
       channel,
       text,

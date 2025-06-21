@@ -12,13 +12,13 @@ export class ProfileConfigManager {
   }
 
   async setToken(token: string, profile?: string): Promise<void> {
-    const profileName = profile || 'default';
+    const store = await this.getConfigStore();
+    const profileName = profile || store.defaultProfile || 'default';
     const config: Config = {
       token,
       updatedAt: new Date().toISOString(),
     };
 
-    const store = await this.getConfigStore();
     store.profiles[profileName] = config;
 
     // Set as default profile if it's the first one or explicitly setting default

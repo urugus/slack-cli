@@ -13,8 +13,8 @@ export function configCommand(program: Command): void {
     .action(async (options) => {
       try {
         const configManager = new ProfileConfigManager();
-        await configManager.setToken(options.token, options.profile);
         const profileName = options.profile || (await configManager.getCurrentProfile());
+        await configManager.setToken(options.token, options.profile);
         console.log(chalk.green(`✓ Token saved successfully for profile "${profileName}"`));
       } catch (error) {
         console.error(chalk.red('✗ Error saving token:'), error);

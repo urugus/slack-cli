@@ -24,7 +24,7 @@ describe('ProfileConfigManager', () => {
   });
 
   describe('setToken', () => {
-    it('should save token to default profile when no profile specified', async () => {
+    it('should save token to default profile when no profile specified and no default set', async () => {
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
       vi.mocked(fs.chmod).mockResolvedValue(undefined);
@@ -38,6 +38,31 @@ describe('ProfileConfigManager', () => {
       expect(writtenData.profiles.default).toBeDefined();
       expect(writtenData.profiles.default.token).toBe('test-token-123');
       expect(writtenData.defaultProfile).toBe('default');
+    });
+
+    it('should save token to current default profile when no profile specified', async () => {
+      const existingStore: ConfigStore = {
+        profiles: {
+          personal: {
+            token: 'personal-token',
+            updatedAt: '2025-01-01T00:00:00.000Z'
+          }
+        },
+        defaultProfile: 'personal'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(existingStore));
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.chmod).mockResolvedValue(undefined);
+
+      await configManager.setToken('updated-token-123');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
+      
+      expect(writtenData.profiles.personal.token).toBe('updated-token-123');
+      expect(writtenData.defaultProfile).toBe('personal');
     });
 
     it('should save token to specified profile', async () => {

@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { SlackApiClient, HistoryOptions as ApiHistoryOptions } from '../utils/slack-api-client';
+import { HistoryOptions as ApiHistoryOptions, Message } from '../utils/slack-api-client';
 import { wrapCommand } from '../utils/command-wrapper';
-import { getConfigOrThrow } from '../utils/config-helper';
+import { createSlackClient } from '../utils/client-factory';
 import { HistoryOptions } from '../types/commands';
 import { formatSlackTimestamp } from '../utils/date-utils';
 import { API_LIMITS } from '../utils/constants';
@@ -45,8 +45,8 @@ export function setupHistoryCommand(): Command {
     })
     .action(
       wrapCommand(async (options: HistoryOptions) => {
-        // Get configuration
-        const config = await getConfigOrThrow(options.profile);
+        // Create Slack client
+        const client = await createSlackClient(options.profile);
 
         // Prepare API options
         const historyOptions: ApiHistoryOptions = {
@@ -60,7 +60,6 @@ export function setupHistoryCommand(): Command {
         }
 
         // Get message history
-        const client = new SlackApiClient(config.token);
         const { messages, users } = await client.getHistory(options.channel, historyOptions);
 
         // Display results
@@ -72,7 +71,7 @@ export function setupHistoryCommand(): Command {
         console.log(chalk.bold(`\nMessage History for #${options.channel}:\n`));
 
         // Display messages in reverse order (oldest first)
-        messages.reverse().forEach((message) => {
+        messages.reverse().forEach((message: Message) => {
           const timestamp = formatSlackTimestamp(message.ts);
           let author = 'Unknown';
 

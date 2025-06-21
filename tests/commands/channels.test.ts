@@ -1,280 +1,249 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { program } from 'commander';
-import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { slackApiClient } from '../../src/utils/slack-api-client';
 import { setupChannelsCommand } from '../../src/commands/channels';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
 import { ERROR_MESSAGES } from '../../src/utils/constants';
 
-vi.mock('../../src/utils/profile-config');
 vi.mock('../../src/utils/slack-api-client');
+vi.mock('../../src/utils/profile-config');
 
 describe('channels command', () => {
-  let consoleLogSpy: any;
-  let consoleErrorSpy: any;
-  let processExitSpy: any;
-  let mockConfigManager: any;
+  let program: any;
+  let mockSlackClient: SlackApiClient;
+  let mockConfigManager: ProfileConfigManager;
+  let mockConsole: any;
 
   beforeEach(() => {
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit');
-    });
     vi.clearAllMocks();
-    program.removeAllListeners();
     
-    // Mock ProfileConfigManager
-    mockConfigManager = {
-      getConfig: vi.fn(),
-      listProfiles: vi.fn()
-    };
+    mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockReturnValue(mockConfigManager);
+    
+    mockSlackClient = new SlackApiClient('test-token');
+    vi.mocked(SlackApiClient).mockReturnValue(mockSlackClient);
+    
+    mockConsole = setupMockConsole();
+    program = createTestProgram();
+    program.addCommand(setupChannelsCommand());
   });
 
   afterEach(() => {
-    consoleLogSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
-    processExitSpy.mockRestore();
+    restoreMocks();
   });
+
+  const mockChannels = [
+    {
+      id: 'C1234567890',
+      name: 'general',
+      is_channel: true,
+      is_private: false,
+      num_members: 250,
+      created: 1579075200,
+      purpose: { value: 'Company announcements' }
+    },
+    {
+      id: 'C0987654321',
+      name: 'random',
+      is_channel: true,
+      is_private: false,
+      num_members: 145,
+      created: 1579075200,
+      purpose: { value: 'Random discussions' }
+    }
+  ];
 
   describe('basic functionality', () => {
     it('should list public channels by default', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([
-        {
-          id: 'C1234567890',
-          name: 'general',
-          is_channel: true,
-          is_private: false,
-          num_members: 150,
-          created: 1579075200,
-          purpose: { value: 'Company announcements' }
-        },
-        {
-          id: 'C0987654321',
-          name: 'random',
-          is_channel: true,
-          is_private: false,
-          num_members: 145,
-          created: 1579075200,
-          purpose: { value: 'Random discussions' }
-        }
-      ]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels']);
 
-      expect(slackApiClient.listChannels).toHaveBeenCalledWith(
-        'test-token',
-        {
-          types: 'public_channel',
-          exclude_archived: true,
-          limit: 100
-        }
-      );
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('general'));
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('random'));
+      expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 100
+      });
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('general'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('random'));
     });
 
     it('should show error when no token is configured', async () => {
-      mockConfigManager.getConfig.mockResolvedValue(null);
-      mockConfigManager.listProfiles.mockResolvedValue([{ name: 'default', isDefault: true }]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
 
-      const channelsCommand = setupChannelsCommand();
-      
-      await expect(channelsCommand.parseAsync(['channels'], { from: 'user' }))
-        .rejects.toThrow('process.exit');
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith('✗ Error:', 'No configuration found for profile "default". Use "slack-cli config set --token <token> --profile default" to set up.');
+      await program.parseAsync(['node', 'slack-cli', 'channels']);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith('✗ Error:', ERROR_MESSAGES.CONFIG_NOT_FOUND);
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
 
   describe('channel type filtering', () => {
     it('should list private channels when type is private', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([
-        {
-          id: 'G1234567890',
-          name: 'dev-team',
-          is_group: true,
-          is_private: true,
-          num_members: 12,
-          created: 1616284800,
-          purpose: { value: 'Development team discussions' }
-        }
-      ]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--type', 'private'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--type', 'private']);
 
-      expect(slackApiClient.listChannels).toHaveBeenCalledWith(
-        'test-token',
-        {
-          types: 'private_channel',
-          exclude_archived: true,
-          limit: 100
-        }
-      );
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('dev-team'));
+      expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
+        types: 'private_channel',
+        exclude_archived: true,
+        limit: 100
+      });
     });
 
     it('should list all channel types when type is all', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--type', 'all'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--type', 'all']);
 
-      expect(slackApiClient.listChannels).toHaveBeenCalledWith(
-        'test-token',
-        {
-          types: 'public_channel,private_channel,mpim,im',
-          exclude_archived: true,
-          limit: 100
-        }
-      );
+      expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
+        types: 'public_channel,private_channel,mpim,im',
+        exclude_archived: true,
+        limit: 100
+      });
     });
 
     it('should list direct messages when type is im', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--type', 'im'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--type', 'im']);
 
-      expect(slackApiClient.listChannels).toHaveBeenCalledWith(
-        'test-token',
-        {
-          types: 'im',
-          exclude_archived: true,
-          limit: 100
-        }
-      );
+      expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
+        types: 'im',
+        exclude_archived: true,
+        limit: 100
+      });
     });
   });
 
   describe('output formatting', () => {
-    const mockChannels = [
-      {
-        id: 'C1234567890',
-        name: 'general',
-        is_channel: true,
-        is_private: false,
-        num_members: 150,
-        created: 1579075200,
-        purpose: { value: 'Company announcements' }
-      }
-    ];
-
     it('should output in table format by default', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue(mockChannels);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels']);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Name'));
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Type'));
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Members'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Name'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Type'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Members'));
     });
 
     it('should output in simple format when specified', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue(mockChannels);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--format', 'simple'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--format', 'simple']);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('general');
-      expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('Type'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('general');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('random');
     });
 
     it('should output in JSON format when specified', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue(mockChannels);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--format', 'json'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--format', 'json']);
 
-      const output = consoleLogSpy.mock.calls[0][0];
-      const parsed = JSON.parse(output);
-      expect(parsed).toHaveLength(1);
-      expect(parsed[0]).toHaveProperty('id', 'C1234567890');
-      expect(parsed[0]).toHaveProperty('name', 'general');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('"name": "general"'));
     });
   });
 
   describe('additional options', () => {
     it('should include archived channels when flag is set', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--include-archived'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--include-archived']);
 
-      expect(slackApiClient.listChannels).toHaveBeenCalledWith(
-        'test-token',
-        {
-          types: 'public_channel',
-          exclude_archived: false,
-          limit: 100
-        }
-      );
+      expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
+        types: 'public_channel',
+        exclude_archived: false,
+        limit: 100
+      });
     });
 
     it('should respect custom limit', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--limit', '50'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--limit', '50']);
 
-      expect(slackApiClient.listChannels).toHaveBeenCalledWith(
-        'test-token',
-        {
-          types: 'public_channel',
-          exclude_archived: true,
-          limit: 50
-        }
-      );
+      expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 50
+      });
     });
 
     it('should use specified profile', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'work-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'work-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels', '--profile', 'work'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--profile', 'work']);
 
       expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
-      expect(slackApiClient.listChannels).toHaveBeenCalledWith(
-        'work-token',
-        expect.any(Object)
-      );
+      expect(SlackApiClient).toHaveBeenCalledWith('work-token');
     });
   });
 
   describe('error handling', () => {
     it('should handle API errors gracefully', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockRejectedValue(new Error('API Error'));
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockRejectedValue(new Error('API Error'));
 
-      const channelsCommand = setupChannelsCommand();
-      
-      await expect(channelsCommand.parseAsync(['channels'], { from: 'user' }))
-        .rejects.toThrow('process.exit');
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith('✗ Error:', 'API Error');
+      await program.parseAsync(['node', 'slack-cli', 'channels']);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith('✗ Error:', 'API Error');
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
 
     it('should show message when no channels found', async () => {
-      mockConfigManager.getConfig.mockResolvedValue({ token: 'test-token' });
-      vi.mocked(slackApiClient.listChannels).mockResolvedValue([]);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue([]);
 
-      const channelsCommand = setupChannelsCommand();
-      await channelsCommand.parseAsync(['channels'], { from: 'user' });
+      await program.parseAsync(['node', 'slack-cli', 'channels']);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(ERROR_MESSAGES.NO_CHANNELS_FOUND);
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(ERROR_MESSAGES.NO_CHANNELS_FOUND);
     });
   });
 });

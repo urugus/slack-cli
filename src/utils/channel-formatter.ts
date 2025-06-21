@@ -66,6 +66,11 @@ export function formatChannelsAsJson(channels: ChannelInfo[]): void {
   );
 }
 
+export function formatChannelName(channelName?: string): string {
+  if (!channelName) return '#unknown';
+  return channelName.startsWith('#') ? channelName : `#${channelName}`;
+}
+
 export function getChannelTypes(type: string): string {
   switch (type) {
     case 'public':

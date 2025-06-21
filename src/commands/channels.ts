@@ -1,7 +1,6 @@
 import { Command } from 'commander';
-import { slackApiClient } from '../utils/slack-api-client';
 import { wrapCommand } from '../utils/command-wrapper';
-import { getConfigOrThrow } from '../utils/config-helper';
+import { createSlackClient } from '../utils/client-factory';
 import { ERROR_MESSAGES } from '../utils/constants';
 import { ChannelsOptions } from '../types/commands';
 import {
@@ -24,14 +23,14 @@ export function setupChannelsCommand(): Command {
     .option('--profile <profile>', 'Use specific workspace profile')
     .action(
       wrapCommand(async (options: ChannelsOptions) => {
-        // Get configuration
-        const config = await getConfigOrThrow(options.profile);
+        // Create Slack client
+        const client = await createSlackClient(options.profile);
 
         // Map channel type to API types
         const types = getChannelTypes(options.type);
 
         // List channels
-        const channels = await slackApiClient.listChannels(config.token, {
+        const channels = await client.listChannels({
           types,
           exclude_archived: !options.includeArchived,
           limit: parseInt(options.limit, 10),

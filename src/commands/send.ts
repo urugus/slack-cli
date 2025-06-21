@@ -1,9 +1,8 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { SlackApiClient } from '../utils/slack-api-client';
 import { wrapCommand } from '../utils/command-wrapper';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
-import { getConfigOrThrow } from '../utils/config-helper';
+import { createSlackClient } from '../utils/client-factory';
 import { FileError } from '../utils/errors';
 import { SendOptions } from '../types/commands';
 import { extractErrorMessage } from '../utils/error-utils';
@@ -27,9 +26,6 @@ export function setupSendCommand(): Command {
     })
     .action(
       wrapCommand(async (options: SendOptions) => {
-        // Get configuration
-        const config = await getConfigOrThrow(options.profile);
-
         // Get message content
         let messageContent: string;
         if (options.file) {
@@ -45,7 +41,7 @@ export function setupSendCommand(): Command {
         }
 
         // Send message
-        const client = new SlackApiClient(config.token);
+        const client = await createSlackClient(options.profile);
         await client.sendMessage(options.channel, messageContent);
 
         console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SENT(options.channel)}`));

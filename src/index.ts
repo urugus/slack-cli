@@ -4,6 +4,7 @@ import { setupConfigCommand } from './commands/config';
 import { setupSendCommand } from './commands/send';
 import { setupChannelsCommand } from './commands/channels';
 import { setupHistoryCommand } from './commands/history';
+import { setupUnreadCommand } from './commands/unread';
 
 const program = new Command();
 
@@ -13,5 +14,6 @@ program.addCommand(setupConfigCommand());
 program.addCommand(setupSendCommand());
 program.addCommand(setupChannelsCommand());
 program.addCommand(setupHistoryCommand());
+program.addCommand(setupUnreadCommand());
 
 program.parse();

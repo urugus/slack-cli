@@ -36,3 +36,11 @@ export interface HistoryOptions {
   since?: string;
   profile?: string;
 }
+
+export interface UnreadOptions {
+  channel?: string;
+  format?: 'table' | 'simple' | 'json';
+  countOnly?: boolean;
+  limit?: string;
+  profile?: string;
+}

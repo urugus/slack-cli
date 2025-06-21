@@ -29,3 +29,10 @@ export interface ChannelsOptions {
   limit: string;
   profile?: string;
 }
+
+export interface HistoryOptions {
+  channel: string;
+  number?: string;
+  since?: string;
+  profile?: string;
+}

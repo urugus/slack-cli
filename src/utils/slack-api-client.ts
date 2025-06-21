@@ -36,6 +36,27 @@ export interface ListChannelsOptions {
   limit: number;
 }
 
+export interface HistoryOptions {
+  limit: number;
+  oldest?: string;
+}
+
+export interface Message {
+  type: string;
+  text?: string;
+  user?: string;
+  bot_id?: string;
+  ts: string;
+  thread_ts?: string;
+  attachments?: unknown[];
+  blocks?: unknown[];
+}
+
+export interface HistoryResult {
+  messages: Message[];
+  users: Map<string, string>;
+}
+
 export class SlackApiClient {
   private client: WebClient;
 
@@ -58,6 +79,37 @@ export class SlackApiClient {
     });
 
     return response.channels as Channel[];
+  }
+
+  async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {
+    const response = await this.client.conversations.history({
+      channel,
+      limit: options.limit,
+      oldest: options.oldest,
+    });
+
+    const messages = response.messages as Message[];
+
+    // Get unique user IDs
+    const userIds = [...new Set(messages.filter((m) => m.user).map((m) => m.user!))];
+    const users = new Map<string, string>();
+
+    // Fetch user information
+    if (userIds.length > 0) {
+      for (const userId of userIds) {
+        try {
+          const userInfo = await this.client.users.info({ user: userId });
+          if (userInfo.user?.name) {
+            users.set(userId, userInfo.user.name);
+          }
+        } catch (error) {
+          // If we can't get user info, we'll use the ID
+          users.set(userId, userId);
+        }
+      }
+    }
+
+    return { messages, users };
   }
 }
 

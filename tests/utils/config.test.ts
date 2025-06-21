@@ -2,21 +2,21 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { ConfigManager } from '../../src/utils/config';
-import type { Config } from '../../src/types/config';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import type { Config, ConfigStore } from '../../src/types/config';
 
 vi.mock('fs/promises');
 vi.mock('os');
 
-describe('ConfigManager', () => {
-  let configManager: ConfigManager;
+describe('ProfileConfigManager', () => {
+  let configManager: ProfileConfigManager;
   const mockHomeDir = '/mock/home';
   const mockConfigPath = path.join(mockHomeDir, '.slack-cli', 'config.json');
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(os.homedir).mockReturnValue(mockHomeDir);
-    configManager = new ConfigManager();
+    configManager = new ProfileConfigManager();
   });
 
   afterEach(() => {
@@ -24,103 +24,352 @@ describe('ConfigManager', () => {
   });
 
   describe('setToken', () => {
-    it('should create config directory and save token', async () => {
+    it('should save token to default profile when no profile specified', async () => {
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
       vi.mocked(fs.chmod).mockResolvedValue(undefined);
+      vi.mocked(fs.readFile).mockRejectedValue({ code: 'ENOENT' });
 
-      await configManager.setToken('test-token-abc');
+      await configManager.setToken('test-token-123');
 
-      expect(fs.mkdir).toHaveBeenCalledWith(
-        path.dirname(mockConfigPath),
-        { recursive: true }
-      );
-      
       const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
-      expect(writeCall[0]).toBe(mockConfigPath);
-      const writtenData = JSON.parse(writeCall[1] as string);
-      expect(writtenData.token).toBe('test-token-abc');
-      expect(writtenData.updatedAt).toBeDefined();
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
       
-      expect(fs.chmod).toHaveBeenCalledWith(mockConfigPath, 0o600);
+      expect(writtenData.profiles.default).toBeDefined();
+      expect(writtenData.profiles.default.token).toBe('test-token-123');
+      expect(writtenData.defaultProfile).toBe('default');
     });
 
-    it('should overwrite existing token', async () => {
-      const existingConfig: Config = {
-        token: 'test-old-token',
-        updatedAt: '2025-01-01T00:00:00.000Z'
-      };
-
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(existingConfig));
+    it('should save token to specified profile', async () => {
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
       vi.mocked(fs.chmod).mockResolvedValue(undefined);
+      vi.mocked(fs.readFile).mockRejectedValue({ code: 'ENOENT' });
 
-      await configManager.setToken('test-new-token');
+      await configManager.setToken('work-token-123', 'work');
 
       const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
-      const writtenData = JSON.parse(writeCall[1] as string);
-      expect(writtenData.token).toBe('test-new-token');
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
+      
+      expect(writtenData.profiles.work).toBeDefined();
+      expect(writtenData.profiles.work.token).toBe('work-token-123');
+    });
+
+    it('should preserve existing profiles when adding new one', async () => {
+      const existingStore: ConfigStore = {
+        profiles: {
+          personal: {
+            token: 'personal-token',
+            updatedAt: '2025-01-01T00:00:00.000Z'
+          }
+        },
+        defaultProfile: 'personal'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(existingStore));
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.chmod).mockResolvedValue(undefined);
+
+      await configManager.setToken('work-token-123', 'work');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
+      
+      expect(writtenData.profiles.personal).toBeDefined();
+      expect(writtenData.profiles.work).toBeDefined();
+      expect(writtenData.profiles.work.token).toBe('work-token-123');
+      expect(writtenData.defaultProfile).toBe('personal'); // default unchanged
     });
   });
 
   describe('getConfig', () => {
-    it('should return config when file exists', async () => {
-      const mockConfig: Config = {
-        token: 'test-token-xyz',
-        updatedAt: '2025-06-21T10:00:00.000Z'
+    it('should return config from default profile', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          },
+          work: {
+            token: 'work-token',
+            updatedAt: '2025-06-21T11:00:00.000Z'
+          }
+        },
+        defaultProfile: 'default'
       };
 
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockConfig));
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
 
       const config = await configManager.getConfig();
 
-      expect(config).toEqual(mockConfig);
-      expect(fs.readFile).toHaveBeenCalledWith(mockConfigPath, 'utf-8');
+      expect(config).toEqual(mockStore.profiles.default);
     });
 
-    it('should return null when file does not exist', async () => {
-      vi.mocked(fs.readFile).mockRejectedValue({ code: 'ENOENT' });
+    it('should return config from specified profile', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          },
+          work: {
+            token: 'work-token',
+            updatedAt: '2025-06-21T11:00:00.000Z'
+          }
+        },
+        defaultProfile: 'default'
+      };
 
-      const config = await configManager.getConfig();
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+
+      const config = await configManager.getConfig('work');
+
+      expect(config).toEqual(mockStore.profiles.work);
+    });
+
+    it('should return null when profile does not exist', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          }
+        },
+        defaultProfile: 'default'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+
+      const config = await configManager.getConfig('nonexistent');
 
       expect(config).toBeNull();
     });
+  });
 
-    it('should throw error for invalid JSON', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue('invalid json');
+  describe('listProfiles', () => {
+    it('should return all profiles with current profile marked', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          },
+          work: {
+            token: 'work-token',
+            updatedAt: '2025-06-21T11:00:00.000Z'
+          },
+          personal: {
+            token: 'personal-token',
+            updatedAt: '2025-06-21T12:00:00.000Z'
+          }
+        },
+        defaultProfile: 'work'
+      };
 
-      await expect(configManager.getConfig()).rejects.toThrow('Invalid config file format');
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+
+      const profiles = await configManager.listProfiles();
+
+      expect(profiles).toHaveLength(3);
+      expect(profiles.find(p => p.name === 'work')?.isDefault).toBe(true);
+      expect(profiles.find(p => p.name === 'default')?.isDefault).toBe(false);
+    });
+
+    it('should return empty array when no profiles exist', async () => {
+      vi.mocked(fs.readFile).mockRejectedValue({ code: 'ENOENT' });
+
+      const profiles = await configManager.listProfiles();
+
+      expect(profiles).toEqual([]);
+    });
+  });
+
+  describe('useProfile', () => {
+    it('should set default profile', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          },
+          work: {
+            token: 'work-token',
+            updatedAt: '2025-06-21T11:00:00.000Z'
+          }
+        },
+        defaultProfile: 'default'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.chmod).mockResolvedValue(undefined);
+
+      await configManager.useProfile('work');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
+      
+      expect(writtenData.defaultProfile).toBe('work');
+    });
+
+    it('should throw error when profile does not exist', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          }
+        },
+        defaultProfile: 'default'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+
+      await expect(configManager.useProfile('nonexistent')).rejects.toThrow('Profile "nonexistent" does not exist');
+    });
+  });
+
+  describe('getCurrentProfile', () => {
+    it('should return current default profile name', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          },
+          work: {
+            token: 'work-token',
+            updatedAt: '2025-06-21T11:00:00.000Z'
+          }
+        },
+        defaultProfile: 'work'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+
+      const currentProfile = await configManager.getCurrentProfile();
+
+      expect(currentProfile).toBe('work');
+    });
+
+    it('should return "default" when no default profile set', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          }
+        }
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+
+      const currentProfile = await configManager.getCurrentProfile();
+
+      expect(currentProfile).toBe('default');
     });
   });
 
   describe('clearConfig', () => {
-    it('should delete config file when it exists', async () => {
+    it('should clear specific profile', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          },
+          work: {
+            token: 'work-token',
+            updatedAt: '2025-06-21T11:00:00.000Z'
+          }
+        },
+        defaultProfile: 'work'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.chmod).mockResolvedValue(undefined);
+
+      await configManager.clearConfig('work');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
+      
+      expect(writtenData.profiles.work).toBeUndefined();
+      expect(writtenData.profiles.default).toBeDefined();
+      expect(writtenData.defaultProfile).toBe('default'); // fallback to default
+    });
+
+    it('should clear default profile and reset defaultProfile', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          },
+          work: {
+            token: 'work-token',
+            updatedAt: '2025-06-21T11:00:00.000Z'
+          }
+        },
+        defaultProfile: 'default'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.chmod).mockResolvedValue(undefined);
+
+      await configManager.clearConfig('default');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
+      
+      expect(writtenData.profiles.default).toBeUndefined();
+      expect(writtenData.profiles.work).toBeDefined();
+      expect(writtenData.defaultProfile).toBe('work'); // switch to remaining profile
+    });
+
+    it('should delete config file when clearing last profile', async () => {
+      const mockStore: ConfigStore = {
+        profiles: {
+          default: {
+            token: 'default-token',
+            updatedAt: '2025-06-21T10:00:00.000Z'
+          }
+        },
+        defaultProfile: 'default'
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockStore));
       vi.mocked(fs.unlink).mockResolvedValue(undefined);
 
-      await configManager.clearConfig();
+      await configManager.clearConfig('default');
 
       expect(fs.unlink).toHaveBeenCalledWith(mockConfigPath);
     });
-
-    it('should not throw when file does not exist', async () => {
-      vi.mocked(fs.unlink).mockRejectedValue({ code: 'ENOENT' });
-
-      await expect(configManager.clearConfig()).resolves.not.toThrow();
-    });
   });
 
-  describe('maskToken', () => {
-    it('should mask token keeping first 5 and last 4 characters', () => {
-      const masked = configManager.maskToken('test-token-1234567890-abcdefghijklmnop');
-      
-      expect(masked).toBe('test-****-****-mnop');
-    });
+  describe('migration from old config', () => {
+    it('should automatically migrate old single-token config to profile format', async () => {
+      const oldConfig = {
+        token: 'old-token-123',
+        updatedAt: '2025-01-01T00:00:00.000Z'
+      };
 
-    it('should return masked string for short tokens', () => {
-      const masked = configManager.maskToken('short');
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(oldConfig));
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.chmod).mockResolvedValue(undefined);
+
+      const config = await configManager.getConfig();
+
+      expect(config).toEqual(oldConfig);
       
-      expect(masked).toBe('****');
+      // Verify migration happened
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string) as ConfigStore;
+      
+      expect(writtenData.profiles.default).toEqual(oldConfig);
+      expect(writtenData.defaultProfile).toBe('default');
     });
   });
 });

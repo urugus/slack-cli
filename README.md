@@ -18,11 +18,37 @@ slack-cli config --token YOUR_SLACK_API_TOKEN
 
 ## Usage
 
+### Managing Multiple Workspaces (Profiles)
+
+```bash
+# Set tokens for different workspaces
+slack-cli config set --profile work --token xoxb-work-token
+slack-cli config set --profile personal --token xoxb-personal-token
+
+# Show all profiles
+slack-cli config profiles
+
+# Switch default profile
+slack-cli config use work
+
+# Show current active profile
+slack-cli config current
+
+# Show configuration for specific profile
+slack-cli config get --profile personal
+
+# Clear specific profile
+slack-cli config clear --profile work
+```
+
 ### Sending Messages
 
 ```bash
-# Basic usage
+# Basic usage (uses default profile)
 slack-cli send -c channel-name -m "Your message here"
+
+# Using specific profile
+slack-cli send -c channel-name -m "Your message here" --profile personal
 
 # Using channel ID
 slack-cli send -c C1234567890 -m "Your message here"
@@ -37,8 +63,11 @@ slack-cli send -c random -f message.txt
 ### List Channels
 
 ```bash
-# List all channels
+# List all channels (uses default profile)
 slack-cli channels
+
+# List channels from specific profile
+slack-cli channels --profile work
 
 # List public channels only
 slack-cli channels --public
@@ -89,10 +118,10 @@ slack-cli --help
 slack-cli --version
 
 # Show current configuration
-slack-cli config --show
+slack-cli config get
 
-# Update token
-slack-cli config --token NEW_TOKEN
+# Update token for default profile
+slack-cli config set --token NEW_TOKEN
 ```
 
 ## Options
@@ -103,6 +132,7 @@ slack-cli config --token NEW_TOKEN
 | --message | -m | Message to send |
 | --file | -f | File containing message content |
 | --token | -t | Slack API token (temporary override) |
+| --profile | -p | Use specific workspace profile |
 | --format | | Message format (text/markdown) |
 | --verbose | -v | Show verbose output |
 | --show-channel | | Display channel name with unread messages |
@@ -110,8 +140,9 @@ slack-cli config --token NEW_TOKEN
 
 ## Environment Variables
 
-- `SLACK_API_TOKEN`: Default API token
+- `SLACK_API_TOKEN`: Default API token (used when no profile is configured)
 - `SLACK_DEFAULT_CHANNEL`: Default target channel
+- `SLACK_DEFAULT_PROFILE`: Default profile to use
 
 ## Required Permissions
 

@@ -33,3 +33,15 @@ export const SUCCESS_MESSAGES = {
   PROFILE_CLEARED: (profileName: string) => `Profile "${profileName}" cleared successfully`,
   MESSAGE_SENT: (channel: string) => `Message sent successfully to #${channel}`,
 } as const;
+
+// File and system constants
+export const FILE_PERMISSIONS = {
+  CONFIG_FILE: 0o600, // Read/write for owner only
+};
+
+// API limits
+export const API_LIMITS = {
+  MAX_MESSAGE_COUNT: 1000,
+  MIN_MESSAGE_COUNT: 1,
+  DEFAULT_MESSAGE_COUNT: 10,
+};

@@ -4,12 +4,14 @@ import { SlackApiClient, HistoryOptions as ApiHistoryOptions } from '../utils/sl
 import { wrapCommand } from '../utils/command-wrapper';
 import { getConfigOrThrow } from '../utils/config-helper';
 import { HistoryOptions } from '../types/commands';
+import { formatSlackTimestamp } from '../utils/date-utils';
+import { API_LIMITS } from '../utils/constants';
 
 export function setupHistoryCommand(): Command {
   const historyCommand = new Command('history')
     .description('Get message history from a Slack channel')
     .requiredOption('-c, --channel <channel>', 'Target channel name or ID')
-    .option('-n, --number <number>', 'Number of messages to retrieve', '10')
+    .option('-n, --number <number>', 'Number of messages to retrieve', API_LIMITS.DEFAULT_MESSAGE_COUNT.toString())
     .option('--since <date>', 'Get messages since specific date (YYYY-MM-DD HH:MM:SS)')
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook('preAction', (thisCommand) => {
@@ -18,8 +20,8 @@ export function setupHistoryCommand(): Command {
       // Validate number option
       if (options.number) {
         const num = parseInt(options.number, 10);
-        if (isNaN(num) || num < 1 || num > 1000) {
-          thisCommand.error('Error: Message count must be between 1 and 1000');
+        if (isNaN(num) || num < API_LIMITS.MIN_MESSAGE_COUNT || num > API_LIMITS.MAX_MESSAGE_COUNT) {
+          thisCommand.error(`Error: Message count must be between ${API_LIMITS.MIN_MESSAGE_COUNT} and ${API_LIMITS.MAX_MESSAGE_COUNT}`);
         }
       }
 
@@ -38,7 +40,7 @@ export function setupHistoryCommand(): Command {
 
         // Prepare API options
         const historyOptions: ApiHistoryOptions = {
-          limit: parseInt(options.number || '10', 10),
+          limit: parseInt(options.number || API_LIMITS.DEFAULT_MESSAGE_COUNT.toString(), 10),
         };
 
         if (options.since) {
@@ -61,7 +63,7 @@ export function setupHistoryCommand(): Command {
 
         // Display messages in reverse order (oldest first)
         messages.reverse().forEach((message) => {
-          const timestamp = new Date(parseFloat(message.ts) * 1000).toLocaleString();
+          const timestamp = formatSlackTimestamp(message.ts);
           let author = 'Unknown';
 
           if (message.user && users.has(message.user)) {

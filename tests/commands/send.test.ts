@@ -89,12 +89,22 @@ describe('send command', () => {
   });
 
   describe('validation', () => {
-    it.skip('should fail when no message or file is provided', async () => {
-      // TODO: Fix this test - preAction hook behavior changed in Commander.js
+    it('should fail when no message or file is provided', async () => {
+      const sendCommand = setupSendCommand();
+      sendCommand.exitOverride();
+
+      await expect(
+        sendCommand.parseAsync(['-c', 'general'], { from: 'user' })
+      ).rejects.toThrow(`Error: ${ERROR_MESSAGES.NO_MESSAGE_OR_FILE}`);
     });
 
-    it.skip('should fail when both message and file are provided', async () => {
-      // TODO: Fix this test - preAction hook behavior changed in Commander.js
+    it('should fail when both message and file are provided', async () => {
+      const sendCommand = setupSendCommand();
+      sendCommand.exitOverride();
+
+      await expect(
+        sendCommand.parseAsync(['-c', 'general', '-m', 'Hello', '-f', 'file.txt'], { from: 'user' })
+      ).rejects.toThrow(`Error: ${ERROR_MESSAGES.BOTH_MESSAGE_AND_FILE}`);
     });
 
     it('should fail when no channel is provided', async () => {

@@ -1,4 +1,5 @@
 import { Channel } from './slack-api-client';
+import { formatUnixTimestamp } from './date-utils';
 
 export interface ChannelInfo {
   id: string;
@@ -21,7 +22,7 @@ export function mapChannelToInfo(channel: Channel): ChannelInfo {
     name: channel.name || 'unnamed',
     type,
     members: channel.num_members || 0,
-    created: new Date(channel.created * 1000).toISOString().split('T')[0],
+    created: formatUnixTimestamp(channel.created),
     purpose: channel.purpose?.value || '',
   };
 }

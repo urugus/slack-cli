@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { extractErrorMessage } from './error-utils';
 
 export type CommandAction<T = unknown> = (options: T) => Promise<void> | void;
 
@@ -7,8 +8,7 @@ export function wrapCommand<T = unknown>(action: CommandAction<T>): CommandActio
     try {
       await action(options);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(chalk.red('✗ Error:'), errorMessage);
+      console.error(chalk.red('✗ Error:'), extractErrorMessage(error));
 
       if (process.env.NODE_ENV === 'development' && error instanceof Error) {
         console.error(chalk.gray(error.stack));

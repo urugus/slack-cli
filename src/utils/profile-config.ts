@@ -7,6 +7,7 @@ import {
   TOKEN_MIN_LENGTH,
   DEFAULT_PROFILE_NAME,
   ERROR_MESSAGES,
+  FILE_PERMISSIONS,
 } from './constants';
 
 export class ProfileConfigManager {
@@ -113,20 +114,8 @@ export class ProfileConfigManager {
       const parsed = JSON.parse(data);
 
       // Handle migration from old format
-      if (parsed.token && !parsed.profiles) {
-        const oldConfig: Config = {
-          token: parsed.token,
-          updatedAt: parsed.updatedAt,
-        };
-
-        const newStore: ConfigStore = {
-          profiles: { [DEFAULT_PROFILE_NAME]: oldConfig },
-          defaultProfile: DEFAULT_PROFILE_NAME,
-        };
-
-        // Save migrated config
-        await this.saveConfigStore(newStore);
-        return newStore;
+      if (this.needsMigration(parsed)) {
+        return await this.migrateOldConfig(parsed);
       }
 
       return parsed as ConfigStore;
@@ -141,12 +130,32 @@ export class ProfileConfigManager {
     }
   }
 
+  private needsMigration(data: any): boolean {
+    return data.token && !data.profiles;
+  }
+
+  private async migrateOldConfig(oldData: any): Promise<ConfigStore> {
+    const oldConfig: Config = {
+      token: oldData.token,
+      updatedAt: oldData.updatedAt,
+    };
+
+    const newStore: ConfigStore = {
+      profiles: { [DEFAULT_PROFILE_NAME]: oldConfig },
+      defaultProfile: DEFAULT_PROFILE_NAME,
+    };
+
+    // Save migrated config
+    await this.saveConfigStore(newStore);
+    return newStore;
+  }
+
   private async saveConfigStore(store: ConfigStore): Promise<void> {
     const configDir = path.dirname(this.configPath);
     await fs.mkdir(configDir, { recursive: true });
 
     await fs.writeFile(this.configPath, JSON.stringify(store, null, 2));
-    await fs.chmod(this.configPath, 0o600);
+    await fs.chmod(this.configPath, FILE_PERMISSIONS.CONFIG_FILE);
   }
 }
 

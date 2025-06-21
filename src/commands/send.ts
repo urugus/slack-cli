@@ -6,6 +6,7 @@ import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
 import { getConfigOrThrow } from '../utils/config-helper';
 import { FileError } from '../utils/errors';
 import { SendOptions } from '../types/commands';
+import { extractErrorMessage } from '../utils/error-utils';
 import * as fs from 'fs/promises';
 
 export function setupSendCommand(): Command {
@@ -35,8 +36,7 @@ export function setupSendCommand(): Command {
           try {
             messageContent = await fs.readFile(options.file, 'utf-8');
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new FileError(ERROR_MESSAGES.FILE_READ_ERROR(options.file, errorMessage));
+            throw new FileError(ERROR_MESSAGES.FILE_READ_ERROR(options.file, extractErrorMessage(error)));
           }
         } else {
           messageContent = options.message!; // This is safe because of preAction validation

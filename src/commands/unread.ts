@@ -22,15 +22,21 @@ export function setupUnreadCommand(): Command {
         if (options.channel) {
           // Show unread for a specific channel
           const result = await client.getChannelUnread(options.channel);
-          const channelName = result.channel.name?.startsWith('#') ? result.channel.name : `#${result.channel.name}`;
-          
-          console.log(chalk.bold(`${channelName}: ${result.channel.unread_count || 0} unread messages`));
-          
+          const channelName = result.channel.name?.startsWith('#')
+            ? result.channel.name
+            : `#${result.channel.name}`;
+
+          console.log(
+            chalk.bold(`${channelName}: ${result.channel.unread_count || 0} unread messages`)
+          );
+
           if (!options.countOnly && result.messages.length > 0) {
             console.log('');
             result.messages.forEach((message) => {
               const timestamp = formatSlackTimestamp(message.ts);
-              const author = message.user ? result.users.get(message.user) || message.user : 'unknown';
+              const author = message.user
+                ? result.users.get(message.user) || message.user
+                : 'unknown';
               console.log(`${chalk.gray(timestamp)} ${chalk.cyan(author)}`);
               console.log(message.text || '(no text)');
               console.log('');
@@ -39,7 +45,7 @@ export function setupUnreadCommand(): Command {
         } else {
           // Show all channels with unread messages
           const channels = await client.listUnreadChannels();
-          
+
           if (channels.length === 0) {
             console.log(chalk.green('✓ No unread messages'));
             return;
@@ -77,12 +83,14 @@ export function setupUnreadCommand(): Command {
             // Table format (default)
             console.log(chalk.bold('Channel          Unread  Last Message'));
             console.log('─'.repeat(50));
-            
+
             displayChannels.forEach((channel) => {
               const channelName = channel.name?.startsWith('#') ? channel.name : `#${channel.name}`;
               const paddedName = channelName.padEnd(16);
               const count = (channel.unread_count || 0).toString().padEnd(6);
-              const lastRead = channel.last_read ? formatSlackTimestamp(channel.last_read) : 'Unknown';
+              const lastRead = channel.last_read
+                ? formatSlackTimestamp(channel.last_read)
+                : 'Unknown';
               console.log(`${paddedName} ${count}  ${lastRead}`);
             });
           }

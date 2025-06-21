@@ -159,14 +159,20 @@ export class SlackApiClient {
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {
     // First, find the channel
     let channelId = channelNameOrId;
-    if (!channelNameOrId.startsWith('C') && !channelNameOrId.startsWith('D') && !channelNameOrId.startsWith('G')) {
+    if (
+      !channelNameOrId.startsWith('C') &&
+      !channelNameOrId.startsWith('D') &&
+      !channelNameOrId.startsWith('G')
+    ) {
       // It's a name, not an ID - need to find the ID
       const channels = await this.listChannels({
         types: 'public_channel,private_channel,im,mpim',
         exclude_archived: true,
         limit: 1000,
       });
-      const channel = channels.find((c) => c.name === channelNameOrId || c.name === channelNameOrId.replace('#', ''));
+      const channel = channels.find(
+        (c) => c.name === channelNameOrId || c.name === channelNameOrId.replace('#', '')
+      );
       if (!channel) {
         throw new Error('channel_not_found');
       }

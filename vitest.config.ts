@@ -16,7 +16,7 @@ export default defineConfig({
         '**/tests/**'
       ]
     },
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     testTimeout: 10000
   },
   resolve: {

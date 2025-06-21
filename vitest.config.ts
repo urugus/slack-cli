@@ -13,15 +13,15 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.config.*',
         '**/mockData/**',
-        '**/tests/**'
-      ]
+        '**/tests/**',
+      ],
     },
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    testTimeout: 10000
+    testTimeout: 10000,
   },
   resolve: {
     alias: {
-      '@': '/src'
-    }
-  }
+      '@': '/src',
+    },
+  },
 });

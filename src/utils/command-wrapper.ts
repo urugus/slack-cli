@@ -9,11 +9,11 @@ export function wrapCommand<T = unknown>(action: CommandAction<T>): CommandActio
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(chalk.red('✗ Error:'), errorMessage);
-      
+
       if (process.env.NODE_ENV === 'development' && error instanceof Error) {
         console.error(chalk.gray(error.stack));
       }
-      
+
       process.exit(1);
     }
   };

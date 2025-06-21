@@ -7,10 +7,7 @@ export class SlackApiClient {
     this.client = new WebClient(token);
   }
 
-  async sendMessage(
-    channel: string,
-    text: string
-  ): Promise<ChatPostMessageResponse> {
+  async sendMessage(channel: string, text: string): Promise<ChatPostMessageResponse> {
     return await this.client.chat.postMessage({
       channel,
       text,

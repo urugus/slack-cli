@@ -74,10 +74,11 @@ describe('channels command', () => {
 
     it('should show error when no token is configured', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
+      vi.mocked(mockConfigManager.listProfiles).mockResolvedValue([]);
 
       await program.parseAsync(['node', 'slack-cli', 'channels']);
 
-      expect(mockConsole.errorSpy).toHaveBeenCalledWith('✗ Error:', ERROR_MESSAGES.CONFIG_NOT_FOUND);
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith('✗ Error:', ERROR_MESSAGES.NO_CONFIG('default'));
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });

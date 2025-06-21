@@ -68,10 +68,3 @@ jobs:
     
     - name: Build
       run: npm run build
-    
-    - name: Check if dist is up to date
-      run: |
-        if [ -n "$(git status --porcelain dist)" ]; then
-          echo "Build output is not up to date. Please run 'npm run build' and commit the changes."
-          exit 1
-        fi

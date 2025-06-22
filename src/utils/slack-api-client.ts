@@ -202,7 +202,7 @@ export class SlackApiClient {
           include_num_members: false,
         });
         const channelInfo = info.channel as ChannelWithUnreadInfo;
-        
+
         if (channelInfo.unread_count_display && channelInfo.unread_count_display > 0) {
           channelsWithUnread.push({
             ...channel,
@@ -211,7 +211,7 @@ export class SlackApiClient {
             last_read: channelInfo.last_read,
           });
         }
-        
+
         // Add delay between API calls to avoid rate limiting
         await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {

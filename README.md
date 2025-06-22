@@ -5,7 +5,7 @@ A command-line tool for sending messages to Slack using the Slack API.
 ## Installation
 
 ```bash
-npm install -g slack-cli
+npm install -g @urugus/slack-cli
 ```
 
 ## Configuration

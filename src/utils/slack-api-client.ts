@@ -100,11 +100,32 @@ export class SlackApiClient {
         exclude_archived: true,
         limit: 1000,
       });
-      const foundChannel = channels.find(
-        (c) => c.name === channel || c.name === channel.replace('#', '')
-      );
+      
+      // Try multiple matching strategies
+      const foundChannel = channels.find((c) => {
+        // Direct name match
+        if (c.name === channel) return true;
+        // Match without # prefix
+        if (c.name === channel.replace('#', '')) return true;
+        // Case-insensitive match
+        if (c.name?.toLowerCase() === channel.toLowerCase()) return true;
+        // Match with normalized name
+        if (c.name_normalized === channel) return true;
+        return false;
+      });
+      
       if (!foundChannel) {
-        throw new Error('channel_not_found');
+        // Provide helpful error message
+        const similarChannels = channels
+          .filter(c => c.name?.toLowerCase().includes(channel.toLowerCase()))
+          .slice(0, 5)
+          .map(c => c.name);
+        
+        if (similarChannels.length > 0) {
+          throw new Error(`Channel '${channel}' not found. Did you mean one of these? ${similarChannels.join(', ')}`);
+        } else {
+          throw new Error(`Channel '${channel}' not found. Make sure you are a member of this channel.`);
+        }
       }
       channelId = foundChannel.id;
     }
@@ -188,11 +209,32 @@ export class SlackApiClient {
         exclude_archived: true,
         limit: 1000,
       });
-      const channel = channels.find(
-        (c) => c.name === channelNameOrId || c.name === channelNameOrId.replace('#', '')
-      );
+      
+      // Try multiple matching strategies (same as getHistory)
+      const channel = channels.find((c) => {
+        // Direct name match
+        if (c.name === channelNameOrId) return true;
+        // Match without # prefix
+        if (c.name === channelNameOrId.replace('#', '')) return true;
+        // Case-insensitive match
+        if (c.name?.toLowerCase() === channelNameOrId.toLowerCase()) return true;
+        // Match with normalized name
+        if (c.name_normalized === channelNameOrId) return true;
+        return false;
+      });
+      
       if (!channel) {
-        throw new Error('channel_not_found');
+        // Provide helpful error message
+        const similarChannels = channels
+          .filter(c => c.name?.toLowerCase().includes(channelNameOrId.toLowerCase()))
+          .slice(0, 5)
+          .map(c => c.name);
+        
+        if (similarChannels.length > 0) {
+          throw new Error(`Channel '${channelNameOrId}' not found. Did you mean one of these? ${similarChannels.join(', ')}`);
+        } else {
+          throw new Error(`Channel '${channelNameOrId}' not found. Make sure you are a member of this channel.`);
+        }
       }
       channelId = channel.id;
     }

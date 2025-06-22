@@ -176,6 +176,44 @@ describe('history command', () => {
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'), expect.any(String));
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
+
+    it('should show helpful error when channel not found', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      
+      // Mock getHistory to throw our new helpful error
+      vi.mocked(mockSlackClient.getHistory).mockRejectedValue(
+        new Error("Channel 'times_sakashi' not found. Make sure you are a member of this channel.")
+      );
+
+      await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'times_sakashi']);
+
+      expect(mockSlackClient.getHistory).toHaveBeenCalledWith('times_sakashi', { limit: 10 });
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.stringContaining('Make sure you are a member of this channel')
+      );
+    });
+
+    it('should find private channels with underscore in name', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      
+      // Mock the getHistory method to simulate successful channel lookup
+      vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+        messages: [],
+        users: new Map()
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'times_sakashi']);
+
+      expect(mockSlackClient.getHistory).toHaveBeenCalledWith('times_sakashi', { limit: 10 });
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('No messages found'));
+    });
   });
 
   describe('output formatting', () => {

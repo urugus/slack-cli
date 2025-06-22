@@ -206,7 +206,7 @@ export class SlackApiClient {
     }
 
     const channelsWithUnread: Channel[] = [];
-    
+
     // Process batches sequentially with delay
     for (const batch of batches) {
       const batchResults = await Promise.all(
@@ -234,9 +234,9 @@ export class SlackApiClient {
           })
         )
       );
-      
+
       channelsWithUnread.push(...batchResults);
-      
+
       // Add delay between batches to avoid rate limiting
       if (batches.indexOf(batch) < batches.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 1000));

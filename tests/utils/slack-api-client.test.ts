@@ -24,7 +24,14 @@ describe('SlackApiClient', () => {
 
   describe('constructor', () => {
     it('should create WebClient with provided token', () => {
-      expect(WebClient).toHaveBeenCalledWith('test-token');
+      expect(WebClient).toHaveBeenCalledWith('test-token', {
+        retryConfig: {
+          retries: 3,
+          factor: 2,
+          minTimeout: 1000,
+          maxTimeout: 30000,
+        },
+      });
     });
   });
 

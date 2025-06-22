@@ -245,4 +245,35 @@ describe('unread command', () => {
       expect(SlackApiClient).toHaveBeenCalledWith('work-token');
     });
   });
+
+  describe('rate limiting', () => {
+    it('should handle rate limit errors gracefully', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      
+      const rateLimitError = new Error('A rate limit was exceeded (url: conversations.info, retry-after: 10)');
+      vi.mocked(mockSlackClient.listUnreadChannels).mockRejectedValue(rateLimitError);
+
+      await program.parseAsync(['node', 'slack-cli', 'unread']);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'), expect.stringContaining('rate limit'));
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('should not retry indefinitely on rate limit errors', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      
+      const rateLimitError = new Error('A rate limit was exceeded (url: conversations.info, retry-after: 10)');
+      vi.mocked(mockSlackClient.listUnreadChannels).mockRejectedValue(rateLimitError);
+
+      await program.parseAsync(['node', 'slack-cli', 'unread']);
+
+      expect(mockSlackClient.listUnreadChannels).toHaveBeenCalledTimes(1);
+    });
+  });
 });

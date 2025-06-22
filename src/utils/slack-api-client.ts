@@ -1,4 +1,5 @@
 import { WebClient, ChatPostMessageResponse } from '@slack/web-api';
+import pLimit from 'p-limit';
 
 export interface Channel {
   id: string;
@@ -68,9 +69,19 @@ export interface ChannelUnreadResult {
 
 export class SlackApiClient {
   private client: WebClient;
+  private rateLimiter: ReturnType<typeof pLimit>;
 
   constructor(token: string) {
-    this.client = new WebClient(token);
+    this.client = new WebClient(token, {
+      retryConfig: {
+        retries: 3,
+        factor: 2,
+        minTimeout: 1000,
+        maxTimeout: 30000,
+      },
+    });
+    // Limit concurrent API calls to avoid rate limiting
+    this.rateLimiter = pLimit(3);
   }
 
   async sendMessage(channel: string, text: string): Promise<ChatPostMessageResponse> {
@@ -187,26 +198,50 @@ export class SlackApiClient {
 
     const channels = response.channels as Channel[];
 
-    // Get unread count for each channel
-    const channelsWithUnread = await Promise.all(
-      channels.map(async (channel) => {
-        try {
-          const info = await this.client.conversations.info({
-            channel: channel.id,
-            include_num_members: false,
-          });
-          const channelInfo = info.channel as any;
-          return {
-            ...channel,
-            unread_count: channelInfo.unread_count || 0,
-            unread_count_display: channelInfo.unread_count_display || 0,
-            last_read: channelInfo.last_read,
-          };
-        } catch {
-          return channel;
-        }
-      })
-    );
+    // Batch process channels to reduce rate limit issues
+    const batchSize = 10;
+    const batches: Channel[][] = [];
+    for (let i = 0; i < channels.length; i += batchSize) {
+      batches.push(channels.slice(i, i + batchSize));
+    }
+
+    const channelsWithUnread: Channel[] = [];
+    
+    // Process batches sequentially with delay
+    for (const batch of batches) {
+      const batchResults = await Promise.all(
+        batch.map((channel) =>
+          this.rateLimiter(async () => {
+            try {
+              const info = await this.client.conversations.info({
+                channel: channel.id,
+                include_num_members: false,
+              });
+              const channelInfo = info.channel as any;
+              return {
+                ...channel,
+                unread_count: channelInfo.unread_count || 0,
+                unread_count_display: channelInfo.unread_count_display || 0,
+                last_read: channelInfo.last_read,
+              };
+            } catch (error: any) {
+              // Log rate limit errors but continue processing
+              if (error.message?.includes('rate limit')) {
+                console.warn(`Rate limit hit for channel ${channel.name}, skipping...`);
+              }
+              return channel;
+            }
+          })
+        )
+      );
+      
+      channelsWithUnread.push(...batchResults);
+      
+      // Add delay between batches to avoid rate limiting
+      if (batches.indexOf(batch) < batches.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
 
     // Filter to only channels with unread messages
     return channelsWithUnread.filter((channel) => (channel.unread_count_display || 0) > 0);

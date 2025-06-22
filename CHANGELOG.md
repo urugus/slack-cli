@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7] - 2025-06-22
+
+### Fixed
+- Resolved rate limiting issues with `slack unread` command
+- Disabled WebClient automatic retries to handle rate limits manually
+- Changed to use users.conversations API for more efficient unread retrieval
+- Added fallback mechanism for better compatibility
+
 ## [0.1.6] - 2025-06-22
 
 ### Added

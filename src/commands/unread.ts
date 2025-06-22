@@ -55,7 +55,11 @@ export function setupUnreadCommand(): Command {
     .option('-c, --channel <channel>', 'Show unread for a specific channel')
     .option('--format <format>', 'Output format: table, simple, json', 'table')
     .option('--count-only', 'Show only unread counts', false)
-    .option('--limit <number>', 'Maximum number of channels to display', DEFAULTS.UNREAD_DISPLAY_LIMIT.toString())
+    .option(
+      '--limit <number>',
+      'Maximum number of channels to display',
+      DEFAULTS.UNREAD_DISPLAY_LIMIT.toString()
+    )
     .option('--profile <profile>', 'Use specific workspace profile')
     .action(
       wrapCommand(async (options: UnreadOptions) => {

@@ -1,11 +1,13 @@
 import { Command } from 'commander';
 import { wrapCommand } from '../utils/command-wrapper';
 import { createSlackClient } from '../utils/client-factory';
-import { SlackApiClient, Channel } from '../utils/slack-api-client';
+import { SlackApiClient } from '../utils/slack-api-client';
 import { UnreadOptions } from '../types/commands';
 import chalk from 'chalk';
 import { formatSlackTimestamp } from '../utils/date-utils';
 import { formatChannelName } from '../utils/channel-formatter';
+import { createChannelFormatter } from '../utils/formatters/channel-formatters';
+import { DEFAULTS } from '../utils/constants';
 
 async function handleSpecificChannelUnread(
   client: SlackApiClient,
@@ -40,58 +42,11 @@ async function handleAllChannelsUnread(
   }
 
   // Apply limit
-  const limit = parseInt(options.limit || '50', 10);
+  const limit = parseInt(options.limit || DEFAULTS.UNREAD_DISPLAY_LIMIT.toString(), 10);
   const displayChannels = channels.slice(0, limit);
 
-  if (options.countOnly) {
-    displayCountOnly(displayChannels);
-  } else if (options.format === 'json') {
-    displayAsJson(displayChannels);
-  } else if (options.format === 'simple') {
-    displayAsSimple(displayChannels);
-  } else {
-    displayAsTable(displayChannels);
-  }
-}
-
-function displayCountOnly(channels: Channel[]): void {
-  let totalUnread = 0;
-  channels.forEach((channel) => {
-    const count = channel.unread_count || 0;
-    totalUnread += count;
-    const channelName = formatChannelName(channel.name);
-    console.log(`${channelName}: ${count}`);
-  });
-  console.log(chalk.bold(`Total: ${totalUnread} unread messages`));
-}
-
-function displayAsJson(channels: Channel[]): void {
-  const output = channels.map((channel) => ({
-    channel: formatChannelName(channel.name),
-    channelId: channel.id,
-    unreadCount: channel.unread_count || 0,
-  }));
-  console.log(JSON.stringify(output, null, 2));
-}
-
-function displayAsSimple(channels: Channel[]): void {
-  channels.forEach((channel) => {
-    const channelName = formatChannelName(channel.name);
-    console.log(`${channelName} (${channel.unread_count || 0})`);
-  });
-}
-
-function displayAsTable(channels: Channel[]): void {
-  console.log(chalk.bold('Channel          Unread  Last Message'));
-  console.log('─'.repeat(50));
-
-  channels.forEach((channel) => {
-    const channelName = formatChannelName(channel.name);
-    const paddedName = channelName.padEnd(16);
-    const count = (channel.unread_count || 0).toString().padEnd(6);
-    const lastRead = channel.last_read ? formatSlackTimestamp(channel.last_read) : 'Unknown';
-    console.log(`${paddedName} ${count}  ${lastRead}`);
-  });
+  const formatter = createChannelFormatter(options.format || 'table', options.countOnly || false);
+  formatter.format(displayChannels);
 }
 
 export function setupUnreadCommand(): Command {
@@ -100,7 +55,7 @@ export function setupUnreadCommand(): Command {
     .option('-c, --channel <channel>', 'Show unread for a specific channel')
     .option('--format <format>', 'Output format: table, simple, json', 'table')
     .option('--count-only', 'Show only unread counts', false)
-    .option('--limit <number>', 'Maximum number of channels to display', '50')
+    .option('--limit <number>', 'Maximum number of channels to display', DEFAULTS.UNREAD_DISPLAY_LIMIT.toString())
     .option('--profile <profile>', 'Use specific workspace profile')
     .action(
       wrapCommand(async (options: UnreadOptions) => {

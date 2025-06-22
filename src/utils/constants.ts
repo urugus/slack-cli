@@ -45,3 +45,26 @@ export const API_LIMITS = {
   MIN_MESSAGE_COUNT: 1,
   DEFAULT_MESSAGE_COUNT: 10,
 };
+
+// API Rate Limiting Configuration
+export const RATE_LIMIT = {
+  CONCURRENT_REQUESTS: 3,
+  BATCH_SIZE: 10,
+  BATCH_DELAY_MS: 1000,
+  RETRY_CONFIG: {
+    retries: 3,
+    factor: 2,
+    minTimeout: 1000,
+    maxTimeout: 30000,
+  },
+};
+
+// Default values
+export const DEFAULTS = {
+  HISTORY_LIMIT: 20,
+  CHANNELS_LIMIT: 1000,
+  UNREAD_DISPLAY_LIMIT: 50,
+};
+
+// Time formats
+export const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';

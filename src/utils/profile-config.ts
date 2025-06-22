@@ -130,14 +130,16 @@ export class ProfileConfigManager {
     }
   }
 
-  private needsMigration(data: any): boolean {
-    return data.token && !data.profiles;
+  private needsMigration(data: unknown): boolean {
+    const configData = data as Record<string, unknown>;
+    return Boolean(configData.token && !configData.profiles);
   }
 
-  private async migrateOldConfig(oldData: any): Promise<ConfigStore> {
+  private async migrateOldConfig(oldData: unknown): Promise<ConfigStore> {
+    const data = oldData as { token: string; updatedAt: string };
     const oldConfig: Config = {
-      token: oldData.token,
-      updatedAt: oldData.updatedAt,
+      token: data.token,
+      updatedAt: data.updatedAt,
     };
 
     const newStore: ConfigStore = {

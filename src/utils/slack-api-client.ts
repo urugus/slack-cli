@@ -1,5 +1,7 @@
 import { WebClient, ChatPostMessageResponse } from '@slack/web-api';
 import pLimit from 'p-limit';
+import { channelResolver } from './channel-resolver';
+import { RATE_LIMIT, DEFAULTS } from './constants';
 
 export interface Channel {
   id: string;
@@ -32,6 +34,13 @@ export interface Channel {
     creator?: string;
     last_set?: number;
   };
+}
+
+// Extended channel interface with additional properties from API
+interface ChannelWithUnreadInfo extends Channel {
+  unread_count: number;
+  unread_count_display: number;
+  last_read?: string;
 }
 
 export interface ListChannelsOptions {
@@ -73,15 +82,10 @@ export class SlackApiClient {
 
   constructor(token: string) {
     this.client = new WebClient(token, {
-      retryConfig: {
-        retries: 3,
-        factor: 2,
-        minTimeout: 1000,
-        maxTimeout: 30000,
-      },
+      retryConfig: RATE_LIMIT.RETRY_CONFIG,
     });
     // Limit concurrent API calls to avoid rate limiting
-    this.rateLimiter = pLimit(3);
+    this.rateLimiter = pLimit(RATE_LIMIT.CONCURRENT_REQUESTS);
   }
 
   async sendMessage(channel: string, text: string): Promise<ChatPostMessageResponse> {
@@ -115,48 +119,14 @@ export class SlackApiClient {
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {
-    // First, resolve channel name to ID if needed
-    let channelId = channel;
-    if (!channel.startsWith('C') && !channel.startsWith('D') && !channel.startsWith('G')) {
-      // It's a name, not an ID - need to find the ID
-      const channels = await this.listChannels({
+    // Resolve channel name to ID if needed
+    const channelId = await channelResolver.resolveChannelId(channel, () =>
+      this.listChannels({
         types: 'public_channel,private_channel,im,mpim',
         exclude_archived: true,
-        limit: 1000,
-      });
-
-      // Try multiple matching strategies
-      const foundChannel = channels.find((c) => {
-        // Direct name match
-        if (c.name === channel) return true;
-        // Match without # prefix
-        if (c.name === channel.replace('#', '')) return true;
-        // Case-insensitive match
-        if (c.name?.toLowerCase() === channel.toLowerCase()) return true;
-        // Match with normalized name
-        if (c.name_normalized === channel) return true;
-        return false;
-      });
-
-      if (!foundChannel) {
-        // Provide helpful error message
-        const similarChannels = channels
-          .filter((c) => c.name?.toLowerCase().includes(channel.toLowerCase()))
-          .slice(0, 5)
-          .map((c) => c.name);
-
-        if (similarChannels.length > 0) {
-          throw new Error(
-            `Channel '${channel}' not found. Did you mean one of these? ${similarChannels.join(', ')}`
-          );
-        } else {
-          throw new Error(
-            `Channel '${channel}' not found. Make sure you are a member of this channel.`
-          );
-        }
-      }
-      channelId = foundChannel.id;
-    }
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
 
     const response = await this.client.conversations.history({
       channel: channelId,
@@ -199,7 +169,7 @@ export class SlackApiClient {
     const channels = response.channels as Channel[];
 
     // Batch process channels to reduce rate limit issues
-    const batchSize = 10;
+    const batchSize = RATE_LIMIT.BATCH_SIZE;
     const batches: Channel[][] = [];
     for (let i = 0; i < channels.length; i += batchSize) {
       batches.push(channels.slice(i, i + batchSize));
@@ -217,16 +187,16 @@ export class SlackApiClient {
                 channel: channel.id,
                 include_num_members: false,
               });
-              const channelInfo = info.channel as any;
+              const channelInfo = info.channel as ChannelWithUnreadInfo;
               return {
                 ...channel,
                 unread_count: channelInfo.unread_count || 0,
                 unread_count_display: channelInfo.unread_count_display || 0,
                 last_read: channelInfo.last_read,
               };
-            } catch (error: any) {
+            } catch (error) {
               // Log rate limit errors but continue processing
-              if (error.message?.includes('rate limit')) {
+              if (error instanceof Error && error.message?.includes('rate limit')) {
                 console.warn(`Rate limit hit for channel ${channel.name}, skipping...`);
               }
               return channel;
@@ -239,7 +209,7 @@ export class SlackApiClient {
 
       // Add delay between batches to avoid rate limiting
       if (batches.indexOf(batch) < batches.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT.BATCH_DELAY_MS));
       }
     }
 
@@ -248,58 +218,20 @@ export class SlackApiClient {
   }
 
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {
-    // First, find the channel
-    let channelId = channelNameOrId;
-    if (
-      !channelNameOrId.startsWith('C') &&
-      !channelNameOrId.startsWith('D') &&
-      !channelNameOrId.startsWith('G')
-    ) {
-      // It's a name, not an ID - need to find the ID
-      const channels = await this.listChannels({
+    // Resolve channel name to ID if needed
+    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
+      this.listChannels({
         types: 'public_channel,private_channel,im,mpim',
         exclude_archived: true,
-        limit: 1000,
-      });
-
-      // Try multiple matching strategies (same as getHistory)
-      const channel = channels.find((c) => {
-        // Direct name match
-        if (c.name === channelNameOrId) return true;
-        // Match without # prefix
-        if (c.name === channelNameOrId.replace('#', '')) return true;
-        // Case-insensitive match
-        if (c.name?.toLowerCase() === channelNameOrId.toLowerCase()) return true;
-        // Match with normalized name
-        if (c.name_normalized === channelNameOrId) return true;
-        return false;
-      });
-
-      if (!channel) {
-        // Provide helpful error message
-        const similarChannels = channels
-          .filter((c) => c.name?.toLowerCase().includes(channelNameOrId.toLowerCase()))
-          .slice(0, 5)
-          .map((c) => c.name);
-
-        if (similarChannels.length > 0) {
-          throw new Error(
-            `Channel '${channelNameOrId}' not found. Did you mean one of these? ${similarChannels.join(', ')}`
-          );
-        } else {
-          throw new Error(
-            `Channel '${channelNameOrId}' not found. Make sure you are a member of this channel.`
-          );
-        }
-      }
-      channelId = channel.id;
-    }
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
 
     // Get channel info with unread count
     const info = await this.client.conversations.info({
       channel: channelId,
     });
-    const channel = info.channel as any;
+    const channel = info.channel as ChannelWithUnreadInfo;
 
     // Get unread messages
     let messages: Message[] = [];

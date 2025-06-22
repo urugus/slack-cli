@@ -5,10 +5,16 @@ import { setupSendCommand } from './commands/send';
 import { setupChannelsCommand } from './commands/channels';
 import { setupHistoryCommand } from './commands/history';
 import { setupUnreadCommand } from './commands/unread';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const program = new Command();
 
-program.name('slack-cli').description('CLI tool to send messages via Slack API').version('1.0.0');
+// Read version from package.json
+const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
+const version = packageJson.version;
+
+program.name('slack-cli').description('CLI tool to send messages via Slack API').version(version);
 
 program.addCommand(setupConfigCommand());
 program.addCommand(setupSendCommand());

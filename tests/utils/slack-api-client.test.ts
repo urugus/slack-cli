@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SlackApiClient } from '../../src/utils/slack-api-client';
-import { WebClient } from '@slack/web-api';
+import { WebClient, LogLevel } from '@slack/web-api';
 
 vi.mock('@slack/web-api');
 
@@ -15,7 +15,11 @@ describe('SlackApiClient', () => {
         postMessage: vi.fn()
       },
       conversations: {
-        list: vi.fn()
+        list: vi.fn(),
+        info: vi.fn()
+      },
+      users: {
+        conversations: vi.fn()
       }
     };
     vi.mocked(WebClient).mockReturnValue(mockWebClient);
@@ -26,11 +30,9 @@ describe('SlackApiClient', () => {
     it('should create WebClient with provided token', () => {
       expect(WebClient).toHaveBeenCalledWith('test-token', {
         retryConfig: {
-          retries: 3,
-          factor: 2,
-          minTimeout: 1000,
-          maxTimeout: 30000,
+          retries: 0, // Disabled to handle rate limits manually
         },
+        logLevel: LogLevel.ERROR,
       });
     });
   });

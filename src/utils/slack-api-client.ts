@@ -1,4 +1,4 @@
-import { WebClient, ChatPostMessageResponse } from '@slack/web-api';
+import { WebClient, ChatPostMessageResponse, LogLevel } from '@slack/web-api';
 import pLimit from 'p-limit';
 import { channelResolver } from './channel-resolver';
 import { RATE_LIMIT, DEFAULTS } from './constants';
@@ -82,7 +82,10 @@ export class SlackApiClient {
 
   constructor(token: string) {
     this.client = new WebClient(token, {
-      retryConfig: RATE_LIMIT.RETRY_CONFIG,
+      retryConfig: {
+        retries: 0, // Disable automatic retries to handle rate limits manually
+      },
+      logLevel: LogLevel.ERROR, // Reduce noise from WebClient logs
     });
     // Limit concurrent API calls to avoid rate limiting
     this.rateLimiter = pLimit(RATE_LIMIT.CONCURRENT_REQUESTS);
@@ -159,6 +162,28 @@ export class SlackApiClient {
   }
 
   async listUnreadChannels(): Promise<Channel[]> {
+    try {
+      // Use users.conversations to get unread counts in a single API call
+      const response = await this.client.users.conversations({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: 1000,
+        user: undefined, // Current authenticated user
+      });
+
+      const channels = response.channels as Channel[];
+
+      // Filter to only channels with unread messages
+      // The users.conversations endpoint includes unread_count_display
+      return channels.filter((channel) => (channel.unread_count_display || 0) > 0);
+    } catch (error) {
+      // Fallback to the old method if users.conversations fails
+      console.warn('Failed to use users.conversations, falling back to conversations.list');
+      return this.listUnreadChannelsFallback();
+    }
+  }
+
+  private async listUnreadChannelsFallback(): Promise<Channel[]> {
     // Get all conversations the user is a member of
     const response = await this.client.conversations.list({
       types: 'public_channel,private_channel,im,mpim',
@@ -167,54 +192,38 @@ export class SlackApiClient {
     });
 
     const channels = response.channels as Channel[];
-
-    // Batch process channels to reduce rate limit issues
-    const batchSize = RATE_LIMIT.BATCH_SIZE;
-    const batches: Channel[][] = [];
-    for (let i = 0; i < channels.length; i += batchSize) {
-      batches.push(channels.slice(i, i + batchSize));
-    }
-
     const channelsWithUnread: Channel[] = [];
 
-    // Process batches sequentially with delay
-    for (const batch of batches) {
-      const batchResults = await Promise.all(
-        batch.map((channel) =>
-          this.rateLimiter(async () => {
-            try {
-              const info = await this.client.conversations.info({
-                channel: channel.id,
-                include_num_members: false,
-              });
-              const channelInfo = info.channel as ChannelWithUnreadInfo;
-              return {
-                ...channel,
-                unread_count: channelInfo.unread_count || 0,
-                unread_count_display: channelInfo.unread_count_display || 0,
-                last_read: channelInfo.last_read,
-              };
-            } catch (error) {
-              // Log rate limit errors but continue processing
-              if (error instanceof Error && error.message?.includes('rate limit')) {
-                console.warn(`Rate limit hit for channel ${channel.name}, skipping...`);
-              }
-              return channel;
-            }
-          })
-        )
-      );
-
-      channelsWithUnread.push(...batchResults);
-
-      // Add delay between batches to avoid rate limiting
-      if (batches.indexOf(batch) < batches.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT.BATCH_DELAY_MS));
+    // Process channels one by one with delay to avoid rate limits
+    for (const channel of channels) {
+      try {
+        const info = await this.client.conversations.info({
+          channel: channel.id,
+          include_num_members: false,
+        });
+        const channelInfo = info.channel as ChannelWithUnreadInfo;
+        
+        if (channelInfo.unread_count_display && channelInfo.unread_count_display > 0) {
+          channelsWithUnread.push({
+            ...channel,
+            unread_count: channelInfo.unread_count || 0,
+            unread_count_display: channelInfo.unread_count_display || 0,
+            last_read: channelInfo.last_read,
+          });
+        }
+        
+        // Add delay between API calls to avoid rate limiting
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        // Skip channels that fail
+        if (error instanceof Error && error.message?.includes('rate limit')) {
+          // If we hit rate limit, wait longer
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
       }
     }
 
-    // Filter to only channels with unread messages
-    return channelsWithUnread.filter((channel) => (channel.unread_count_display || 0) > 0);
+    return channelsWithUnread;
   }
 
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {

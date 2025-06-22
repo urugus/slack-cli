@@ -1,6 +1,6 @@
 {
   "name": "@urugus/slack-cli",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A command-line tool for sending messages to Slack",
   "main": "dist/index.js",
   "bin": {

@@ -81,13 +81,26 @@ export class SlackApiClient {
   }
 
   async listChannels(options: ListChannelsOptions): Promise<Channel[]> {
-    const response = await this.client.conversations.list({
-      types: options.types,
-      exclude_archived: options.exclude_archived,
-      limit: options.limit,
-    });
+    const channels: Channel[] = [];
+    let cursor: string | undefined;
 
-    return response.channels as Channel[];
+    // Paginate through all channels
+    do {
+      const response = await this.client.conversations.list({
+        types: options.types,
+        exclude_archived: options.exclude_archived,
+        limit: options.limit,
+        cursor,
+      });
+
+      if (response.channels) {
+        channels.push(...(response.channels as Channel[]));
+      }
+
+      cursor = response.response_metadata?.next_cursor;
+    } while (cursor);
+
+    return channels;
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {

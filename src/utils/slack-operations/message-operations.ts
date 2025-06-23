@@ -38,9 +38,28 @@ export class MessageOperations extends BaseSlackClient {
 
     const messages = response.messages as Message[];
 
-    // Get unique user IDs
-    const userIds = [...new Set(messages.filter((m) => m.user).map((m) => m.user!))];
-    const users = await this.fetchUserInfo(userIds);
+    // Get unique user IDs from message authors
+    const authorIds = messages.filter((m) => m.user).map((m) => m.user!);
+    
+    // Extract user IDs from mentions in message text
+    const mentionedIds: string[] = [];
+    messages.forEach((message) => {
+      if (message.text) {
+        const mentions = message.text.match(/<@([A-Z0-9]+)>/g);
+        if (mentions) {
+          mentions.forEach((mention) => {
+            const userId = mention.match(/<@([A-Z0-9]+)>/)?.[1];
+            if (userId) {
+              mentionedIds.push(userId);
+            }
+          });
+        }
+      }
+    });
+
+    // Combine all user IDs and remove duplicates
+    const allUserIds = [...new Set([...authorIds, ...mentionedIds])];
+    const users = await this.fetchUserInfo(allUserIds);
 
     return { messages, users };
   }

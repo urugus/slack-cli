@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import { createChannelFormatter } from '../utils/formatters/channel-formatters';
 import { createMessageFormatter } from '../utils/formatters/message-formatters';
 import { DEFAULTS } from '../utils/constants';
+import { parseLimit, parseFormat, parseBoolean } from '../utils/option-parsers';
 
 async function handleSpecificChannelUnread(
   client: SlackApiClient,
@@ -14,13 +15,16 @@ async function handleSpecificChannelUnread(
 ): Promise<void> {
   const result = await client.getChannelUnread(options.channel!);
 
-  const formatter = createMessageFormatter(options.format || 'table');
+  const format = parseFormat(options.format);
+  const countOnly = parseBoolean(options.countOnly);
+  
+  const formatter = createMessageFormatter(format);
   formatter.format({
     channel: result.channel,
     messages: result.messages,
     users: result.users,
-    countOnly: options.countOnly || false,
-    format: options.format || 'table',
+    countOnly: countOnly,
+    format: format,
   });
 }
 
@@ -36,11 +40,14 @@ async function handleAllChannelsUnread(
   }
 
   // Apply limit
-  const limit = parseInt(options.limit || DEFAULTS.UNREAD_DISPLAY_LIMIT.toString(), 10);
+  const limit = parseLimit(options.limit, DEFAULTS.UNREAD_DISPLAY_LIMIT);
   const displayChannels = channels.slice(0, limit);
 
-  const formatter = createChannelFormatter(options.format || 'table', options.countOnly || false);
-  formatter.format({ channels: displayChannels, countOnly: options.countOnly || false });
+  const format = parseFormat(options.format);
+  const countOnly = parseBoolean(options.countOnly);
+  
+  const formatter = createChannelFormatter(format, countOnly);
+  formatter.format({ channels: displayChannels, countOnly: countOnly });
 }
 
 export function setupUnreadCommand(): Command {

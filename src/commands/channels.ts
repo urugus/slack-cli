@@ -5,6 +5,7 @@ import { ERROR_MESSAGES } from '../utils/constants';
 import { ChannelsOptions } from '../types/commands';
 import { mapChannelToInfo, getChannelTypes } from '../utils/channel-formatter';
 import { createChannelsListFormatter } from '../utils/formatters/channels-list-formatters';
+import { parseFormat, parseLimit, parseBoolean } from '../utils/option-parsers';
 
 export function setupChannelsCommand(): Command {
   const channelsCommand = new Command('channels');
@@ -25,10 +26,11 @@ export function setupChannelsCommand(): Command {
         const types = getChannelTypes(options.type);
 
         // List channels
+        const limit = parseLimit(options.limit, 100);
         const channels = await client.listChannels({
           types,
-          exclude_archived: !options.includeArchived,
-          limit: parseInt(options.limit, 10),
+          exclude_archived: !parseBoolean(options.includeArchived),
+          limit: limit,
         });
 
         if (channels.length === 0) {
@@ -38,7 +40,8 @@ export function setupChannelsCommand(): Command {
 
         // Format and display channels
         const channelInfos = channels.map(mapChannelToInfo);
-        const formatter = createChannelsListFormatter(options.format);
+        const format = parseFormat(options.format);
+        const formatter = createChannelsListFormatter(format);
         formatter.format({ channels: channelInfos });
       })
     );

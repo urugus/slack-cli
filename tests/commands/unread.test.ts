@@ -429,4 +429,64 @@ describe('unread command', () => {
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('transitioned ES-4359'));
     });
   });
+
+  describe('mark-read functionality', () => {
+    it('should mark messages as read when --mark-read is specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listUnreadChannels).mockResolvedValue(
+        mockChannelsWithUnread.filter(ch => (ch.unread_count_display || 0) > 0)
+      );
+      vi.mocked(mockSlackClient.markAsRead).mockResolvedValue(undefined);
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--mark-read']);
+
+      expect(mockSlackClient.listUnreadChannels).toHaveBeenCalled();
+      expect(mockSlackClient.markAsRead).toHaveBeenCalledWith('C123');
+      expect(mockSlackClient.markAsRead).toHaveBeenCalledWith('C456');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(chalk.green('✓ Marked all messages as read'));
+    });
+
+    it('should mark messages as read for specific channel when --channel and --mark-read are specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.getChannelUnread).mockResolvedValue({
+        channel: mockChannelsWithUnread[0],
+        messages: mockUnreadMessages,
+        users: new Map([
+          ['U123', 'john.doe'],
+          ['U456', 'jane.smith']
+        ])
+      });
+      vi.mocked(mockSlackClient.markAsRead).mockResolvedValue(undefined);
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'general', '--mark-read']);
+
+      expect(mockSlackClient.getChannelUnread).toHaveBeenCalledWith('general');
+      expect(mockSlackClient.markAsRead).toHaveBeenCalledWith('C123');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(chalk.green('✓ Marked messages in #general as read'));
+    });
+
+    it('should handle mark as read errors gracefully', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.listUnreadChannels).mockResolvedValue(
+        mockChannelsWithUnread.filter(ch => (ch.unread_count_display || 0) > 0)
+      );
+      vi.mocked(mockSlackClient.markAsRead).mockRejectedValue(
+        new Error('channel_not_found')
+      );
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--mark-read']);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'), expect.any(String));
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+  });
 });

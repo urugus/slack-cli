@@ -96,6 +96,10 @@ export class SlackApiClient {
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {
     return this.messageOps.getChannelUnread(channelNameOrId);
   }
+
+  async markAsRead(channelId: string): Promise<void> {
+    return this.messageOps.markAsRead(channelId);
+  }
 }
 
 export const slackApiClient = {

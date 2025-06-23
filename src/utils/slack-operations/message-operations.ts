@@ -103,4 +103,11 @@ export class MessageOperations extends BaseSlackClient {
 
     return users;
   }
+
+  async markAsRead(channelId: string): Promise<void> {
+    await this.client.conversations.mark({
+      channel: channelId,
+      ts: Date.now() / 1000 + '',
+    });
+  }
 }

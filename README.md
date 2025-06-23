@@ -13,7 +13,7 @@ npm install -g @urugus/slack-cli
 You need to configure your Slack API token on first use:
 
 ```bash
-slack-cli config --token YOUR_SLACK_API_TOKEN
+slack-cli config set --token YOUR_SLACK_API_TOKEN
 ```
 
 ## Usage
@@ -70,16 +70,29 @@ slack-cli channels
 slack-cli channels --profile work
 
 # List public channels only
-slack-cli channels --public
+slack-cli channels --type public
 
 # List private channels only
-slack-cli channels --private
+slack-cli channels --type private
+
+# List all channel types including IMs and MPIMs
+slack-cli channels --type all
+
+# Include archived channels
+slack-cli channels --include-archived
+
+# Limit number of channels displayed
+slack-cli channels --limit 20
+
+# Output in different formats
+slack-cli channels --format json
+slack-cli channels --format simple
 ```
 
 ### View Message History
 
 ```bash
-# Get latest 10 messages
+# Get latest 10 messages (default)
 slack-cli history -c general
 
 # Specify number of messages
@@ -87,6 +100,9 @@ slack-cli history -c general -n 20
 
 # Get messages since specific date
 slack-cli history -c general --since "2024-01-01 00:00:00"
+
+# Use specific profile
+slack-cli history -c general --profile work
 ```
 
 ### Get Unread Messages
@@ -98,14 +114,21 @@ slack-cli unread
 # Get unread messages from specific channel
 slack-cli unread -c general
 
-# Get unread messages with channel names
-slack-cli unread --show-channel
+# Show only unread counts (no message content)
+slack-cli unread --count-only
 
 # Mark messages as read after fetching
 slack-cli unread --mark-read
 
-# Get unread messages from multiple channels
-slack-cli unread -c general,random,development
+# Mark messages as read for specific channel
+slack-cli unread -c general --mark-read
+
+# Limit number of channels displayed
+slack-cli unread --limit 10
+
+# Output in different formats
+slack-cli unread --format json
+slack-cli unread --format simple
 ```
 
 ### Other Commands
@@ -126,23 +149,42 @@ slack-cli config set --token NEW_TOKEN
 
 ## Options
 
+### Global Options
 | Option | Short | Description |
 |--------|-------|-------------|
-| --channel | -c | Target channel name or ID |
+| --profile | -p | Use specific workspace profile |
+
+### send command
+| Option | Short | Description |
+|--------|-------|-------------|
+| --channel | -c | Target channel name or ID (required) |
 | --message | -m | Message to send |
 | --file | -f | File containing message content |
-| --token | -t | Slack API token (temporary override) |
-| --profile | -p | Use specific workspace profile |
-| --format | | Message format (text/markdown) |
-| --verbose | -v | Show verbose output |
-| --show-channel | | Display channel name with unread messages |
+
+### channels command
+| Option | Short | Description |
+|--------|-------|-------------|
+| --type | | Channel type: public, private, im, mpim, all (default: public) |
+| --include-archived | | Include archived channels |
+| --format | | Output format: table, simple, json (default: table) |
+| --limit | | Maximum number of channels to list (default: 100) |
+
+### history command
+| Option | Short | Description |
+|--------|-------|-------------|
+| --channel | -c | Target channel name or ID (required) |
+| --number | -n | Number of messages to retrieve (default: 10) |
+| --since | | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
+
+### unread command
+| Option | Short | Description |
+|--------|-------|-------------|
+| --channel | -c | Get unread for specific channel |
+| --format | | Output format: table, simple, json (default: table) |
+| --count-only | | Show only unread counts |
+| --limit | | Maximum number of channels to display (default: 50) |
 | --mark-read | | Mark messages as read after fetching |
 
-## Environment Variables
-
-- `SLACK_API_TOKEN`: Default API token (used when no profile is configured)
-- `SLACK_DEFAULT_CHANNEL`: Default target channel
-- `SLACK_DEFAULT_PROFILE`: Default profile to use
 
 ## Required Permissions
 
@@ -155,6 +197,31 @@ Your Slack API token needs the following scopes:
 - `groups:history` - Read private channel message history
 - `im:history` - Read direct message history
 - `users:read` - Access user information for unread counts
+
+## Advanced Features
+
+### Rate Limiting
+The CLI includes built-in rate limiting to handle Slack API limits:
+- Concurrent requests: 3
+- Automatic retry with exponential backoff (max 3 retries)
+- Graceful error handling for rate limit errors
+
+### Output Formats
+Most commands support multiple output formats:
+- `table` (default) - Human-readable table format
+- `simple` - Simplified text output
+- `json` - Machine-readable JSON format
+
+### Markdown Support
+Messages sent via the `send` command automatically support Slack's mrkdwn formatting:
+- `*bold*` for bold text
+- `_italic_` for italic text
+- `~strikethrough~` for strikethrough
+- `` `code` `` for inline code
+- ` ```code blocks``` ` for multiline code
+- Links are automatically hyperlinked
+- User mentions: `<@USER_ID>`
+- Channel mentions: `<#CHANNEL_ID>`
 
 ## License
 

@@ -17,7 +17,7 @@ async function handleSpecificChannelUnread(
 
   const format = parseFormat(options.format);
   const countOnly = parseBoolean(options.countOnly);
-  
+
   const formatter = createMessageFormatter(format);
   formatter.format({
     channel: result.channel,
@@ -45,7 +45,7 @@ async function handleAllChannelsUnread(
 
   const format = parseFormat(options.format);
   const countOnly = parseBoolean(options.countOnly);
-  
+
   const formatter = createChannelFormatter(format, countOnly);
   formatter.format({ channels: displayChannels, countOnly: countOnly });
 }

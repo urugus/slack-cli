@@ -26,21 +26,26 @@ export function parseBoolean(value?: boolean, defaultValue = false): boolean {
 /**
  * Parse count option with default value
  */
-export function parseCount(count?: string, defaultCount: number, min?: number, max?: number): number {
+export function parseCount(
+  count?: string,
+  defaultCount: number,
+  min?: number,
+  max?: number
+): number {
   const parsed = parseInt(count || defaultCount.toString(), 10);
-  
+
   if (isNaN(parsed)) {
     return defaultCount;
   }
-  
+
   if (min !== undefined && parsed < min) {
     return min;
   }
-  
+
   if (max !== undefined && parsed > max) {
     return max;
   }
-  
+
   return parsed;
 }
 
@@ -76,7 +81,10 @@ export interface ParsedListOptions {
   countOnly: boolean;
 }
 
-export function parseListOptions(options: ListOptions, defaults?: Partial<ParsedListOptions>): ParsedListOptions {
+export function parseListOptions(
+  options: ListOptions,
+  defaults?: Partial<ParsedListOptions>
+): ParsedListOptions {
   const mergedDefaults = {
     format: OPTION_DEFAULTS.format,
     limit: OPTION_DEFAULTS.limit,

@@ -4,12 +4,9 @@ import { createSlackClient } from '../utils/client-factory';
 import { SlackApiClient } from '../utils/slack-api-client';
 import { UnreadOptions } from '../types/commands';
 import chalk from 'chalk';
-import { formatSlackTimestamp } from '../utils/date-utils';
-import { formatChannelName } from '../utils/channel-formatter';
 import { createChannelFormatter } from '../utils/formatters/channel-formatters';
 import { createMessageFormatter } from '../utils/formatters/message-formatters';
 import { DEFAULTS } from '../utils/constants';
-import { formatMessageWithMentions } from '../utils/format-utils';
 
 async function handleSpecificChannelUnread(
   client: SlackApiClient,

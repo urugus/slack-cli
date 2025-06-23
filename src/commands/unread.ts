@@ -8,6 +8,7 @@ import { formatSlackTimestamp } from '../utils/date-utils';
 import { formatChannelName } from '../utils/channel-formatter';
 import { createChannelFormatter } from '../utils/formatters/channel-formatters';
 import { DEFAULTS } from '../utils/constants';
+import { formatMessageWithMentions } from '../utils/format-utils';
 
 async function handleSpecificChannelUnread(
   client: SlackApiClient,
@@ -24,7 +25,8 @@ async function handleSpecificChannelUnread(
       const timestamp = formatSlackTimestamp(message.ts);
       const author = message.user ? result.users.get(message.user) || message.user : 'unknown';
       console.log(`${chalk.gray(timestamp)} ${chalk.cyan(author)}`);
-      console.log(message.text || '(no text)');
+      const text = message.text ? formatMessageWithMentions(message.text, result.users) : '(no text)';
+      console.log(text);
       console.log('');
     });
   }

@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { Message } from '../utils/slack-api-client';
 import { formatSlackTimestamp } from '../utils/date-utils';
+import { formatMessageWithMentions } from '../utils/format-utils';
 
 export function displayHistoryResults(
   messages: Message[],
@@ -27,7 +28,8 @@ export function displayHistoryResults(
 
     console.log(chalk.gray(`[${timestamp}]`) + ' ' + chalk.cyan(author));
     if (message.text) {
-      console.log(message.text);
+      const formattedText = formatMessageWithMentions(message.text, users);
+      console.log(formattedText);
     }
     console.log(''); // Empty line between messages
   });

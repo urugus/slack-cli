@@ -11,7 +11,7 @@ export class ProfileManager {
   async getProfile(profileName: string): Promise<Config> {
     const data = await this.fileManager.read();
     const profile = data.profiles[profileName];
-    
+
     if (!profile) {
       throw new Error(`Profile "${profileName}" not found`);
     }
@@ -23,17 +23,17 @@ export class ProfileManager {
 
     return {
       ...profile,
-      token
+      token,
     };
   }
 
   async setProfile(profileName: string, config: Config): Promise<void> {
     const data = await this.fileManager.read();
-    
+
     // Encrypt the token before saving
     const encryptedConfig = {
       ...config,
-      token: this.cryptoService.encrypt(config.token)
+      token: this.cryptoService.encrypt(config.token),
     };
 
     data.profiles[profileName] = encryptedConfig;
@@ -42,7 +42,7 @@ export class ProfileManager {
 
   async deleteProfile(profileName: string): Promise<void> {
     const data = await this.fileManager.read();
-    
+
     if (!data.profiles[profileName]) {
       throw new Error(`Profile "${profileName}" not found`);
     }
@@ -63,7 +63,7 @@ export class ProfileManager {
 
   async setCurrentProfile(profileName: string): Promise<void> {
     const data = await this.fileManager.read();
-    
+
     if (!data.profiles[profileName]) {
       throw new Error(`Profile "${profileName}" not found`);
     }

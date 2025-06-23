@@ -30,7 +30,7 @@ export class ConfigFileManager {
       // File doesn't exist, return default config
       return {
         profiles: {},
-        currentProfile: 'default'
+        currentProfile: 'default',
       };
     }
   }

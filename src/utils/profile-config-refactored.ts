@@ -25,7 +25,7 @@ export class ProfileConfigManager {
   }
 
   async setToken(token: string, profile?: string): Promise<void> {
-    const profileName = profile || await this.profileManager.getCurrentProfile();
+    const profileName = profile || (await this.profileManager.getCurrentProfile());
     const config: Config = {
       token,
       updatedAt: new Date().toISOString(),
@@ -41,8 +41,8 @@ export class ProfileConfigManager {
   }
 
   async getConfig(profile?: string): Promise<Config | null> {
-    const profileName = profile || await this.profileManager.getCurrentProfile();
-    
+    const profileName = profile || (await this.profileManager.getCurrentProfile());
+
     try {
       return await this.profileManager.getProfile(profileName);
     } catch (error) {
@@ -57,7 +57,7 @@ export class ProfileConfigManager {
   async listProfiles(): Promise<Profile[]> {
     const profileNames = await this.profileManager.listProfiles();
     const currentProfile = await this.profileManager.getCurrentProfile();
-    
+
     const profiles: Profile[] = [];
     for (const name of profileNames) {
       const config = await this.profileManager.getProfile(name);
@@ -67,7 +67,7 @@ export class ProfileConfigManager {
         isDefault: name === currentProfile,
       });
     }
-    
+
     return profiles;
   }
 
@@ -76,7 +76,7 @@ export class ProfileConfigManager {
     if (!exists) {
       throw new Error(`Profile "${profile}" does not exist`);
     }
-    
+
     await this.profileManager.setCurrentProfile(profile);
   }
 
@@ -85,8 +85,8 @@ export class ProfileConfigManager {
   }
 
   async clearConfig(profile?: string): Promise<void> {
-    const profileName = profile || await this.profileManager.getCurrentProfile();
-    
+    const profileName = profile || (await this.profileManager.getCurrentProfile());
+
     try {
       await this.profileManager.deleteProfile(profileName);
     } catch (error) {
@@ -130,7 +130,7 @@ export class ProfileConfigManager {
   // Migration support - to be called separately if needed
   async migrateIfNeeded(): Promise<void> {
     const data = await this.fileManager.read();
-    
+
     // Check if migration is needed (old format detection)
     const anyData = data as any;
     if (anyData.token && !anyData.profiles) {
@@ -147,7 +147,7 @@ export class ProfileConfigManager {
       };
 
       await this.fileManager.write(newData);
-      
+
       // Re-encrypt token using new service
       await this.setToken(oldConfig.token, DEFAULT_PROFILE_NAME);
     }

@@ -40,7 +40,7 @@ export class MessageOperations extends BaseSlackClient {
 
     // Get unique user IDs from message authors
     const authorIds = messages.filter((m) => m.user).map((m) => m.user!);
-    
+
     // Extract user IDs from mentions in message text
     const mentionedIds: string[] = [];
     messages.forEach((message) => {

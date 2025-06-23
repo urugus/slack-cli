@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import { formatSlackTimestamp } from '../utils/date-utils';
 import { formatChannelName } from '../utils/channel-formatter';
 import { createChannelFormatter } from '../utils/formatters/channel-formatters';
+import { createMessageFormatter } from '../utils/formatters/message-formatters';
 import { DEFAULTS } from '../utils/constants';
 import { formatMessageWithMentions } from '../utils/format-utils';
 
@@ -15,23 +16,15 @@ async function handleSpecificChannelUnread(
   options: UnreadOptions
 ): Promise<void> {
   const result = await client.getChannelUnread(options.channel!);
-  const channelName = formatChannelName(result.channel.name);
-
-  console.log(chalk.bold(`${channelName}: ${result.channel.unread_count || 0} unread messages`));
-
-  if (!options.countOnly && result.messages.length > 0) {
-    console.log('');
-    result.messages.forEach((message) => {
-      const timestamp = formatSlackTimestamp(message.ts);
-      const author = message.user ? result.users.get(message.user) || message.user : 'unknown';
-      console.log(`${chalk.gray(timestamp)} ${chalk.cyan(author)}`);
-      const text = message.text
-        ? formatMessageWithMentions(message.text, result.users)
-        : '(no text)';
-      console.log(text);
-      console.log('');
-    });
-  }
+  
+  const formatter = createMessageFormatter(options.format || 'table');
+  formatter.format({
+    channel: result.channel,
+    messages: result.messages,
+    users: result.users,
+    countOnly: options.countOnly || false,
+    format: options.format || 'table'
+  });
 }
 
 async function handleAllChannelsUnread(

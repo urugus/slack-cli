@@ -174,6 +174,118 @@ describe('unread command', () => {
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Hello world'));
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Test message'));
     });
+
+    it('should display channel unread in JSON format when specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.getChannelUnread).mockResolvedValue({
+        channel: mockChannelsWithUnread[0],
+        messages: mockUnreadMessages,
+        users: new Map([
+          ['U123', 'john.doe'],
+          ['U456', 'jane.smith']
+        ])
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'general', '--format', 'json']);
+
+      expect(mockSlackClient.getChannelUnread).toHaveBeenCalledWith('general');
+      
+      const logCall = mockConsole.logSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logCall);
+      
+      expect(parsed).toEqual({
+        channel: '#general',
+        channelId: 'C123',
+        unreadCount: 5,
+        messages: [
+          {
+            timestamp: expect.any(String),
+            author: 'john.doe',
+            text: 'Hello world'
+          },
+          {
+            timestamp: expect.any(String),
+            author: 'jane.smith',
+            text: 'Test message'
+          }
+        ]
+      });
+    });
+
+    it('should display channel unread in simple format when specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.getChannelUnread).mockResolvedValue({
+        channel: mockChannelsWithUnread[0],
+        messages: mockUnreadMessages,
+        users: new Map([
+          ['U123', 'john.doe'],
+          ['U456', 'jane.smith']
+        ])
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'general', '--format', 'simple']);
+
+      expect(mockSlackClient.getChannelUnread).toHaveBeenCalledWith('general');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('#general (5)');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringMatching(/^\[.*\] john\.doe: Hello world$/));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringMatching(/^\[.*\] jane\.smith: Test message$/));
+    });
+
+    it('should show only count for channel when --count-only is specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.getChannelUnread).mockResolvedValue({
+        channel: mockChannelsWithUnread[0],
+        messages: mockUnreadMessages,
+        users: new Map([
+          ['U123', 'john.doe'],
+          ['U456', 'jane.smith']
+        ])
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'general', '--count-only']);
+
+      expect(mockSlackClient.getChannelUnread).toHaveBeenCalledWith('general');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(chalk.bold(`#general: 5 unread messages`));
+      expect(mockConsole.logSpy).not.toHaveBeenCalledWith(expect.stringContaining('Hello world'));
+      expect(mockConsole.logSpy).not.toHaveBeenCalledWith(expect.stringContaining('Test message'));
+    });
+
+    it('should show count only in JSON format when both --count-only and --format json are specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.getChannelUnread).mockResolvedValue({
+        channel: mockChannelsWithUnread[0],
+        messages: mockUnreadMessages,
+        users: new Map([
+          ['U123', 'john.doe'],
+          ['U456', 'jane.smith']
+        ])
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'general', '--count-only', '--format', 'json']);
+
+      expect(mockSlackClient.getChannelUnread).toHaveBeenCalledWith('general');
+      
+      const logCall = mockConsole.logSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logCall);
+      
+      expect(parsed).toEqual({
+        channel: '#general',
+        channelId: 'C123',
+        unreadCount: 5
+      });
+    });
   });
 
   describe('limit option', () => {

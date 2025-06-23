@@ -59,38 +59,33 @@ export class ChannelOperations extends BaseSlackClient {
           limit: 1,
         });
 
-        if (history.messages && history.messages.length > 0) {
-          let hasUnread = false;
-          let unreadCount = 0;
-
-          if (!channelInfo.last_read) {
-            // If last_read is empty, all messages are unread
-            hasUnread = true;
-            // Get total message count (up to 100)
-            const allHistory = await this.client.conversations.history({
-              channel: channel.id,
-              limit: 100,
+        // Always check for messages after last_read timestamp
+        if (channelInfo.last_read) {
+          // Fetch messages after last_read
+          const unreadHistory = await this.client.conversations.history({
+            channel: channel.id,
+            oldest: channelInfo.last_read,
+            limit: 100, // Get up to 100 unread messages
+          });
+          
+          const unreadCount = unreadHistory.messages?.length || 0;
+          if (unreadCount > 0) {
+            channelsWithUnread.push({
+              ...channel,
+              unread_count: unreadCount,
+              unread_count_display: unreadCount,
+              last_read: channelInfo.last_read,
             });
-            unreadCount = allHistory.messages?.length || 0;
-          } else {
-            // Check if there are messages after last_read
-            const latestMessage = history.messages[0];
-            const lastReadTs = parseFloat(channelInfo.last_read!);
-            const latestMessageTs = parseFloat(latestMessage.ts || '0');
-
-            if (latestMessageTs > lastReadTs) {
-              hasUnread = true;
-              // Calculate unread count by fetching messages after last_read
-              const unreadHistory = await this.client.conversations.history({
-                channel: channel.id,
-                oldest: channelInfo.last_read,
-                limit: 100, // Get up to 100 unread messages
-              });
-              unreadCount = unreadHistory.messages?.length || 0;
-            }
           }
-
-          if (hasUnread) {
+        } else if (history.messages && history.messages.length > 0) {
+          // If no last_read, all messages are unread
+          const allHistory = await this.client.conversations.history({
+            channel: channel.id,
+            limit: 100,
+          });
+          const unreadCount = allHistory.messages?.length || 0;
+          
+          if (unreadCount > 0) {
             channelsWithUnread.push({
               ...channel,
               unread_count: unreadCount,

@@ -276,4 +276,45 @@ describe('unread command', () => {
       expect(mockSlackClient.listUnreadChannels).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('last_read timestamp handling', () => {
+    it('should fetch messages after last_read timestamp even when unread_count is 0', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      
+      const channelWithLastRead = {
+        id: 'C08JFKGJPPE',
+        name: 'dev_kiban_jira',
+        is_channel: true,
+        is_member: true,
+        is_archived: false,
+        unread_count: 0,
+        unread_count_display: 0,
+        last_read: '1750646034.663209',
+        is_private: false,
+        created: 1742353688
+      };
+
+      const unreadMessage = {
+        ts: '1750646072.447069',
+        user: 'U5F87BSGP',
+        text: '@Suguru Sakashita / 阪下 駿 transitioned ES-4359 ArgumentError: \'発行者\' is not a valid field_name in Clip',
+        type: 'message',
+      };
+
+      vi.mocked(mockSlackClient.getChannelUnread).mockResolvedValue({
+        channel: { ...channelWithLastRead, unread_count: 1, unread_count_display: 1 },
+        messages: [unreadMessage],
+        users: new Map([['U5F87BSGP', 'jira-bot']])
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'dev_kiban_jira']);
+
+      expect(mockSlackClient.getChannelUnread).toHaveBeenCalledWith('dev_kiban_jira');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(chalk.bold('#dev_kiban_jira: 1 unread messages'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('transitioned ES-4359'));
+    });
+  });
 });

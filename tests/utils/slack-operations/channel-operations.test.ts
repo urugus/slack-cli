@@ -172,9 +172,14 @@ describe('ChannelOperations', () => {
         },
       });
 
-      // Latest message is older than last_read
-      mockClient.conversations.history.mockResolvedValue({
+      // First call to get latest message (limit: 1)
+      mockClient.conversations.history.mockResolvedValueOnce({
         messages: [{ ts: '1234567890.000100' }],
+      });
+      
+      // Second call to get messages after last_read (should be empty)
+      mockClient.conversations.history.mockResolvedValueOnce({
+        messages: [],
       });
 
       const result = await channelOps.listUnreadChannels();

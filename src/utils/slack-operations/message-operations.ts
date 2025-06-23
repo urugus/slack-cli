@@ -51,21 +51,32 @@ export class MessageOperations extends BaseSlackClient {
     // Get unread messages
     let messages: Message[] = [];
     let users = new Map<string, string>();
+    let actualUnreadCount = 0;
 
-    if (channel.last_read && channel.unread_count > 0) {
+    if (channel.last_read) {
+      // Always fetch messages after last_read to get accurate unread count
       const historyResult = await this.getHistory(channel.id, {
-        limit: channel.unread_count,
+        limit: 100, // Fetch up to 100 messages after last_read
         oldest: channel.last_read,
       });
       messages = historyResult.messages;
       users = historyResult.users;
+      actualUnreadCount = messages.length;
+    } else if (!channel.last_read) {
+      // If no last_read, all messages are unread
+      const historyResult = await this.getHistory(channel.id, {
+        limit: 100,
+      });
+      messages = historyResult.messages;
+      users = historyResult.users;
+      actualUnreadCount = messages.length;
     }
 
     return {
       channel: {
         ...channel,
-        unread_count: channel.unread_count || 0,
-        unread_count_display: channel.unread_count_display || 0,
+        unread_count: actualUnreadCount,
+        unread_count_display: actualUnreadCount,
       },
       messages,
       users,

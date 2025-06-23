@@ -36,17 +36,9 @@ export class ChannelOperations extends BaseSlackClient {
   async listUnreadChannels(): Promise<Channel[]> {
     try {
       // Use users.conversations to get unread counts in a single API call
-      const response = await this.client.users.conversations({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: 1000,
-      });
-
-      const channels = response.channels as Channel[];
-
-      // Filter to only channels with unread messages
-      // The users.conversations endpoint includes unread_count_display
-      return channels.filter((channel) => (channel.unread_count_display || 0) > 0);
+      // This endpoint doesn't return unread_count_display by default,
+      // so we'll use the fallback method instead
+      throw new Error('Using fallback method for unread counts');
     } catch (error) {
       // Fallback to the old method if users.conversations fails
       console.warn('Failed to use users.conversations, falling back to conversations.list');

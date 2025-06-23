@@ -3,13 +3,8 @@ import { wrapCommand } from '../utils/command-wrapper';
 import { createSlackClient } from '../utils/client-factory';
 import { ERROR_MESSAGES } from '../utils/constants';
 import { ChannelsOptions } from '../types/commands';
-import {
-  mapChannelToInfo,
-  formatChannelsAsTable,
-  formatChannelsAsSimple,
-  formatChannelsAsJson,
-  getChannelTypes,
-} from '../utils/channel-formatter';
+import { mapChannelToInfo, getChannelTypes } from '../utils/channel-formatter';
+import { createChannelsListFormatter } from '../utils/formatters/channels-list-formatters';
 
 export function setupChannelsCommand(): Command {
   const channelsCommand = new Command('channels');
@@ -43,21 +38,8 @@ export function setupChannelsCommand(): Command {
 
         // Format and display channels
         const channelInfos = channels.map(mapChannelToInfo);
-
-        switch (options.format) {
-          case 'simple':
-            formatChannelsAsSimple(channelInfos);
-            break;
-
-          case 'json':
-            formatChannelsAsJson(channelInfos);
-            break;
-
-          case 'table':
-          default:
-            formatChannelsAsTable(channelInfos);
-            break;
-        }
+        const formatter = createChannelsListFormatter(options.format);
+        formatter.format(channelInfos);
       })
     );
 

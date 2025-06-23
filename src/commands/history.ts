@@ -1,11 +1,15 @@
 import { Command } from 'commander';
-import chalk from 'chalk';
-import { HistoryOptions as ApiHistoryOptions, Message } from '../utils/slack-api-client';
+import { HistoryOptions as ApiHistoryOptions } from '../utils/slack-api-client';
 import { wrapCommand } from '../utils/command-wrapper';
 import { createSlackClient } from '../utils/client-factory';
 import { HistoryOptions } from '../types/commands';
-import { formatSlackTimestamp } from '../utils/date-utils';
 import { API_LIMITS } from '../utils/constants';
+import {
+  validateMessageCount,
+  validateDateFormat,
+  prepareSinceTimestamp,
+} from './history-validators';
+import { displayHistoryResults } from './history-display';
 
 export function setupHistoryCommand(): Command {
   const historyCommand = new Command('history')
@@ -20,75 +24,24 @@ export function setupHistoryCommand(): Command {
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook('preAction', (thisCommand) => {
       const options = thisCommand.opts();
-
-      // Validate number option
-      if (options.number) {
-        const num = parseInt(options.number, 10);
-        if (
-          isNaN(num) ||
-          num < API_LIMITS.MIN_MESSAGE_COUNT ||
-          num > API_LIMITS.MAX_MESSAGE_COUNT
-        ) {
-          thisCommand.error(
-            `Error: Message count must be between ${API_LIMITS.MIN_MESSAGE_COUNT} and ${API_LIMITS.MAX_MESSAGE_COUNT}`
-          );
-        }
-      }
-
-      // Validate since option
-      if (options.since) {
-        const timestamp = Date.parse(options.since);
-        if (isNaN(timestamp)) {
-          thisCommand.error('Error: Invalid date format. Use YYYY-MM-DD HH:MM:SS');
-        }
-      }
+      validateMessageCount(options.number, thisCommand);
+      validateDateFormat(options.since, thisCommand);
     })
     .action(
       wrapCommand(async (options: HistoryOptions) => {
-        // Create Slack client
         const client = await createSlackClient(options.profile);
 
-        // Prepare API options
         const historyOptions: ApiHistoryOptions = {
           limit: parseInt(options.number || API_LIMITS.DEFAULT_MESSAGE_COUNT.toString(), 10),
         };
 
-        if (options.since) {
-          // Convert date to Unix timestamp (in seconds)
-          const timestamp = Math.floor(Date.parse(options.since) / 1000);
-          historyOptions.oldest = timestamp.toString();
+        const oldest = prepareSinceTimestamp(options.since);
+        if (oldest) {
+          historyOptions.oldest = oldest;
         }
 
-        // Get message history
         const { messages, users } = await client.getHistory(options.channel, historyOptions);
-
-        // Display results
-        if (messages.length === 0) {
-          console.log(chalk.yellow('No messages found in the specified channel.'));
-          return;
-        }
-
-        console.log(chalk.bold(`\nMessage History for #${options.channel}:\n`));
-
-        // Display messages in reverse order (oldest first)
-        messages.reverse().forEach((message: Message) => {
-          const timestamp = formatSlackTimestamp(message.ts);
-          let author = 'Unknown';
-
-          if (message.user && users.has(message.user)) {
-            author = users.get(message.user)!;
-          } else if (message.bot_id) {
-            author = 'Bot';
-          }
-
-          console.log(chalk.gray(`[${timestamp}]`) + ' ' + chalk.cyan(author));
-          if (message.text) {
-            console.log(message.text);
-          }
-          console.log(''); // Empty line between messages
-        });
-
-        console.log(chalk.green(`✓ Displayed ${messages.length} message(s)`));
+        displayHistoryResults(messages, users, options.channel);
       })
     );
 

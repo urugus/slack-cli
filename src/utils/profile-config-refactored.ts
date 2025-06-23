@@ -1,11 +1,5 @@
-import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
-import {
-  TOKEN_MASK_LENGTH,
-  TOKEN_MIN_LENGTH,
-  DEFAULT_PROFILE_NAME,
-  ERROR_MESSAGES,
-  FILE_PERMISSIONS,
-} from './constants';
+import type { Config, ConfigOptions, Profile } from '../types/config';
+import { TOKEN_MASK_LENGTH, TOKEN_MIN_LENGTH, DEFAULT_PROFILE_NAME } from './constants';
 import { ConfigFileManager } from './config/config-file-manager';
 import { TokenCryptoService } from './config/token-crypto-service';
 import { ProfileManager } from './config/profile-manager';
@@ -16,7 +10,7 @@ export class ProfileConfigManager {
   private cryptoService: TokenCryptoService;
   private profileManager: ProfileManager;
 
-  constructor(options: ConfigOptions = {}) {
+  constructor(_options: ConfigOptions = {}) {
     // Note: ConfigFileManager currently doesn't support custom configDir
     // This would need to be added if required
     this.fileManager = new ConfigFileManager();
@@ -132,12 +126,12 @@ export class ProfileConfigManager {
     const data = await this.fileManager.read();
 
     // Check if migration is needed (old format detection)
-    const anyData = data as any;
+    const anyData = data as Record<string, unknown>;
     if (anyData.token && !anyData.profiles) {
       // Old format detected, migrate
       const oldConfig: Config = {
-        token: anyData.token,
-        updatedAt: anyData.updatedAt || new Date().toISOString(),
+        token: anyData.token as string,
+        updatedAt: (anyData.updatedAt as string) || new Date().toISOString(),
       };
 
       // Create new format

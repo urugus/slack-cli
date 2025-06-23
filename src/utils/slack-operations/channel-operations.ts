@@ -67,7 +67,7 @@ export class ChannelOperations extends BaseSlackClient {
             oldest: channelInfo.last_read,
             limit: 100, // Get up to 100 unread messages
           });
-          
+
           const unreadCount = unreadHistory.messages?.length || 0;
           if (unreadCount > 0) {
             channelsWithUnread.push({
@@ -84,7 +84,7 @@ export class ChannelOperations extends BaseSlackClient {
             limit: 100,
           });
           const unreadCount = allHistory.messages?.length || 0;
-          
+
           if (unreadCount > 0) {
             channelsWithUnread.push({
               ...channel,

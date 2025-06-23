@@ -25,7 +25,9 @@ async function handleSpecificChannelUnread(
       const timestamp = formatSlackTimestamp(message.ts);
       const author = message.user ? result.users.get(message.user) || message.user : 'unknown';
       console.log(`${chalk.gray(timestamp)} ${chalk.cyan(author)}`);
-      const text = message.text ? formatMessageWithMentions(message.text, result.users) : '(no text)';
+      const text = message.text
+        ? formatMessageWithMentions(message.text, result.users)
+        : '(no text)';
       console.log(text);
       console.log('');
     });

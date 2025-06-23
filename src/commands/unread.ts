@@ -16,14 +16,14 @@ async function handleSpecificChannelUnread(
   options: UnreadOptions
 ): Promise<void> {
   const result = await client.getChannelUnread(options.channel!);
-  
+
   const formatter = createMessageFormatter(options.format || 'table');
   formatter.format({
     channel: result.channel,
     messages: result.messages,
     users: result.users,
     countOnly: options.countOnly || false,
-    format: options.format || 'table'
+    format: options.format || 'table',
   });
 }
 

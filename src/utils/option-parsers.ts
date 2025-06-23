@@ -12,7 +12,7 @@ export function parseFormat(format?: string, defaultFormat = 'table'): string {
 /**
  * Parse limit option with default value
  */
-export function parseLimit(limit?: string, defaultLimit: number): number {
+export function parseLimit(limit: string | undefined, defaultLimit: number): number {
   return parseInt(limit || defaultLimit.toString(), 10);
 }
 
@@ -27,7 +27,7 @@ export function parseBoolean(value?: boolean, defaultValue = false): boolean {
  * Parse count option with default value
  */
 export function parseCount(
-  count?: string,
+  count: string | undefined,
   defaultCount: number,
   min?: number,
   max?: number

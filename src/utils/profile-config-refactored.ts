@@ -126,7 +126,7 @@ export class ProfileConfigManager {
     const data = await this.fileManager.read();
 
     // Check if migration is needed (old format detection)
-    const anyData = data as Record<string, unknown>;
+    const anyData = data as unknown as Record<string, unknown>;
     if (anyData.token && !anyData.profiles) {
       // Old format detected, migrate
       const oldConfig: Config = {

@@ -39,7 +39,7 @@ export function setupChannelsCommand(): Command {
         // Format and display channels
         const channelInfos = channels.map(mapChannelToInfo);
         const formatter = createChannelsListFormatter(options.format);
-        formatter.format(channelInfos);
+        formatter.format({ channels: channelInfos });
       })
     );
 

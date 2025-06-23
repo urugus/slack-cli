@@ -40,7 +40,7 @@ async function handleAllChannelsUnread(
   const displayChannels = channels.slice(0, limit);
 
   const formatter = createChannelFormatter(options.format || 'table', options.countOnly || false);
-  formatter.format(displayChannels);
+  formatter.format({ channels: displayChannels, countOnly: options.countOnly || false });
 }
 
 export function setupUnreadCommand(): Command {

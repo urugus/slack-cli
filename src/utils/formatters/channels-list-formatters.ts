@@ -1,8 +1,12 @@
-import { BaseFormatter } from './output-formatter';
+import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { ChannelInfo } from '../channel-formatter';
 
-export class ChannelsTableFormatter extends BaseFormatter<ChannelInfo> {
-  format(channels: ChannelInfo[]): void {
+export interface ChannelsListFormatterOptions {
+  channels: ChannelInfo[];
+}
+
+class ChannelsTableFormatter extends AbstractFormatter<ChannelsListFormatterOptions> {
+  format({ channels }: ChannelsListFormatterOptions): void {
     // Print table header
     console.log('Name              Type      Members  Created      Description');
     console.log('─'.repeat(65));
@@ -21,39 +25,31 @@ export class ChannelsTableFormatter extends BaseFormatter<ChannelInfo> {
   }
 }
 
-export class ChannelsSimpleFormatter extends BaseFormatter<ChannelInfo> {
-  format(channels: ChannelInfo[]): void {
+class ChannelsSimpleFormatter extends AbstractFormatter<ChannelsListFormatterOptions> {
+  format({ channels }: ChannelsListFormatterOptions): void {
     channels.forEach((channel) => console.log(channel.name));
   }
 }
 
-export class ChannelsJsonFormatter extends BaseFormatter<ChannelInfo> {
-  format(channels: ChannelInfo[]): void {
-    console.log(
-      JSON.stringify(
-        channels.map((channel) => ({
-          id: channel.id,
-          name: channel.name,
-          type: channel.type,
-          members: channel.members,
-          created: channel.created + 'T00:00:00Z',
-          purpose: channel.purpose,
-        })),
-        null,
-        2
-      )
-    );
+class ChannelsJsonFormatter extends JsonFormatter<ChannelsListFormatterOptions> {
+  protected transform({ channels }: ChannelsListFormatterOptions) {
+    return channels.map((channel) => ({
+      id: channel.id,
+      name: channel.name,
+      type: channel.type,
+      members: channel.members,
+      created: channel.created + 'T00:00:00Z',
+      purpose: channel.purpose,
+    }));
   }
 }
 
-export function createChannelsListFormatter(format: string): BaseFormatter<ChannelInfo> {
-  switch (format) {
-    case 'json':
-      return new ChannelsJsonFormatter();
-    case 'simple':
-      return new ChannelsSimpleFormatter();
-    case 'table':
-    default:
-      return new ChannelsTableFormatter();
-  }
+const channelsListFormatterFactory = createFormatterFactory<ChannelsListFormatterOptions>({
+  table: new ChannelsTableFormatter(),
+  simple: new ChannelsSimpleFormatter(),
+  json: new ChannelsJsonFormatter(),
+});
+
+export function createChannelsListFormatter(format: string) {
+  return channelsListFormatterFactory.create(format);
 }

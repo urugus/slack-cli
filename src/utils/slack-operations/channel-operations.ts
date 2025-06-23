@@ -34,19 +34,6 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async listUnreadChannels(): Promise<Channel[]> {
-    try {
-      // Use users.conversations to get unread counts in a single API call
-      // This endpoint doesn't return unread_count_display by default,
-      // so we'll use the fallback method instead
-      throw new Error('Using fallback method for unread counts');
-    } catch (error) {
-      // Fallback to the old method if users.conversations fails
-      console.warn('Failed to use users.conversations, falling back to conversations.list');
-      return this.listUnreadChannelsFallback();
-    }
-  }
-
-  private async listUnreadChannelsFallback(): Promise<Channel[]> {
     // Get all conversations the user is a member of
     const response = await this.client.conversations.list({
       types: 'public_channel,private_channel,im,mpim',
@@ -66,13 +53,51 @@ export class ChannelOperations extends BaseSlackClient {
         });
         const channelInfo = info.channel as ChannelWithUnreadInfo;
 
-        if (channelInfo.unread_count_display && channelInfo.unread_count_display > 0) {
-          channelsWithUnread.push({
-            ...channel,
-            unread_count: channelInfo.unread_count || 0,
-            unread_count_display: channelInfo.unread_count_display || 0,
-            last_read: channelInfo.last_read,
-          });
+        // Get the latest message in the channel
+        const history = await this.client.conversations.history({
+          channel: channel.id,
+          limit: 1,
+        });
+
+        if (history.messages && history.messages.length > 0) {
+          let hasUnread = false;
+          let unreadCount = 0;
+
+          if (!channelInfo.last_read) {
+            // If last_read is empty, all messages are unread
+            hasUnread = true;
+            // Get total message count (up to 100)
+            const allHistory = await this.client.conversations.history({
+              channel: channel.id,
+              limit: 100,
+            });
+            unreadCount = allHistory.messages?.length || 0;
+          } else {
+            // Check if there are messages after last_read
+            const latestMessage = history.messages[0];
+            const lastReadTs = parseFloat(channelInfo.last_read!);
+            const latestMessageTs = parseFloat(latestMessage.ts || '0');
+
+            if (latestMessageTs > lastReadTs) {
+              hasUnread = true;
+              // Calculate unread count by fetching messages after last_read
+              const unreadHistory = await this.client.conversations.history({
+                channel: channel.id,
+                oldest: channelInfo.last_read,
+                limit: 100, // Get up to 100 unread messages
+              });
+              unreadCount = unreadHistory.messages?.length || 0;
+            }
+          }
+
+          if (hasUnread) {
+            channelsWithUnread.push({
+              ...channel,
+              unread_count: unreadCount,
+              unread_count_display: unreadCount,
+              last_read: channelInfo.last_read,
+            });
+          }
         }
 
         // Add delay between API calls to avoid rate limiting

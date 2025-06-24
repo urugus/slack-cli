@@ -13,6 +13,7 @@ export const ERROR_MESSAGES = {
   // Validation errors
   NO_MESSAGE_OR_FILE: 'You must specify either --message or --file',
   BOTH_MESSAGE_AND_FILE: 'Cannot use both --message and --file',
+  INVALID_THREAD_TIMESTAMP: 'Invalid thread timestamp format',
 
   // API errors
   API_ERROR: (error: string) => `API Error: ${error}`,

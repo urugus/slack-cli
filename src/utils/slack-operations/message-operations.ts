@@ -1,4 +1,4 @@
-import { ChatPostMessageResponse } from '@slack/web-api';
+import { ChatPostMessageResponse, ChatPostMessageArguments } from '@slack/web-api';
 import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
@@ -14,11 +14,21 @@ export class MessageOperations extends BaseSlackClient {
     this.channelOps = new ChannelOperations(token);
   }
 
-  async sendMessage(channel: string, text: string): Promise<ChatPostMessageResponse> {
-    return await this.client.chat.postMessage({
+  async sendMessage(
+    channel: string,
+    text: string,
+    thread_ts?: string
+  ): Promise<ChatPostMessageResponse> {
+    const params: ChatPostMessageArguments = {
       channel,
       text,
-    });
+    };
+
+    if (thread_ts) {
+      params.thread_ts = thread_ts;
+    }
+
+    return await this.client.chat.postMessage(params);
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {

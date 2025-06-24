@@ -47,7 +47,7 @@ describe('send command', () => {
 
       await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-m', 'Hello, World!']);
 
-      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', 'Hello, World!');
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', 'Hello, World!', undefined);
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general')));
     });
 
@@ -84,7 +84,74 @@ describe('send command', () => {
       await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-f', 'message.txt']);
 
       expect(fs.readFile).toHaveBeenCalledWith('message.txt', 'utf-8');
-      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', fileContent);
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', fileContent, undefined);
+    });
+  });
+
+  describe('send reply to thread', () => {
+    it('should send a reply to a thread with --thread option', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456'
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-m', 'Reply to thread', '--thread', '1719207629.000100']);
+
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', 'Reply to thread', '1719207629.000100');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general')));
+    });
+
+    it('should send a reply to a thread with -t option', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456'
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-m', 'Reply to thread', '-t', '1719207629.000100']);
+
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', 'Reply to thread', '1719207629.000100');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general')));
+    });
+
+    it('should validate thread timestamp format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+
+      const sendCommand = setupSendCommand();
+      sendCommand.exitOverride();
+
+      await expect(
+        sendCommand.parseAsync(['-c', 'general', '-m', 'Reply', '-t', 'invalid-timestamp'], { from: 'user' })
+      ).rejects.toThrow(ERROR_MESSAGES.INVALID_THREAD_TIMESTAMP);
+    });
+
+    it('should send a reply to a thread with file content', async () => {
+      const fileContent = 'Reply from file\nLine 2';
+      vi.mocked(fs.readFile).mockResolvedValue(fileContent);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456'
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-f', 'reply.txt', '-t', '1719207629.000100']);
+
+      expect(fs.readFile).toHaveBeenCalledWith('reply.txt', 'utf-8');
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', fileContent, '1719207629.000100');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general')));
     });
   });
 

@@ -46,7 +46,11 @@ export function validateMutuallyExclusive(
 /**
  * Validates string format using regex
  */
-export function validateFormat(value: string, pattern: RegExp, errorMessage: string): string | null {
+export function validateFormat(
+  value: string,
+  pattern: RegExp,
+  errorMessage: string
+): string | null {
   if (!pattern.test(value)) {
     return errorMessage;
   }
@@ -122,7 +126,7 @@ export function createValidationHook(
 ): (thisCommand: Command) => void {
   return (thisCommand: Command) => {
     const options = thisCommand.opts();
-    
+
     for (const validation of validations) {
       const error = validation(options, thisCommand);
       if (error) {

@@ -20,10 +20,10 @@ export function setupHistoryCommand(): Command {
     )
     .option('--since <date>', 'Get messages since specific date (YYYY-MM-DD HH:MM:SS)')
     .option('--profile <profile>', 'Use specific workspace profile')
-    .hook('preAction', createValidationHook([
-      optionValidators.messageCount,
-      optionValidators.sinceDate,
-    ]))
+    .hook(
+      'preAction',
+      createValidationHook([optionValidators.messageCount, optionValidators.sinceDate])
+    )
     .action(
       wrapCommand(async (options: HistoryOptions) => {
         const profile = parseProfile(options.profile);

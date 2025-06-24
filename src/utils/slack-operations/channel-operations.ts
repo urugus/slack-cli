@@ -100,7 +100,10 @@ export class ChannelOperations extends BaseSlackClient {
     return info.channel as ChannelWithUnreadInfo;
   }
 
-  private async calculateUnreadCount(channelId: string, channelInfo: ChannelWithUnreadInfo): Promise<number> {
+  private async calculateUnreadCount(
+    channelId: string,
+    channelInfo: ChannelWithUnreadInfo
+  ): Promise<number> {
     // Get the latest message to check if channel has any messages
     const latestMessage = await this.fetchLatestMessage(channelId);
     if (!latestMessage) {

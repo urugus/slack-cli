@@ -18,10 +18,10 @@ export function setupSendCommand(): Command {
     .option('-f, --file <file>', 'File containing message content')
     .option('-t, --thread <thread>', 'Thread timestamp to reply to')
     .option('--profile <profile>', 'Use specific workspace profile')
-    .hook('preAction', createValidationHook([
-      optionValidators.messageOrFile,
-      optionValidators.threadTimestamp,
-    ]))
+    .hook(
+      'preAction',
+      createValidationHook([optionValidators.messageOrFile, optionValidators.threadTimestamp])
+    )
     .action(
       wrapCommand(async (options: SendOptions) => {
         // Get message content

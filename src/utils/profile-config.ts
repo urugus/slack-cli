@@ -2,11 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
-import {
-  DEFAULT_PROFILE_NAME,
-  ERROR_MESSAGES,
-  FILE_PERMISSIONS,
-} from './constants';
+import { DEFAULT_PROFILE_NAME, ERROR_MESSAGES, FILE_PERMISSIONS } from './constants';
 import { maskToken } from './token-utils';
 
 export class ProfileConfigManager {

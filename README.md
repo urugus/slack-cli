@@ -58,6 +58,12 @@ slack-cli send -c general -m "Line 1\nLine 2\nLine 3"
 
 # Send message from file
 slack-cli send -c random -f message.txt
+
+# Reply to a thread
+slack-cli send -c channel-name -m "Reply message" --thread 1719207629.000100
+
+# Reply to a thread (short option)
+slack-cli send -c channel-name -m "Reply message" -t 1719207629.000100
 ```
 
 ### List Channels
@@ -160,6 +166,7 @@ slack-cli config set --token NEW_TOKEN
 | --channel | -c | Target channel name or ID (required) |
 | --message | -m | Message to send |
 | --file | -f | File containing message content |
+| --thread | -t | Thread timestamp to reply to |
 
 ### channels command
 | Option | Short | Description |

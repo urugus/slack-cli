@@ -19,6 +19,7 @@ export interface SendOptions {
   channel: string;
   message?: string;
   file?: string;
+  thread?: string;
   profile?: string;
 }
 

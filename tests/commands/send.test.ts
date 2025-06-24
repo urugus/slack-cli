@@ -134,6 +134,25 @@ describe('send command', () => {
         sendCommand.parseAsync(['-c', 'general', '-m', 'Reply', '-t', 'invalid-timestamp'], { from: 'user' })
       ).rejects.toThrow('Invalid thread timestamp format');
     });
+
+    it('should send a reply to a thread with file content', async () => {
+      const fileContent = 'Reply from file\nLine 2';
+      vi.mocked(fs.readFile).mockResolvedValue(fileContent);
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456'
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-f', 'reply.txt', '-t', '1719207629.000100']);
+
+      expect(fs.readFile).toHaveBeenCalledWith('reply.txt', 'utf-8');
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', fileContent, '1719207629.000100');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general')));
+    });
   });
 
   describe('validation', () => {

@@ -5,7 +5,7 @@ import { ERROR_MESSAGES } from './constants';
  * Common validation functions for CLI commands
  */
 
-export interface ValidationRule<T = any> {
+export interface ValidationRule<T = unknown> {
   validate: (value: T) => boolean | string;
   errorMessage?: string;
 }
@@ -18,7 +18,7 @@ export interface ValidationOptions {
 /**
  * Validates that a value exists (not undefined, null, or empty string)
  */
-export function validateRequired(value: any, fieldName: string): string | null {
+export function validateRequired(value: unknown, fieldName: string): string | null {
   if (value === undefined || value === null || value === '') {
     return `${fieldName} is required`;
   }
@@ -29,7 +29,7 @@ export function validateRequired(value: any, fieldName: string): string | null {
  * Validates mutually exclusive options
  */
 export function validateMutuallyExclusive(
-  options: Record<string, any>,
+  options: Record<string, unknown>,
   fields: string[],
   errorMessage?: string
 ): string | null {
@@ -122,7 +122,7 @@ export const formatValidators = {
  * Creates a preAction hook for command validation
  */
 export function createValidationHook(
-  validations: Array<(options: any, command: Command) => string | null>
+  validations: Array<(options: Record<string, unknown>, command: Command) => string | null>
 ): (thisCommand: Command) => void {
   return (thisCommand: Command) => {
     const options = thisCommand.opts();
@@ -144,7 +144,7 @@ export const optionValidators = {
   /**
    * Validates message/file options for send command
    */
-  messageOrFile: (options: any): string | null => {
+  messageOrFile: (options: Record<string, unknown>): string | null => {
     if (!options.message && !options.file) {
       return ERROR_MESSAGES.NO_MESSAGE_OR_FILE;
     }
@@ -157,9 +157,9 @@ export const optionValidators = {
   /**
    * Validates thread timestamp if provided
    */
-  threadTimestamp: (options: any): string | null => {
+  threadTimestamp: (options: Record<string, unknown>): string | null => {
     if (options.thread) {
-      return formatValidators.threadTimestamp(options.thread);
+      return formatValidators.threadTimestamp(options.thread as string);
     }
     return null;
   },
@@ -167,9 +167,9 @@ export const optionValidators = {
   /**
    * Validates message count for history command
    */
-  messageCount: (options: any): string | null => {
+  messageCount: (options: Record<string, unknown>): string | null => {
     if (options.number) {
-      const count = parseInt(options.number, 10);
+      const count = parseInt(options.number as string, 10);
       if (isNaN(count)) {
         return 'Message count must be a number';
       }
@@ -181,9 +181,9 @@ export const optionValidators = {
   /**
    * Validates date format for history command
    */
-  sinceDate: (options: any): string | null => {
+  sinceDate: (options: Record<string, unknown>): string | null => {
     if (options.since) {
-      const error = validateDateFormat(options.since);
+      const error = validateDateFormat(options.since as string);
       if (error) {
         return 'Invalid date format. Use YYYY-MM-DD HH:MM:SS';
       }

@@ -11,8 +11,8 @@ describe('slack-cli version', () => {
     );
     const expectedVersion = packageJson.version;
 
-    // Execute the CLI command to get version
-    const output = execSync('node dist/index.js --version', {
+    // Execute the CLI command to get version using ts-node
+    const output = execSync('npx ts-node src/index.ts --version', {
       encoding: 'utf-8',
       cwd: join(__dirname, '..')
     }).trim();
@@ -28,8 +28,8 @@ describe('slack-cli version', () => {
     );
     const expectedVersion = packageJson.version;
 
-    // Execute the CLI command with -V flag
-    const output = execSync('node dist/index.js -V', {
+    // Execute the CLI command with -V flag using ts-node
+    const output = execSync('npx ts-node src/index.ts -V', {
       encoding: 'utf-8',
       cwd: join(__dirname, '..')
     }).trim();

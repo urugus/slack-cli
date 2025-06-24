@@ -42,5 +42,6 @@ export interface UnreadOptions {
   format?: 'table' | 'simple' | 'json';
   countOnly?: boolean;
   limit?: string;
+  markRead?: boolean;
   profile?: string;
 }

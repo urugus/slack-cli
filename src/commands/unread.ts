@@ -26,6 +26,11 @@ async function handleSpecificChannelUnread(
     countOnly: countOnly,
     format: format,
   });
+
+  if (parseBoolean(options.markRead)) {
+    await client.markAsRead(result.channel.id);
+    console.log(chalk.green(`✓ Marked messages in #${result.channel.name} as read`));
+  }
 }
 
 async function handleAllChannelsUnread(
@@ -48,6 +53,14 @@ async function handleAllChannelsUnread(
 
   const formatter = createChannelFormatter(format, countOnly);
   formatter.format({ channels: displayChannels, countOnly: countOnly });
+
+  if (parseBoolean(options.markRead)) {
+    // Mark all unread channels as read
+    for (const channel of channels) {
+      await client.markAsRead(channel.id);
+    }
+    console.log(chalk.green('✓ Marked all messages as read'));
+  }
 }
 
 export function setupUnreadCommand(): Command {
@@ -61,6 +74,7 @@ export function setupUnreadCommand(): Command {
       'Maximum number of channels to display',
       DEFAULTS.UNREAD_DISPLAY_LIMIT.toString()
     )
+    .option('--mark-read', 'Mark messages as read after fetching', false)
     .option('--profile <profile>', 'Use specific workspace profile')
     .action(
       wrapCommand(async (options: UnreadOptions) => {

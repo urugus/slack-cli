@@ -77,7 +77,11 @@ export class SlackApiClient {
     this.messageOps = new MessageOperations(token);
   }
 
-  async sendMessage(channel: string, text: string, thread_ts?: string): Promise<ChatPostMessageResponse> {
+  async sendMessage(
+    channel: string,
+    text: string,
+    thread_ts?: string
+  ): Promise<ChatPostMessageResponse> {
     return this.messageOps.sendMessage(channel, text, thread_ts);
   }
 

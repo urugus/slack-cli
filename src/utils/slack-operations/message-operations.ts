@@ -14,16 +14,20 @@ export class MessageOperations extends BaseSlackClient {
     this.channelOps = new ChannelOperations(token);
   }
 
-  async sendMessage(channel: string, text: string, thread_ts?: string): Promise<ChatPostMessageResponse> {
+  async sendMessage(
+    channel: string,
+    text: string,
+    thread_ts?: string
+  ): Promise<ChatPostMessageResponse> {
     const params: any = {
       channel,
       text,
     };
-    
+
     if (thread_ts) {
       params.thread_ts = thread_ts;
     }
-    
+
     return await this.client.chat.postMessage(params);
   }
 

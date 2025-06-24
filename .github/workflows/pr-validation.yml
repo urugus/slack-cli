@@ -28,16 +28,6 @@ jobs:
     
     - name: Run tests with coverage
       run: npm run test:coverage
-    
-    - name: Comment PR with coverage
-      uses: ArtiomTr/jest-coverage-report-action@v2
-      if: github.event_name == 'pull_request'
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        test-script: npm run test:coverage
-        skip-step: all
-        coverage-file: ./coverage/coverage-final.json
-        base-coverage-file: ./coverage/coverage-final.json
         
     - name: Check build
       run: npm run build

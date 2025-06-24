@@ -1,4 +1,4 @@
-import { ChatPostMessageResponse } from '@slack/web-api';
+import { ChatPostMessageResponse, ChatPostMessageArguments } from '@slack/web-api';
 import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
@@ -19,7 +19,7 @@ export class MessageOperations extends BaseSlackClient {
     text: string,
     thread_ts?: string
   ): Promise<ChatPostMessageResponse> {
-    const params: any = {
+    const params: ChatPostMessageArguments = {
       channel,
       text,
     };

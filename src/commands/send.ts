@@ -31,7 +31,7 @@ export function setupSendCommand(): Command {
         thisCommand.error(`Error: ${ERROR_MESSAGES.BOTH_MESSAGE_AND_FILE}`);
       }
       if (options.thread && !isValidThreadTimestamp(options.thread)) {
-        thisCommand.error('Error: Invalid thread timestamp format');
+        thisCommand.error(`Error: ${ERROR_MESSAGES.INVALID_THREAD_TIMESTAMP}`);
       }
     })
     .action(

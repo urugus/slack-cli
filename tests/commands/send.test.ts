@@ -132,7 +132,7 @@ describe('send command', () => {
 
       await expect(
         sendCommand.parseAsync(['-c', 'general', '-m', 'Reply', '-t', 'invalid-timestamp'], { from: 'user' })
-      ).rejects.toThrow('Invalid thread timestamp format');
+      ).rejects.toThrow(ERROR_MESSAGES.INVALID_THREAD_TIMESTAMP);
     });
 
     it('should send a reply to a thread with file content', async () => {

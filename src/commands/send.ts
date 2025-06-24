@@ -6,13 +6,9 @@ import { createSlackClient } from '../utils/client-factory';
 import { FileError } from '../utils/errors';
 import { SendOptions } from '../types/commands';
 import { extractErrorMessage } from '../utils/error-utils';
+import { parseProfile } from '../utils/option-parsers';
+import { createValidationHook, optionValidators } from '../utils/validators';
 import * as fs from 'fs/promises';
-
-function isValidThreadTimestamp(timestamp: string): boolean {
-  // Slack timestamp format: 1234567890.123456
-  const timestampRegex = /^\d{10}\.\d{6}$/;
-  return timestampRegex.test(timestamp);
-}
 
 export function setupSendCommand(): Command {
   const sendCommand = new Command('send')
@@ -22,18 +18,10 @@ export function setupSendCommand(): Command {
     .option('-f, --file <file>', 'File containing message content')
     .option('-t, --thread <thread>', 'Thread timestamp to reply to')
     .option('--profile <profile>', 'Use specific workspace profile')
-    .hook('preAction', (thisCommand) => {
-      const options = thisCommand.opts();
-      if (!options.message && !options.file) {
-        thisCommand.error(`Error: ${ERROR_MESSAGES.NO_MESSAGE_OR_FILE}`);
-      }
-      if (options.message && options.file) {
-        thisCommand.error(`Error: ${ERROR_MESSAGES.BOTH_MESSAGE_AND_FILE}`);
-      }
-      if (options.thread && !isValidThreadTimestamp(options.thread)) {
-        thisCommand.error(`Error: ${ERROR_MESSAGES.INVALID_THREAD_TIMESTAMP}`);
-      }
-    })
+    .hook('preAction', createValidationHook([
+      optionValidators.messageOrFile,
+      optionValidators.threadTimestamp,
+    ]))
     .action(
       wrapCommand(async (options: SendOptions) => {
         // Get message content
@@ -51,7 +39,8 @@ export function setupSendCommand(): Command {
         }
 
         // Send message
-        const client = await createSlackClient(options.profile);
+        const profile = parseProfile(options.profile);
+        const client = await createSlackClient(profile);
         await client.sendMessage(options.channel, messageContent, options.thread);
 
         console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SENT(options.channel)}`));

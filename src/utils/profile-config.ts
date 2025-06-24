@@ -3,12 +3,11 @@ import * as path from 'path';
 import * as os from 'os';
 import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
 import {
-  TOKEN_MASK_LENGTH,
-  TOKEN_MIN_LENGTH,
   DEFAULT_PROFILE_NAME,
   ERROR_MESSAGES,
   FILE_PERMISSIONS,
 } from './constants';
+import { maskToken } from './token-utils';
 
 export class ProfileConfigManager {
   private configPath: string;
@@ -98,14 +97,7 @@ export class ProfileConfigManager {
   }
 
   maskToken(token: string): string {
-    if (token.length <= TOKEN_MIN_LENGTH) {
-      return '****';
-    }
-
-    const prefix = token.substring(0, TOKEN_MASK_LENGTH);
-    const suffix = token.substring(token.length - TOKEN_MASK_LENGTH);
-
-    return `${prefix}-****-****-${suffix}`;
+    return maskToken(token);
   }
 
   private async getConfigStore(): Promise<ConfigStore> {

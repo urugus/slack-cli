@@ -24,7 +24,11 @@ export function setupHistoryCommand(): Command {
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook(
       'preAction',
-      createValidationHook([optionValidators.messageCount, optionValidators.sinceDate, optionValidators.format])
+      createValidationHook([
+        optionValidators.messageCount,
+        optionValidators.sinceDate,
+        optionValidators.format,
+      ])
     )
     .action(
       wrapCommand(async (options: HistoryOptions) => {

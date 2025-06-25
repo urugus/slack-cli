@@ -37,7 +37,7 @@ class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
     messages.forEach((message) => {
       const timestamp = formatTimestampFixed(message.ts);
       const username = this.getUsername(message, users);
-      
+
       console.log(`${chalk.gray(`[${timestamp}]`)} ${chalk.cyan(username)}`);
       const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
       console.log(text);

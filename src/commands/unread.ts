@@ -9,10 +9,7 @@ import { createMessageFormatter } from '../utils/formatters/message-formatters';
 import { DEFAULTS } from '../utils/constants';
 import { parseLimit, parseFormat, parseBoolean } from '../utils/option-parsers';
 
-async function fetchChannelUnreadData(
-  client: SlackApiClient,
-  channelName: string
-) {
+async function fetchChannelUnreadData(client: SlackApiClient, channelName: string) {
   return await client.getChannelUnread(channelName);
 }
 
@@ -31,10 +28,7 @@ function formatChannelUnreadOutput(
   });
 }
 
-async function markChannelAsRead(
-  client: SlackApiClient,
-  channel: Channel
-): Promise<void> {
+async function markChannelAsRead(client: SlackApiClient, channel: Channel): Promise<void> {
   await client.markAsRead(channel.id);
   console.log(chalk.green(`✓ Marked messages in #${channel.name} as read`));
 }
@@ -70,10 +64,7 @@ function formatAllChannelsOutput(
   formatter.format({ channels: displayChannels, countOnly: countOnly });
 }
 
-async function markAllChannelsAsRead(
-  client: SlackApiClient,
-  channels: Channel[]
-): Promise<void> {
+async function markAllChannelsAsRead(client: SlackApiClient, channels: Channel[]): Promise<void> {
   for (const channel of channels) {
     await client.markAsRead(channel.id);
   }

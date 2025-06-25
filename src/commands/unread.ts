@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { wrapCommand } from '../utils/command-wrapper';
 import { createSlackClient } from '../utils/client-factory';
-import { SlackApiClient } from '../utils/slack-api-client';
+import { SlackApiClient, ChannelUnreadResult, Channel } from '../utils/slack-api-client';
 import { UnreadOptions } from '../types/commands';
 import chalk from 'chalk';
 import { createChannelFormatter } from '../utils/formatters/channel-formatters';
@@ -9,15 +9,18 @@ import { createMessageFormatter } from '../utils/formatters/message-formatters';
 import { DEFAULTS } from '../utils/constants';
 import { parseLimit, parseFormat, parseBoolean } from '../utils/option-parsers';
 
-async function handleSpecificChannelUnread(
+async function fetchChannelUnreadData(
   client: SlackApiClient,
-  options: UnreadOptions
-): Promise<void> {
-  const result = await client.getChannelUnread(options.channel!);
+  channelName: string
+) {
+  return await client.getChannelUnread(channelName);
+}
 
-  const format = parseFormat(options.format);
-  const countOnly = parseBoolean(options.countOnly);
-
+function formatChannelUnreadOutput(
+  result: ChannelUnreadResult,
+  format: string,
+  countOnly: boolean
+): void {
   const formatter = createMessageFormatter(format);
   formatter.format({
     channel: result.channel,
@@ -26,40 +29,76 @@ async function handleSpecificChannelUnread(
     countOnly: countOnly,
     format: format,
   });
+}
+
+async function markChannelAsRead(
+  client: SlackApiClient,
+  channel: Channel
+): Promise<void> {
+  await client.markAsRead(channel.id);
+  console.log(chalk.green(`✓ Marked messages in #${channel.name} as read`));
+}
+
+async function handleSpecificChannelUnread(
+  client: SlackApiClient,
+  options: UnreadOptions
+): Promise<void> {
+  const result = await fetchChannelUnreadData(client, options.channel!);
+
+  const format = parseFormat(options.format);
+  const countOnly = parseBoolean(options.countOnly);
+
+  formatChannelUnreadOutput(result, format, countOnly);
 
   if (parseBoolean(options.markRead)) {
-    await client.markAsRead(result.channel.id);
-    console.log(chalk.green(`✓ Marked messages in #${result.channel.name} as read`));
+    await markChannelAsRead(client, result.channel);
   }
+}
+
+async function fetchAllUnreadChannels(client: SlackApiClient) {
+  return await client.listUnreadChannels();
+}
+
+function formatAllChannelsOutput(
+  channels: Channel[],
+  format: string,
+  countOnly: boolean,
+  limit: number
+): void {
+  const displayChannels = channels.slice(0, limit);
+  const formatter = createChannelFormatter(format, countOnly);
+  formatter.format({ channels: displayChannels, countOnly: countOnly });
+}
+
+async function markAllChannelsAsRead(
+  client: SlackApiClient,
+  channels: Channel[]
+): Promise<void> {
+  for (const channel of channels) {
+    await client.markAsRead(channel.id);
+  }
+  console.log(chalk.green('✓ Marked all messages as read'));
 }
 
 async function handleAllChannelsUnread(
   client: SlackApiClient,
   options: UnreadOptions
 ): Promise<void> {
-  const channels = await client.listUnreadChannels();
+  const channels = await fetchAllUnreadChannels(client);
 
   if (channels.length === 0) {
     console.log(chalk.green('✓ No unread messages'));
     return;
   }
 
-  // Apply limit
   const limit = parseLimit(options.limit, DEFAULTS.UNREAD_DISPLAY_LIMIT);
-  const displayChannels = channels.slice(0, limit);
-
   const format = parseFormat(options.format);
   const countOnly = parseBoolean(options.countOnly);
 
-  const formatter = createChannelFormatter(format, countOnly);
-  formatter.format({ channels: displayChannels, countOnly: countOnly });
+  formatAllChannelsOutput(channels, format, countOnly, limit);
 
   if (parseBoolean(options.markRead)) {
-    // Mark all unread channels as read
-    for (const channel of channels) {
-      await client.markAsRead(channel.id);
-    }
-    console.log(chalk.green('✓ Marked all messages as read'));
+    await markAllChannelsAsRead(client, channels);
   }
 }
 

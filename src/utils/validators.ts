@@ -190,6 +190,19 @@ export const optionValidators = {
     }
     return null;
   },
+
+  /**
+   * Validates format option
+   */
+  format: (options: Record<string, unknown>): string | null => {
+    if (options.format) {
+      const validFormats = ['table', 'simple', 'json'];
+      if (!validFormats.includes(options.format as string)) {
+        return `Invalid format '${options.format}'. Must be one of: ${validFormats.join(', ')}`;
+      }
+    }
+    return null;
+  },
 };
 
 /**

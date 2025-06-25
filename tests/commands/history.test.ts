@@ -217,6 +217,121 @@ describe('history command', () => {
   });
 
   describe('output formatting', () => {
+    describe('format options', () => {
+      it('should display messages in JSON format when --format json is specified', async () => {
+        vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+          token: 'test-token',
+          updatedAt: new Date().toISOString()
+        });
+
+        const mockMessages = [
+          {
+            type: 'message',
+            text: 'Hello world',
+            user: 'U123456',
+            ts: '1609459200.000100',
+          },
+          {
+            type: 'message',
+            text: 'Another message',
+            user: 'U789012',
+            ts: '1609459300.000200',
+          },
+        ];
+        
+        vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+          messages: mockMessages,
+          users: new Map([
+            ['U123456', 'john.doe'],
+            ['U789012', 'jane.smith']
+          ])
+        });
+
+        await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'general', '--format', 'json']);
+
+        const expectedOutput = {
+          channel: 'general',
+          messages: [
+            {
+              timestamp: '2021-01-01 00:01:40',
+              user: 'jane.smith',
+              text: 'Another message'
+            },
+            {
+              timestamp: '2021-01-01 00:00:00',
+              user: 'john.doe',
+              text: 'Hello world'
+            }
+          ],
+          total: 2
+        };
+
+        expect(mockConsole.logSpy).toHaveBeenCalledWith(JSON.stringify(expectedOutput, null, 2));
+      });
+
+      it('should display messages in simple format when --format simple is specified', async () => {
+        vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+          token: 'test-token',
+          updatedAt: new Date().toISOString()
+        });
+
+        const mockMessages = [
+          {
+            type: 'message',
+            text: 'Hello world',
+            user: 'U123456',
+            ts: '1609459200.000100',
+          },
+        ];
+        
+        vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+          messages: mockMessages,
+          users: new Map([['U123456', 'john.doe']])
+        });
+
+        await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'general', '--format', 'simple']);
+
+        expect(mockConsole.logSpy).toHaveBeenCalledWith('[2021-01-01 00:00:00] john.doe: Hello world');
+      });
+
+      it('should display messages in table format by default', async () => {
+        vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+          token: 'test-token',
+          updatedAt: new Date().toISOString()
+        });
+
+        const mockMessages = [
+          {
+            type: 'message',
+            text: 'Hello world',
+            user: 'U123456',
+            ts: '1609459200.000100',
+          },
+        ];
+        
+        vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+          messages: mockMessages,
+          users: new Map([['U123456', 'john.doe']])
+        });
+
+        await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'general']);
+
+        // Should display in table format (current format)
+        expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Message History for #general'));
+        expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('john.doe'));
+        expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Hello world'));
+      });
+
+      it('should handle invalid format option', async () => {
+        const historyCommand = setupHistoryCommand();
+        historyCommand.exitOverride();
+        
+        await expect(
+          historyCommand.parseAsync(['-c', 'general', '--format', 'invalid'], { from: 'user' })
+        ).rejects.toThrow();
+      });
+    });
+
     it('should format messages with user names and timestamps', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

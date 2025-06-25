@@ -1,38 +1,19 @@
-import chalk from 'chalk';
 import { Message } from '../utils/slack-api-client';
-import { formatSlackTimestamp } from '../utils/date-utils';
-import { formatMessageWithMentions } from '../utils/format-utils';
+import { createHistoryFormatter } from '../utils/formatters/history-formatters';
 
 export function displayHistoryResults(
   messages: Message[],
   users: Map<string, string>,
-  channelName: string
+  channelName: string,
+  format = 'table'
 ): void {
-  if (messages.length === 0) {
-    console.log(chalk.yellow('No messages found in the specified channel.'));
-    return;
-  }
-
-  console.log(chalk.bold(`\nMessage History for #${channelName}:\n`));
-
   // Display messages in reverse order (oldest first)
-  messages.reverse().forEach((message: Message) => {
-    const timestamp = formatSlackTimestamp(message.ts);
-    let author = 'Unknown';
+  const orderedMessages = [...messages].reverse();
 
-    if (message.user && users.has(message.user)) {
-      author = users.get(message.user)!;
-    } else if (message.bot_id) {
-      author = 'Bot';
-    }
-
-    console.log(chalk.gray(`[${timestamp}]`) + ' ' + chalk.cyan(author));
-    if (message.text) {
-      const formattedText = formatMessageWithMentions(message.text, users);
-      console.log(formattedText);
-    }
-    console.log(''); // Empty line between messages
+  const formatter = createHistoryFormatter(format);
+  formatter.format({
+    channelName,
+    messages: orderedMessages,
+    users,
   });
-
-  console.log(chalk.green(`✓ Displayed ${messages.length} message(s)`));
 }

@@ -35,6 +35,7 @@ export interface HistoryOptions {
   channel: string;
   number?: string;
   since?: string;
+  format?: 'table' | 'simple' | 'json';
   profile?: string;
 }
 

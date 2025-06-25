@@ -6,6 +6,7 @@ import { HistoryOptions } from '../types/commands';
 import { API_LIMITS } from '../utils/constants';
 import { parseCount, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
+import { parseFormat } from '../utils/option-parsers';
 import { prepareSinceTimestamp } from './history-validators';
 import { displayHistoryResults } from './history-display';
 
@@ -19,10 +20,11 @@ export function setupHistoryCommand(): Command {
       API_LIMITS.DEFAULT_MESSAGE_COUNT.toString()
     )
     .option('--since <date>', 'Get messages since specific date (YYYY-MM-DD HH:MM:SS)')
+    .option('--format <format>', 'Output format: table, simple, json', 'table')
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook(
       'preAction',
-      createValidationHook([optionValidators.messageCount, optionValidators.sinceDate])
+      createValidationHook([optionValidators.messageCount, optionValidators.sinceDate, optionValidators.format])
     )
     .action(
       wrapCommand(async (options: HistoryOptions) => {
@@ -46,7 +48,8 @@ export function setupHistoryCommand(): Command {
         }
 
         const { messages, users } = await client.getHistory(options.channel, historyOptions);
-        displayHistoryResults(messages, users, options.channel);
+        const format = parseFormat(options.format);
+        displayHistoryResults(messages, users, options.channel, format);
       })
     );
 

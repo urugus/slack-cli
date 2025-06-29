@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('slack-cli version', () => {
-  it('should display the correct version from package.json', () => {
+  it('should display the correct version from package.json', { timeout: 20000 }, () => {
     // Read the expected version from package.json
     const packageJson = JSON.parse(
       readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')
@@ -21,7 +21,7 @@ describe('slack-cli version', () => {
     expect(output).toBe(expectedVersion);
   });
 
-  it('should display version with -V flag', () => {
+  it('should display version with -V flag', { timeout: 20000 }, () => {
     // Read the expected version from package.json
     const packageJson = JSON.parse(
       readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')

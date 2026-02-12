@@ -12,6 +12,7 @@ vi.mock('@slack/web-api', () => ({
     },
     chat: {
       postMessage: vi.fn(),
+      scheduleMessage: vi.fn(),
     },
   })),
   LogLevel: {
@@ -29,6 +30,23 @@ describe('MessageOperations', () => {
     vi.clearAllMocks();
     messageOps = new MessageOperations('test-token');
     mockClient = (messageOps as any).client;
+  });
+
+  describe('scheduleMessage', () => {
+    it('should call chat.scheduleMessage with post_at', async () => {
+      mockClient.chat.scheduleMessage.mockResolvedValue({
+        ok: true,
+        scheduled_message_id: 'Q123',
+      });
+
+      await messageOps.scheduleMessage('C1234567890', 'Hello', 1770855000);
+
+      expect(mockClient.chat.scheduleMessage).toHaveBeenCalledWith({
+        channel: 'C1234567890',
+        text: 'Hello',
+        post_at: 1770855000,
+      });
+    });
   });
 
   describe('getHistory with mentions', () => {

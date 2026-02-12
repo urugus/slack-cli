@@ -12,7 +12,8 @@ describe('SlackApiClient', () => {
     vi.clearAllMocks();
     mockWebClient = {
       chat: {
-        postMessage: vi.fn()
+        postMessage: vi.fn(),
+        scheduleMessage: vi.fn()
       },
       conversations: {
         list: vi.fn(),
@@ -81,6 +82,22 @@ describe('SlackApiClient', () => {
       vi.mocked(mockWebClient.chat.postMessage).mockRejectedValue(mockError);
 
       await expect(client.sendMessage('nonexistent', 'Hello')).rejects.toThrow('channel_not_found');
+    });
+  });
+
+  describe('scheduleMessage', () => {
+    it('should schedule message to channel', async () => {
+      const mockResponse = { ok: true, scheduled_message_id: 'Q123', post_at: 1770855000 };
+      vi.mocked(mockWebClient.chat.scheduleMessage).mockResolvedValue(mockResponse as any);
+
+      const result = await client.scheduleMessage('general', 'Hello, future!', 1770855000);
+
+      expect(mockWebClient.chat.scheduleMessage).toHaveBeenCalledWith({
+        channel: 'general',
+        text: 'Hello, future!',
+        post_at: 1770855000
+      });
+      expect(result).toEqual(mockResponse);
     });
   });
 

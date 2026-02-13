@@ -54,7 +54,9 @@ export function setupSendCommand(): Command {
         if (postAt !== null) {
           await client.scheduleMessage(options.channel, messageContent, postAt, options.thread);
           const postAtIso = new Date(postAt * 1000).toISOString();
-          console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SCHEDULED(options.channel, postAtIso)}`));
+          console.log(
+            chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SCHEDULED(options.channel, postAtIso)}`)
+          );
           return;
         }
 

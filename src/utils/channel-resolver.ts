@@ -7,11 +7,7 @@ export class ChannelResolver {
    * Check if the given string is a channel ID
    */
   isChannelId(channelNameOrId: string): boolean {
-    return (
-      channelNameOrId.startsWith('C') ||
-      channelNameOrId.startsWith('D') ||
-      channelNameOrId.startsWith('G')
-    );
+    return /^[CDG][A-Z0-9]{8,}$/.test(channelNameOrId);
   }
 
   /**

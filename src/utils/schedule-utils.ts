@@ -27,7 +27,12 @@ export function resolvePostAt(
     return null;
   }
 
-  const minutes = Number.parseInt(afterMinutes, 10);
+  const trimmedAfter = afterMinutes.trim();
+  if (!/^\d+$/.test(trimmedAfter)) {
+    return null;
+  }
+
+  const minutes = Number.parseInt(trimmedAfter, 10);
   if (!Number.isSafeInteger(minutes) || minutes <= 0) {
     return null;
   }

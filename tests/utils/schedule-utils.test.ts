@@ -28,6 +28,8 @@ describe('schedule utils', () => {
 
     it('returns null when invalid --after is provided', () => {
       expect(resolvePostAt(undefined, '0')).toBeNull();
+      expect(resolvePostAt(undefined, '1.5')).toBeNull();
+      expect(resolvePostAt(undefined, '10minutes')).toBeNull();
     });
   });
 
@@ -47,6 +49,15 @@ describe('schedule utils', () => {
       );
 
       vi.useRealTimers();
+    });
+
+    it('rejects non-integer --after values', () => {
+      expect(optionValidators.scheduleTiming({ after: '1.5' })).toBe(
+        '--after must be a positive integer (minutes)'
+      );
+      expect(optionValidators.scheduleTiming({ after: '10minutes' })).toBe(
+        '--after must be a positive integer (minutes)'
+      );
     });
   });
 });

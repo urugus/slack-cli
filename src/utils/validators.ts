@@ -188,7 +188,12 @@ export const optionValidators = {
     }
 
     if (after) {
-      const minutes = Number.parseInt(after, 10);
+      const trimmedAfter = after.trim();
+      if (!/^\d+$/.test(trimmedAfter)) {
+        return ERROR_MESSAGES.INVALID_SCHEDULE_AFTER;
+      }
+
+      const minutes = Number.parseInt(trimmedAfter, 10);
       if (!Number.isSafeInteger(minutes) || minutes <= 0) {
         return ERROR_MESSAGES.INVALID_SCHEDULE_AFTER;
       }

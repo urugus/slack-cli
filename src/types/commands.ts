@@ -25,6 +25,13 @@ export interface SendOptions {
   profile?: string;
 }
 
+export interface ScheduledOptions {
+  channel?: string;
+  limit?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
 export interface ChannelsOptions {
   type: 'public' | 'private' | 'im' | 'mpim' | 'all';
   includeArchived: boolean;

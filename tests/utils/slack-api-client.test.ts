@@ -13,15 +13,18 @@ describe('SlackApiClient', () => {
     mockWebClient = {
       chat: {
         postMessage: vi.fn(),
-        scheduleMessage: vi.fn()
+        scheduleMessage: vi.fn(),
+        scheduledMessages: {
+          list: vi.fn(),
+        },
       },
       conversations: {
         list: vi.fn(),
-        info: vi.fn()
+        info: vi.fn(),
       },
       users: {
-        conversations: vi.fn()
-      }
+        conversations: vi.fn(),
+      },
     };
     vi.mocked(WebClient).mockReturnValue(mockWebClient);
     client = new SlackApiClient('test-token');
@@ -47,7 +50,7 @@ describe('SlackApiClient', () => {
 
       expect(mockWebClient.chat.postMessage).toHaveBeenCalledWith({
         channel: 'general',
-        text: 'Hello, World!'
+        text: 'Hello, World!',
       });
       expect(result).toEqual(mockResponse);
     });
@@ -60,7 +63,7 @@ describe('SlackApiClient', () => {
 
       expect(mockWebClient.chat.postMessage).toHaveBeenCalledWith({
         channel: 'C1234567890',
-        text: 'Hello!'
+        text: 'Hello!',
       });
     });
 
@@ -73,7 +76,7 @@ describe('SlackApiClient', () => {
 
       expect(mockWebClient.chat.postMessage).toHaveBeenCalledWith({
         channel: 'general',
-        text: multiLineMessage
+        text: multiLineMessage,
       });
     });
 
@@ -95,9 +98,26 @@ describe('SlackApiClient', () => {
       expect(mockWebClient.chat.scheduleMessage).toHaveBeenCalledWith({
         channel: 'general',
         text: 'Hello, future!',
-        post_at: 1770855000
+        post_at: 1770855000,
       });
       expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('listScheduledMessages', () => {
+    it('should list scheduled messages', async () => {
+      const mockResponse = {
+        ok: true,
+        scheduled_messages: [
+          { id: 'Q123', channel_id: 'C123', post_at: 1770855000, date_created: 1770854400 },
+        ],
+      };
+      vi.mocked(mockWebClient.chat.scheduledMessages.list).mockResolvedValue(mockResponse as any);
+
+      const result = await client.listScheduledMessages();
+
+      expect(mockWebClient.chat.scheduledMessages.list).toHaveBeenCalledWith({ limit: 50 });
+      expect(result).toEqual(mockResponse.scheduled_messages);
     });
   });
 
@@ -111,24 +131,24 @@ describe('SlackApiClient', () => {
           is_private: false,
           num_members: 150,
           created: 1579075200,
-          purpose: { value: 'Company announcements' }
-        }
+          purpose: { value: 'Company announcements' },
+        },
       ];
       vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
         ok: true,
-        channels: mockChannels
+        channels: mockChannels,
       } as any);
 
       const result = await client.listChannels({
         types: 'public_channel',
         exclude_archived: true,
-        limit: 100
+        limit: 100,
       });
 
       expect(mockWebClient.conversations.list).toHaveBeenCalledWith({
         types: 'public_channel',
         exclude_archived: true,
-        limit: 100
+        limit: 100,
       });
       expect(result).toEqual(mockChannels);
     });
@@ -142,24 +162,24 @@ describe('SlackApiClient', () => {
           is_private: true,
           num_members: 10,
           created: 1579075200,
-          purpose: { value: 'Private discussions' }
-        }
+          purpose: { value: 'Private discussions' },
+        },
       ];
       vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
         ok: true,
-        channels: mockChannels
+        channels: mockChannels,
       } as any);
 
       const result = await client.listChannels({
         types: 'private_channel',
         exclude_archived: true,
-        limit: 50
+        limit: 50,
       });
 
       expect(mockWebClient.conversations.list).toHaveBeenCalledWith({
         types: 'private_channel',
         exclude_archived: true,
-        limit: 50
+        limit: 50,
       });
       expect(result).toEqual(mockChannels);
     });
@@ -167,30 +187,32 @@ describe('SlackApiClient', () => {
     it('should handle multiple channel types', async () => {
       vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
         ok: true,
-        channels: []
+        channels: [],
       } as any);
 
       await client.listChannels({
         types: 'public_channel,private_channel,im',
         exclude_archived: false,
-        limit: 200
+        limit: 200,
       });
 
       expect(mockWebClient.conversations.list).toHaveBeenCalledWith({
         types: 'public_channel,private_channel,im',
         exclude_archived: false,
-        limit: 200
+        limit: 200,
       });
     });
 
     it('should handle API errors', async () => {
       vi.mocked(mockWebClient.conversations.list).mockRejectedValue(new Error('invalid_auth'));
 
-      await expect(client.listChannels({
-        types: 'public_channel',
-        exclude_archived: true,
-        limit: 100
-      })).rejects.toThrow('invalid_auth');
+      await expect(
+        client.listChannels({
+          types: 'public_channel',
+          exclude_archived: true,
+          limit: 100,
+        })
+      ).rejects.toThrow('invalid_auth');
     });
 
     it('should handle pagination when listing channels', async () => {
@@ -199,11 +221,11 @@ describe('SlackApiClient', () => {
         ok: true,
         channels: [
           { id: 'C001', name: 'channel1', is_private: false },
-          { id: 'C002', name: 'channel2', is_private: false }
+          { id: 'C002', name: 'channel2', is_private: false },
         ],
         response_metadata: {
-          next_cursor: 'cursor123'
-        }
+          next_cursor: 'cursor123',
+        },
       } as any);
 
       // Second page
@@ -211,28 +233,26 @@ describe('SlackApiClient', () => {
         ok: true,
         channels: [
           { id: 'C003', name: 'channel3', is_private: false },
-          { id: 'C004', name: 'channel4', is_private: false }
+          { id: 'C004', name: 'channel4', is_private: false },
         ],
         response_metadata: {
-          next_cursor: 'cursor456'
-        }
+          next_cursor: 'cursor456',
+        },
       } as any);
 
       // Third page (last page)
       vi.mocked(mockWebClient.conversations.list).mockResolvedValueOnce({
         ok: true,
-        channels: [
-          { id: 'C005', name: 'channel5', is_private: false }
-        ],
+        channels: [{ id: 'C005', name: 'channel5', is_private: false }],
         response_metadata: {
-          next_cursor: ''
-        }
+          next_cursor: '',
+        },
       } as any);
 
       const result = await client.listChannels({
         types: 'public_channel',
         exclude_archived: true,
-        limit: 2
+        limit: 2,
       });
 
       // Should have called the API 3 times
@@ -243,7 +263,7 @@ describe('SlackApiClient', () => {
         types: 'public_channel',
         exclude_archived: true,
         limit: 2,
-        cursor: undefined
+        cursor: undefined,
       });
 
       // Second call
@@ -251,7 +271,7 @@ describe('SlackApiClient', () => {
         types: 'public_channel',
         exclude_archived: true,
         limit: 2,
-        cursor: 'cursor123'
+        cursor: 'cursor123',
       });
 
       // Third call
@@ -259,7 +279,7 @@ describe('SlackApiClient', () => {
         types: 'public_channel',
         exclude_archived: true,
         limit: 2,
-        cursor: 'cursor456'
+        cursor: 'cursor456',
       });
 
       // Should return all channels
@@ -274,18 +294,16 @@ describe('SlackApiClient', () => {
     it('should handle empty cursor in pagination', async () => {
       vi.mocked(mockWebClient.conversations.list).mockResolvedValueOnce({
         ok: true,
-        channels: [
-          { id: 'C001', name: 'channel1', is_private: false }
-        ],
+        channels: [{ id: 'C001', name: 'channel1', is_private: false }],
         response_metadata: {
           // No next_cursor field
-        }
+        },
       } as any);
 
       const result = await client.listChannels({
         types: 'public_channel',
         exclude_archived: true,
-        limit: 100
+        limit: 100,
       });
 
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1);

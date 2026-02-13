@@ -10,21 +10,21 @@ describe('ChannelResolver', () => {
     resolver = new ChannelResolver();
     mockChannels = [
       {
-        id: 'C123',
+        id: 'C1234567890',
         name: 'general',
         is_private: false,
         created: 1234567890,
         is_member: true,
       },
       {
-        id: 'C456',
+        id: 'C0987654321',
         name: 'random',
         is_private: false,
         created: 1234567890,
         is_member: true,
       },
       {
-        id: 'C789',
+        id: 'C1111111111',
         name: 'dev-team',
         is_private: false,
         created: 1234567890,
@@ -32,7 +32,7 @@ describe('ChannelResolver', () => {
         name_normalized: 'dev-team',
       },
       {
-        id: 'G123',
+        id: 'G1234567890',
         name: 'private-channel',
         is_private: true,
         created: 1234567890,
@@ -42,21 +42,18 @@ describe('ChannelResolver', () => {
   });
 
   describe('isChannelId', () => {
-    it('should identify channel IDs starting with C', () => {
-      expect(resolver.isChannelId('C123456')).toBe(true);
+    it('should identify channel IDs with valid format', () => {
+      expect(resolver.isChannelId('C1234567890')).toBe(true);
+      expect(resolver.isChannelId('D1234567890')).toBe(true);
+      expect(resolver.isChannelId('G1234567890')).toBe(true);
     });
 
-    it('should identify DM IDs starting with D', () => {
-      expect(resolver.isChannelId('D123456')).toBe(true);
-    });
-
-    it('should identify group IDs starting with G', () => {
-      expect(resolver.isChannelId('G123456')).toBe(true);
-    });
-
-    it('should return false for channel names', () => {
+    it('should return false for channel names or malformed IDs', () => {
       expect(resolver.isChannelId('general')).toBe(false);
       expect(resolver.isChannelId('#general')).toBe(false);
+      expect(resolver.isChannelId('General')).toBe(false);
+      expect(resolver.isChannelId('Dev')).toBe(false);
+      expect(resolver.isChannelId('C123')).toBe(false);
     });
   });
 
@@ -96,8 +93,8 @@ describe('ChannelResolver', () => {
     it('should limit results to specified count', () => {
       const manyChannels = [
         ...mockChannels,
-        { id: 'C999', name: 'general-2', is_private: false, created: 0 },
-        { id: 'C888', name: 'general-3', is_private: false, created: 0 },
+        { id: 'C9999999999', name: 'general-2', is_private: false, created: 0 },
+        { id: 'C8888888888', name: 'general-3', is_private: false, created: 0 },
       ];
       const result = resolver.getSimilarChannels('general', manyChannels, 2);
       expect(result).toHaveLength(2);
@@ -128,15 +125,22 @@ describe('ChannelResolver', () => {
   describe('resolveChannelId', () => {
     it('should return ID directly if already an ID', async () => {
       const getChannelsFn = vi.fn();
-      const result = await resolver.resolveChannelId('C123456', getChannelsFn);
-      expect(result).toBe('C123456');
+      const result = await resolver.resolveChannelId('C1234567890', getChannelsFn);
+      expect(result).toBe('C1234567890');
       expect(getChannelsFn).not.toHaveBeenCalled();
     });
 
     it('should resolve channel name to ID', async () => {
       const getChannelsFn = vi.fn().mockResolvedValue(mockChannels);
       const result = await resolver.resolveChannelId('general', getChannelsFn);
-      expect(result).toBe('C123');
+      expect(result).toBe('C1234567890');
+      expect(getChannelsFn).toHaveBeenCalled();
+    });
+
+    it('should resolve mixed-case channel names to ID', async () => {
+      const getChannelsFn = vi.fn().mockResolvedValue(mockChannels);
+      const result = await resolver.resolveChannelId('General', getChannelsFn);
+      expect(result).toBe('C1234567890');
       expect(getChannelsFn).toHaveBeenCalled();
     });
 

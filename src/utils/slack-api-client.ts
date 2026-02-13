@@ -57,6 +57,14 @@ export interface Message {
   blocks?: unknown[];
 }
 
+export interface ScheduledMessage {
+  id: string;
+  channel_id: string;
+  post_at: number;
+  date_created: number;
+  text?: string;
+}
+
 export interface HistoryResult {
   messages: Message[];
   users: Map<string, string>;
@@ -92,6 +100,10 @@ export class SlackApiClient {
     thread_ts?: string
   ): Promise<ChatScheduleMessageResponse> {
     return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts);
+  }
+
+  async listScheduledMessages(channel?: string, limit = 50): Promise<ScheduledMessage[]> {
+    return this.messageOps.listScheduledMessages(channel, limit);
   }
 
   async listChannels(options: ListChannelsOptions): Promise<Channel[]> {

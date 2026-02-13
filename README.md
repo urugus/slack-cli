@@ -143,6 +143,23 @@ slack-cli unread --format json
 slack-cli unread --format simple
 ```
 
+### List Scheduled Messages
+
+```bash
+# List scheduled messages
+slack-cli scheduled
+
+# Filter by channel
+slack-cli scheduled -c general
+
+# Limit results
+slack-cli scheduled --limit 20
+
+# Output in different formats
+slack-cli scheduled --format json
+slack-cli scheduled --format simple
+```
+
 ### Other Commands
 
 ```bash
@@ -162,44 +179,56 @@ slack-cli config set --token NEW_TOKEN
 ## Options
 
 ### Global Options
-| Option | Short | Description |
-|--------|-------|-------------|
-| --profile | -p | Use specific workspace profile |
+
+| Option    | Short | Description                    |
+| --------- | ----- | ------------------------------ |
+| --profile | -p    | Use specific workspace profile |
 
 ### send command
-| Option | Short | Description |
-|--------|-------|-------------|
-| --channel | -c | Target channel name or ID (required) |
-| --message | -m | Message to send |
-| --file | -f | File containing message content |
-| --thread | -t | Thread timestamp to reply to |
-| --at | | Schedule time (Unix seconds or ISO 8601) |
-| --after | | Schedule message after N minutes |
+
+| Option    | Short | Description                              |
+| --------- | ----- | ---------------------------------------- |
+| --channel | -c    | Target channel name or ID (required)     |
+| --message | -m    | Message to send                          |
+| --file    | -f    | File containing message content          |
+| --thread  | -t    | Thread timestamp to reply to             |
+| --at      |       | Schedule time (Unix seconds or ISO 8601) |
+| --after   |       | Schedule message after N minutes         |
 
 ### channels command
-| Option | Short | Description |
-|--------|-------|-------------|
-| --type | | Channel type: public, private, im, mpim, all (default: public) |
-| --include-archived | | Include archived channels |
-| --format | | Output format: table, simple, json (default: table) |
-| --limit | | Maximum number of channels to list (default: 100) |
+
+| Option             | Short | Description                                                    |
+| ------------------ | ----- | -------------------------------------------------------------- |
+| --type             |       | Channel type: public, private, im, mpim, all (default: public) |
+| --include-archived |       | Include archived channels                                      |
+| --format           |       | Output format: table, simple, json (default: table)            |
+| --limit            |       | Maximum number of channels to list (default: 100)              |
 
 ### history command
-| Option | Short | Description |
-|--------|-------|-------------|
-| --channel | -c | Target channel name or ID (required) |
-| --number | -n | Number of messages to retrieve (default: 10) |
-| --since | | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
+
+| Option    | Short | Description                                            |
+| --------- | ----- | ------------------------------------------------------ |
+| --channel | -c    | Target channel name or ID (required)                   |
+| --number  | -n    | Number of messages to retrieve (default: 10)           |
+| --since   |       | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
 
 ### unread command
-| Option | Short | Description |
-|--------|-------|-------------|
-| --channel | -c | Get unread for specific channel |
-| --format | | Output format: table, simple, json (default: table) |
-| --count-only | | Show only unread counts |
-| --limit | | Maximum number of channels to display (default: 50) |
-| --mark-read | | Mark messages as read after fetching |
 
+| Option       | Short | Description                                         |
+| ------------ | ----- | --------------------------------------------------- |
+| --channel    | -c    | Get unread for specific channel                     |
+| --format     |       | Output format: table, simple, json (default: table) |
+| --count-only |       | Show only unread counts                             |
+| --limit      |       | Maximum number of channels to display (default: 50) |
+| --mark-read  |       | Mark messages as read after fetching                |
+
+### scheduled command
+
+| Option    | Short | Description                                                |
+| --------- | ----- | ---------------------------------------------------------- |
+| --channel | -c    | Filter by channel name or ID                               |
+| --limit   |       | Maximum number of scheduled messages to list (default: 50) |
+| --format  |       | Output format: table, simple, json (default: table)        |
 
 ## Required Permissions
 
@@ -216,19 +245,25 @@ Your Slack API token needs the following scopes:
 ## Advanced Features
 
 ### Rate Limiting
+
 The CLI includes built-in rate limiting to handle Slack API limits:
+
 - Concurrent requests: 3
 - Automatic retry with exponential backoff (max 3 retries)
 - Graceful error handling for rate limit errors
 
 ### Output Formats
+
 Most commands support multiple output formats:
+
 - `table` (default) - Human-readable table format
 - `simple` - Simplified text output
 - `json` - Machine-readable JSON format
 
 ### Markdown Support
+
 Messages sent via the `send` command automatically support Slack's mrkdwn formatting:
+
 - `*bold*` for bold text
 - `_italic_` for italic text
 - `~strikethrough~` for strikethrough

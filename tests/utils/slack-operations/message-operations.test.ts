@@ -13,6 +13,9 @@ vi.mock('@slack/web-api', () => ({
     chat: {
       postMessage: vi.fn(),
       scheduleMessage: vi.fn(),
+      scheduledMessages: {
+        list: vi.fn(),
+      },
     },
   })),
   LogLevel: {
@@ -46,6 +49,22 @@ describe('MessageOperations', () => {
         text: 'Hello',
         post_at: 1770855000,
       });
+    });
+  });
+
+  describe('listScheduledMessages', () => {
+    it('should call chat.scheduledMessages.list', async () => {
+      mockClient.chat.scheduledMessages.list.mockResolvedValue({
+        ok: true,
+        scheduled_messages: [
+          { id: 'Q123', channel_id: 'C123', post_at: 1770855000, date_created: 1770854400 },
+        ],
+      });
+
+      const result = await messageOps.listScheduledMessages(undefined, 20);
+
+      expect(mockClient.chat.scheduledMessages.list).toHaveBeenCalledWith({ limit: 20 });
+      expect(result).toHaveLength(1);
     });
   });
 

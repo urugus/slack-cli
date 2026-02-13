@@ -7,7 +7,13 @@ import {
 import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { Message, HistoryOptions, HistoryResult, ChannelUnreadResult } from '../slack-api-client';
+import {
+  Message,
+  HistoryOptions,
+  HistoryResult,
+  ChannelUnreadResult,
+  ScheduledMessage,
+} from '../slack-api-client';
 import { ChannelOperations } from './channel-operations';
 import { extractAllUserIds } from '../mention-utils';
 
@@ -53,6 +59,29 @@ export class MessageOperations extends BaseSlackClient {
     }
 
     return await this.client.chat.scheduleMessage(params);
+  }
+
+  async listScheduledMessages(channel?: string, limit = 50): Promise<ScheduledMessage[]> {
+    const channelId = channel
+      ? await channelResolver.resolveChannelId(channel, () =>
+          this.channelOps.listChannels({
+            types: 'public_channel,private_channel,im,mpim',
+            exclude_archived: true,
+            limit: DEFAULTS.CHANNELS_LIMIT,
+          })
+        )
+      : undefined;
+
+    const params: { channel?: string; limit: number } = {
+      limit,
+    };
+
+    if (channelId) {
+      params.channel = channelId;
+    }
+
+    const response = await this.client.chat.scheduledMessages.list(params as any);
+    return (response.scheduled_messages || []) as ScheduledMessage[];
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {

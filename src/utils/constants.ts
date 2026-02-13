@@ -14,6 +14,11 @@ export const ERROR_MESSAGES = {
   NO_MESSAGE_OR_FILE: 'You must specify either --message or --file',
   BOTH_MESSAGE_AND_FILE: 'Cannot use both --message and --file',
   INVALID_THREAD_TIMESTAMP: 'Invalid thread timestamp format',
+  INVALID_SCHEDULE_AT:
+    'Invalid schedule time format. Use Unix timestamp (seconds) or ISO 8601 date-time',
+  INVALID_SCHEDULE_AFTER: '--after must be a positive integer (minutes)',
+  BOTH_SCHEDULE_OPTIONS: 'Cannot use both --at and --after',
+  SCHEDULE_TIME_IN_PAST: 'Schedule time must be in the future',
 
   // API errors
   API_ERROR: (error: string) => `API Error: ${error}`,
@@ -33,6 +38,8 @@ export const SUCCESS_MESSAGES = {
   PROFILE_SWITCHED: (profileName: string) => `Switched to profile "${profileName}"`,
   PROFILE_CLEARED: (profileName: string) => `Profile "${profileName}" cleared successfully`,
   MESSAGE_SENT: (channel: string) => `Message sent successfully to #${channel}`,
+  MESSAGE_SCHEDULED: (channel: string, postAtIso: string) =>
+    `Message scheduled to #${channel} at ${postAtIso}`,
 } as const;
 
 // File and system constants

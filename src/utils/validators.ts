@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { ERROR_MESSAGES } from './constants';
+import { parseScheduledTimestamp } from './schedule-utils';
 
 /**
  * Common validation functions for CLI commands
@@ -161,6 +162,43 @@ export const optionValidators = {
     if (options.thread) {
       return formatValidators.threadTimestamp(options.thread as string);
     }
+    return null;
+  },
+
+  /**
+   * Validates schedule options for send command
+   */
+  scheduleTiming: (options: Record<string, unknown>): string | null => {
+    const at = options.at as string | undefined;
+    const after = options.after as string | undefined;
+
+    if (at && after) {
+      return ERROR_MESSAGES.BOTH_SCHEDULE_OPTIONS;
+    }
+
+    if (at) {
+      const postAt = parseScheduledTimestamp(at);
+      if (postAt === null) {
+        return ERROR_MESSAGES.INVALID_SCHEDULE_AT;
+      }
+
+      if (postAt <= Math.floor(Date.now() / 1000)) {
+        return ERROR_MESSAGES.SCHEDULE_TIME_IN_PAST;
+      }
+    }
+
+    if (after) {
+      const trimmedAfter = after.trim();
+      if (!/^\d+$/.test(trimmedAfter)) {
+        return ERROR_MESSAGES.INVALID_SCHEDULE_AFTER;
+      }
+
+      const minutes = Number.parseInt(trimmedAfter, 10);
+      if (!Number.isSafeInteger(minutes) || minutes <= 0) {
+        return ERROR_MESSAGES.INVALID_SCHEDULE_AFTER;
+      }
+    }
+
     return null;
   },
 

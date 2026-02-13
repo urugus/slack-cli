@@ -1,4 +1,9 @@
-import { ChatPostMessageResponse, ChatPostMessageArguments } from '@slack/web-api';
+import {
+  ChatPostMessageResponse,
+  ChatPostMessageArguments,
+  ChatScheduleMessageArguments,
+  ChatScheduleMessageResponse,
+} from '@slack/web-api';
 import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
@@ -29,6 +34,25 @@ export class MessageOperations extends BaseSlackClient {
     }
 
     return await this.client.chat.postMessage(params);
+  }
+
+  async scheduleMessage(
+    channel: string,
+    text: string,
+    post_at: number,
+    thread_ts?: string
+  ): Promise<ChatScheduleMessageResponse> {
+    const params: ChatScheduleMessageArguments = {
+      channel,
+      text,
+      post_at,
+    };
+
+    if (thread_ts) {
+      params.thread_ts = thread_ts;
+    }
+
+    return await this.client.chat.scheduleMessage(params);
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {

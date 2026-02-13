@@ -20,6 +20,8 @@ export interface SendOptions {
   message?: string;
   file?: string;
   thread?: string;
+  at?: string;
+  after?: string;
   profile?: string;
 }
 

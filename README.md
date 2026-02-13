@@ -64,6 +64,12 @@ slack-cli send -c channel-name -m "Reply message" --thread 1719207629.000100
 
 # Reply to a thread (short option)
 slack-cli send -c channel-name -m "Reply message" -t 1719207629.000100
+
+# Schedule by absolute time (Unix seconds or ISO 8601)
+slack-cli send -c channel-name -m "Scheduled message" --at "2026-03-01T09:00:00Z"
+
+# Schedule after N minutes
+slack-cli send -c channel-name -m "Scheduled message" --after 30
 ```
 
 ### List Channels
@@ -167,6 +173,8 @@ slack-cli config set --token NEW_TOKEN
 | --message | -m | Message to send |
 | --file | -f | File containing message content |
 | --thread | -t | Thread timestamp to reply to |
+| --at | | Schedule time (Unix seconds or ISO 8601) |
+| --after | | Schedule message after N minutes |
 
 ### channels command
 | Option | Short | Description |

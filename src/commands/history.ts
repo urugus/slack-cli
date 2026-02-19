@@ -14,10 +14,7 @@ export function setupHistoryCommand(): Command {
   const historyCommand = new Command('history')
     .description('Get message history from a Slack channel')
     .requiredOption('-c, --channel <channel>', 'Target channel name or ID')
-    .option(
-      '-n, --number <number>',
-      'Number of messages to retrieve'
-    )
+    .option('-n, --number <number>', 'Number of messages to retrieve')
     .option('--since <date>', 'Get messages since specific date (YYYY-MM-DD HH:MM:SS)')
     .option('-t, --thread <thread>', 'Thread timestamp to retrieve complete thread conversation')
     .option('--format <format>', 'Output format: table, simple, json', 'table')

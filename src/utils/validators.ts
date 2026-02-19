@@ -241,6 +241,60 @@ export const optionValidators = {
     }
     return null;
   },
+
+  /**
+   * Validates sort option for search command
+   */
+  searchSort: (options: Record<string, unknown>): string | null => {
+    if (options.sort) {
+      const validSorts = ['score', 'timestamp'];
+      if (!validSorts.includes(options.sort as string)) {
+        return `Invalid sort '${options.sort}'. Must be one of: ${validSorts.join(', ')}`;
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Validates sort direction option for search command
+   */
+  searchSortDir: (options: Record<string, unknown>): string | null => {
+    if (options.sortDir) {
+      const validDirs = ['asc', 'desc'];
+      if (!validDirs.includes(options.sortDir as string)) {
+        return `Invalid sort direction '${options.sortDir}'. Must be one of: ${validDirs.join(', ')}`;
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Validates page number for search command
+   */
+  searchPage: (options: Record<string, unknown>): string | null => {
+    if (options.page) {
+      const page = parseInt(options.page as string, 10);
+      if (isNaN(page)) {
+        return 'Page must be a number';
+      }
+      return validateRange(page, 1, 100, 'Page');
+    }
+    return null;
+  },
+
+  /**
+   * Validates search count
+   */
+  searchCount: (options: Record<string, unknown>): string | null => {
+    if (options.number) {
+      const count = parseInt(options.number as string, 10);
+      if (isNaN(count)) {
+        return 'Count must be a number';
+      }
+      return validateRange(count, 1, 100, 'Count');
+    }
+    return null;
+  },
 };
 
 /**

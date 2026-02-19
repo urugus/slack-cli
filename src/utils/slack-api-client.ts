@@ -1,6 +1,14 @@
 import { ChatPostMessageResponse, ChatScheduleMessageResponse } from '@slack/web-api';
 import { ChannelOperations } from './slack-operations/channel-operations';
 import { MessageOperations } from './slack-operations/message-operations';
+import {
+  SearchOperations,
+  SearchResult,
+  SearchMessagesOptions,
+  SearchMatch,
+} from './slack-operations/search-operations';
+
+export type { SearchResult, SearchMessagesOptions, SearchMatch };
 
 export interface Channel {
   id: string;
@@ -79,10 +87,12 @@ export interface ChannelUnreadResult {
 export class SlackApiClient {
   private channelOps: ChannelOperations;
   private messageOps: MessageOperations;
+  private searchOps: SearchOperations;
 
   constructor(token: string) {
     this.channelOps = new ChannelOperations(token);
     this.messageOps = new MessageOperations(token);
+    this.searchOps = new SearchOperations(token);
   }
 
   async sendMessage(
@@ -128,6 +138,10 @@ export class SlackApiClient {
 
   async markAsRead(channelId: string): Promise<void> {
     return this.messageOps.markAsRead(channelId);
+  }
+
+  async searchMessages(query: string, options?: SearchMessagesOptions): Promise<SearchResult> {
+    return this.searchOps.searchMessages(query, options);
   }
 }
 

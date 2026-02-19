@@ -22,8 +22,8 @@ export function setupHistoryCommand(): Command {
     .hook(
       'preAction',
       createValidationHook([
-        optionValidators.messageCount,
-        optionValidators.sinceDate,
+        (options) => (options.thread ? null : optionValidators.messageCount(options)),
+        (options) => (options.thread ? null : optionValidators.sinceDate(options)),
         optionValidators.threadTimestamp,
         optionValidators.format,
       ])
@@ -63,7 +63,9 @@ export function setupHistoryCommand(): Command {
           ({ messages, users } = await client.getHistory(options.channel, historyOptions));
         }
         const format = parseFormat(options.format);
-        displayHistoryResults(messages, users, options.channel, format);
+        displayHistoryResults(messages, users, options.channel, format, {
+          preserveOrder: Boolean(options.thread),
+        });
       })
     );
 

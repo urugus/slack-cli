@@ -146,6 +146,35 @@ slack-cli unread --format json
 slack-cli unread --format simple
 ```
 
+### Search Messages
+
+```bash
+# Basic search
+slack-cli search -q "deploy error"
+
+# Sort by timestamp (newest first)
+slack-cli search -q "meeting" --sort timestamp
+
+# Sort oldest first
+slack-cli search -q "release" --sort timestamp --sort-dir asc
+
+# Limit results per page
+slack-cli search -q "bug fix" -n 50
+
+# Paginate through results
+slack-cli search -q "deploy" --page 2
+
+# Use Slack search modifiers in query
+slack-cli search -q "in:general from:@alice deploy"
+
+# Output in different formats
+slack-cli search -q "error" --format json
+slack-cli search -q "error" --format simple
+
+# Use specific profile
+slack-cli search -q "release" --profile work
+```
+
 ### List Scheduled Messages
 
 ```bash
@@ -226,6 +255,17 @@ slack-cli config set --token NEW_TOKEN
 | --limit      |       | Maximum number of channels to display (default: 50) |
 | --mark-read  |       | Mark messages as read after fetching                |
 
+### search command
+
+| Option     | Short | Description                                         |
+| ---------- | ----- | --------------------------------------------------- |
+| --query    | -q    | Search query (required)                             |
+| --sort     |       | Sort by: score or timestamp (default: score)        |
+| --sort-dir |       | Sort direction: asc or desc (default: desc)         |
+| --number   | -n    | Number of results per page, 1-100 (default: 20)     |
+| --page     |       | Page number, 1-100 (default: 1)                     |
+| --format   |       | Output format: table, simple, json (default: table) |
+
 ### scheduled command
 
 | Option    | Short | Description                                                |
@@ -245,6 +285,7 @@ Your Slack API token needs the following scopes:
 - `groups:history` - Read private channel message history
 - `im:history` - Read direct message history
 - `users:read` - Access user information for unread counts
+- `search:read` - Search messages (user token only, not supported with bot tokens)
 
 ## Advanced Features
 

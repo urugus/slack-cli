@@ -6,6 +6,7 @@ import { setupChannelsCommand } from './commands/channels';
 import { setupHistoryCommand } from './commands/history';
 import { setupUnreadCommand } from './commands/unread';
 import { setupScheduledCommand } from './commands/scheduled';
+import { setupSearchCommand } from './commands/search';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -23,5 +24,6 @@ program.addCommand(setupChannelsCommand());
 program.addCommand(setupHistoryCommand());
 program.addCommand(setupUnreadCommand());
 program.addCommand(setupScheduledCommand());
+program.addCommand(setupSearchCommand());
 
 program.parse();

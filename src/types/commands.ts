@@ -57,3 +57,13 @@ export interface UnreadOptions {
   markRead?: boolean;
   profile?: string;
 }
+
+export interface SearchOptions {
+  query: string;
+  sort?: 'score' | 'timestamp';
+  sortDir?: 'asc' | 'desc';
+  number?: string;
+  page?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}

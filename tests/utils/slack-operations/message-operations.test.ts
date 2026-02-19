@@ -6,6 +6,7 @@ vi.mock('@slack/web-api', () => ({
   WebClient: vi.fn().mockImplementation(() => ({
     conversations: {
       history: vi.fn(),
+      replies: vi.fn(),
     },
     users: {
       info: vi.fn(),
@@ -158,6 +159,67 @@ describe('MessageOperations', () => {
       // Verify the returned users map contains both users
       expect(result.users.get('U123456789')).toBe('john.doe');
       expect(result.users.get('U07L5D50RAL')).toBe('koguchi_s');
+    });
+  });
+
+  describe('getThreadHistory', () => {
+    it('should fetch complete thread conversation with pagination', async () => {
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+
+      mockClient.conversations.replies
+        .mockResolvedValueOnce({
+          ok: true,
+          messages: [
+            {
+              type: 'message',
+              text: 'Parent',
+              user: 'U111',
+              ts: '1234567890.000100',
+              thread_ts: '1234567890.000100',
+            },
+          ],
+          response_metadata: {
+            next_cursor: 'cursor-1',
+          },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          messages: [
+            {
+              type: 'message',
+              text: 'Reply',
+              user: 'U222',
+              ts: '1234567891.000200',
+              thread_ts: '1234567890.000100',
+            },
+          ],
+          response_metadata: {
+            next_cursor: '',
+          },
+        });
+
+      mockClient.users.info.mockImplementation(({ user }: { user: string }) => {
+        if (user === 'U111') return Promise.resolve({ ok: true, user: { name: 'alice' } });
+        if (user === 'U222') return Promise.resolve({ ok: true, user: { name: 'bob' } });
+        return Promise.resolve({ ok: false });
+      });
+
+      const result = await messageOps.getThreadHistory('general', '1234567890.000100');
+
+      expect(mockClient.conversations.replies).toHaveBeenCalledTimes(2);
+      expect(mockClient.conversations.replies).toHaveBeenNthCalledWith(1, {
+        channel: 'C123456789',
+        ts: '1234567890.000100',
+        cursor: undefined,
+      });
+      expect(mockClient.conversations.replies).toHaveBeenNthCalledWith(2, {
+        channel: 'C123456789',
+        ts: '1234567890.000100',
+        cursor: 'cursor-1',
+      });
+      expect(result.messages).toHaveLength(2);
+      expect(result.users.get('U111')).toBe('alice');
+      expect(result.users.get('U222')).toBe('bob');
     });
   });
 });

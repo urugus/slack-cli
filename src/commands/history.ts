@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { HistoryOptions as ApiHistoryOptions } from '../utils/slack-api-client';
+import { HistoryOptions as ApiHistoryOptions, Message } from '../utils/slack-api-client';
 import { wrapCommand } from '../utils/command-wrapper';
 import { createSlackClient } from '../utils/client-factory';
 import { HistoryOptions } from '../types/commands';
@@ -14,19 +14,17 @@ export function setupHistoryCommand(): Command {
   const historyCommand = new Command('history')
     .description('Get message history from a Slack channel')
     .requiredOption('-c, --channel <channel>', 'Target channel name or ID')
-    .option(
-      '-n, --number <number>',
-      'Number of messages to retrieve',
-      API_LIMITS.DEFAULT_MESSAGE_COUNT.toString()
-    )
+    .option('-n, --number <number>', 'Number of messages to retrieve')
     .option('--since <date>', 'Get messages since specific date (YYYY-MM-DD HH:MM:SS)')
+    .option('-t, --thread <thread>', 'Thread timestamp to retrieve complete thread conversation')
     .option('--format <format>', 'Output format: table, simple, json', 'table')
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook(
       'preAction',
       createValidationHook([
-        optionValidators.messageCount,
-        optionValidators.sinceDate,
+        (options) => (options.thread ? null : optionValidators.messageCount(options)),
+        (options) => (options.thread ? null : optionValidators.sinceDate(options)),
+        optionValidators.threadTimestamp,
         optionValidators.format,
       ])
     )
@@ -42,18 +40,32 @@ export function setupHistoryCommand(): Command {
           API_LIMITS.MAX_MESSAGE_COUNT
         );
 
-        const historyOptions: ApiHistoryOptions = {
-          limit,
-        };
+        let messages: Message[];
+        let users: Map<string, string>;
+        if (options.thread) {
+          if (options.number !== undefined) {
+            console.log('Warning: --number is ignored when --thread is specified.');
+          }
+          if (options.since !== undefined) {
+            console.log('Warning: --since is ignored when --thread is specified.');
+          }
+          ({ messages, users } = await client.getThreadHistory(options.channel, options.thread));
+        } else {
+          const historyOptions: ApiHistoryOptions = {
+            limit,
+          };
 
-        const oldest = prepareSinceTimestamp(options.since);
-        if (oldest) {
-          historyOptions.oldest = oldest;
+          const oldest = prepareSinceTimestamp(options.since);
+          if (oldest) {
+            historyOptions.oldest = oldest;
+          }
+
+          ({ messages, users } = await client.getHistory(options.channel, historyOptions));
         }
-
-        const { messages, users } = await client.getHistory(options.channel, historyOptions);
         const format = parseFormat(options.format);
-        displayHistoryResults(messages, users, options.channel, format);
+        displayHistoryResults(messages, users, options.channel, format, {
+          preserveOrder: Boolean(options.thread),
+        });
       })
     );
 

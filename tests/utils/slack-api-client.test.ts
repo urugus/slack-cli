@@ -21,9 +21,11 @@ describe('SlackApiClient', () => {
       conversations: {
         list: vi.fn(),
         info: vi.fn(),
+        replies: vi.fn(),
       },
       users: {
         conversations: vi.fn(),
+        info: vi.fn(),
       },
     };
     vi.mocked(WebClient).mockReturnValue(mockWebClient);
@@ -308,6 +310,41 @@ describe('SlackApiClient', () => {
 
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('getThreadHistory', () => {
+    it('should fetch complete thread conversation', async () => {
+      vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
+        ok: true,
+        channels: [{ id: 'C123', name: 'general', is_private: false }],
+      } as any);
+
+      vi.mocked(mockWebClient.conversations.replies).mockResolvedValue({
+        ok: true,
+        messages: [
+          { type: 'message', text: 'Parent', user: 'U1', ts: '1234567890.000100' },
+          { type: 'message', text: 'Reply', user: 'U2', ts: '1234567891.000200' },
+        ],
+        response_metadata: {
+          next_cursor: '',
+        },
+      } as any);
+
+      vi.mocked(mockWebClient.users.info).mockImplementation(({ user }: { user: string }) =>
+        Promise.resolve({ ok: true, user: { name: user === 'U1' ? 'alice' : 'bob' } } as any)
+      );
+
+      const result = await client.getThreadHistory('general', '1234567890.000100');
+
+      expect(mockWebClient.conversations.replies).toHaveBeenCalledWith({
+        channel: 'C123',
+        ts: '1234567890.000100',
+        cursor: undefined,
+      });
+      expect(result.messages).toHaveLength(2);
+      expect(result.users.get('U1')).toBe('alice');
+      expect(result.users.get('U2')).toBe('bob');
     });
   });
 });

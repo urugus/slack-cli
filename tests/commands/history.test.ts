@@ -88,6 +88,116 @@ describe('history command', () => {
       });
     });
 
+    it('should fetch complete thread conversation when --thread is specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+
+      vi.mocked(mockSlackClient.getThreadHistory).mockResolvedValue({
+        messages: [
+          {
+            type: 'message',
+            text: 'Parent message',
+            user: 'U123456',
+            ts: '1609459200.000100',
+            thread_ts: '1609459200.000100',
+          },
+          {
+            type: 'message',
+            text: 'Thread reply',
+            user: 'U789012',
+            ts: '1609459300.000200',
+            thread_ts: '1609459200.000100',
+          },
+        ],
+        users: new Map([
+          ['U123456', 'john.doe'],
+          ['U789012', 'jane.smith']
+        ])
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '-c',
+        'general',
+        '--thread',
+        '1609459200.000100',
+      ]);
+
+      expect(mockSlackClient.getThreadHistory).toHaveBeenCalledWith(
+        'general',
+        '1609459200.000100'
+      );
+      expect(mockSlackClient.getHistory).not.toHaveBeenCalled();
+    });
+
+    it('should show warning when --number is used with --thread', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+
+      vi.mocked(mockSlackClient.getThreadHistory).mockResolvedValue({
+        messages: [],
+        users: new Map()
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '-c',
+        'general',
+        '--thread',
+        '1609459200.000100',
+        '-n',
+        '20',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        'Warning: --number is ignored when --thread is specified.'
+      );
+      expect(mockSlackClient.getThreadHistory).toHaveBeenCalledWith(
+        'general',
+        '1609459200.000100'
+      );
+    });
+
+    it('should show warning when --since is used with --thread', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString()
+      });
+
+      vi.mocked(mockSlackClient.getThreadHistory).mockResolvedValue({
+        messages: [],
+        users: new Map()
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '-c',
+        'general',
+        '--thread',
+        '1609459200.000100',
+        '--since',
+        '2024-01-01 00:00:00',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        'Warning: --since is ignored when --thread is specified.'
+      );
+      expect(mockSlackClient.getThreadHistory).toHaveBeenCalledWith(
+        'general',
+        '1609459200.000100'
+      );
+    });
+
     it('should fetch history since specific date', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

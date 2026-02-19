@@ -109,6 +109,35 @@ export class MessageOperations extends BaseSlackClient {
     return { messages, users };
   }
 
+  async getThreadHistory(channel: string, threadTs: string): Promise<HistoryResult> {
+    const channelId = await channelResolver.resolveChannelId(channel, () =>
+      this.channelOps.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    const messages: Message[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const response = await this.client.conversations.replies({
+        channel: channelId,
+        ts: threadTs,
+        cursor,
+      });
+
+      messages.push(...((response.messages || []) as Message[]));
+      cursor = response.response_metadata?.next_cursor || undefined;
+    } while (cursor);
+
+    const userIds = extractAllUserIds(messages);
+    const users = await this.fetchUserInfo(userIds);
+
+    return { messages, users };
+  }
+
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {
     const channel = await this.channelOps.getChannelInfo(channelNameOrId);
 

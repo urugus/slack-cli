@@ -6,7 +6,7 @@ export abstract class AbstractFormatter<T> implements BaseFormatter<T> {
   abstract format(data: T): void;
 }
 
-export abstract class JsonFormatter<TInput, TOutput = any> extends AbstractFormatter<TInput> {
+export abstract class JsonFormatter<TInput, TOutput = unknown> extends AbstractFormatter<TInput> {
   protected abstract transform(data: TInput): TOutput;
 
   format(data: TInput): void {

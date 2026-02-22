@@ -4,20 +4,23 @@ import * as os from 'os';
 import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
 import { DEFAULT_PROFILE_NAME, ERROR_MESSAGES, FILE_PERMISSIONS } from './constants';
 import { maskToken } from './token-utils';
+import { TokenCryptoService } from './token-crypto-service';
 
 export class ProfileConfigManager {
   private configPath: string;
+  private cryptoService: TokenCryptoService;
 
   constructor(options: ConfigOptions = {}) {
     const configDir = options.configDir || path.join(os.homedir(), '.slack-cli');
     this.configPath = path.join(configDir, 'config.json');
+    this.cryptoService = new TokenCryptoService();
   }
 
   async setToken(token: string, profile?: string): Promise<void> {
     const store = await this.getConfigStore();
     const profileName = profile || store.defaultProfile || DEFAULT_PROFILE_NAME;
     const config: Config = {
-      token,
+      token: this.cryptoService.encrypt(token),
       updatedAt: new Date().toISOString(),
     };
 
@@ -35,7 +38,24 @@ export class ProfileConfigManager {
     const store = await this.getConfigStore();
     const profileName = profile || store.defaultProfile || DEFAULT_PROFILE_NAME;
 
-    return store.profiles[profileName] || null;
+    const config = store.profiles[profileName];
+    if (!config) {
+      return null;
+    }
+
+    // Re-encrypt plaintext tokens and persist to disk
+    if (!this.cryptoService.isEncrypted(config.token)) {
+      store.profiles[profileName] = {
+        ...config,
+        token: this.cryptoService.encrypt(config.token),
+      };
+      await this.saveConfigStore(store);
+    }
+
+    return {
+      ...config,
+      token: this.decryptToken(config.token),
+    };
   }
 
   async listProfiles(): Promise<Profile[]> {
@@ -96,6 +116,14 @@ export class ProfileConfigManager {
     return maskToken(token);
   }
 
+  private decryptToken(token: string): string {
+    if (this.cryptoService.isEncrypted(token)) {
+      return this.cryptoService.decrypt(token);
+    }
+    // Return plaintext tokens as-is for backward compatibility
+    return token;
+  }
+
   private async getConfigStore(): Promise<ConfigStore> {
     try {
       const data = await fs.readFile(this.configPath, 'utf-8');
@@ -125,13 +153,17 @@ export class ProfileConfigManager {
 
   private async migrateOldConfig(oldData: unknown): Promise<ConfigStore> {
     const data = oldData as { token: string; updatedAt: string };
-    const oldConfig: Config = {
-      token: data.token,
+    const encryptedToken = this.cryptoService.isEncrypted(data.token)
+      ? data.token
+      : this.cryptoService.encrypt(data.token);
+
+    const migratedConfig: Config = {
+      token: encryptedToken,
       updatedAt: data.updatedAt,
     };
 
     const newStore: ConfigStore = {
-      profiles: { [DEFAULT_PROFILE_NAME]: oldConfig },
+      profiles: { [DEFAULT_PROFILE_NAME]: migratedConfig },
       defaultProfile: DEFAULT_PROFILE_NAME,
     };
 
@@ -148,14 +180,3 @@ export class ProfileConfigManager {
     await fs.chmod(this.configPath, FILE_PERMISSIONS.CONFIG_FILE);
   }
 }
-
-export const profileConfig = {
-  getCurrentProfile: (): string => {
-    return DEFAULT_PROFILE_NAME;
-  },
-  getToken: (_profile?: string): string | undefined => {
-    // This is a simplified version for testing
-    // In real usage, it would need to be async
-    return undefined;
-  },
-};

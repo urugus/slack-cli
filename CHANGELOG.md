@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2026-02-22
+
+### Changed
+- Consolidated duplicate configuration management systems into a single `ProfileConfigManager`
+- Integrated `TokenCryptoService` into `ProfileConfigManager` for automatic token encryption at rest
+- Tokens are now encrypted (AES-256-CBC) when saved and decrypted when read
+- Existing plaintext tokens are still readable for backward compatibility
+- Old config format migration now also encrypts tokens
+
+### Removed
+- Removed unused `ConfigFileManager` class (`src/utils/config/config-file-manager.ts`)
+- Removed unused `ProfileManager` class (`src/utils/config/profile-manager.ts`)
+- Removed duplicate test file (`tests/utils/config.test.ts`)
+
 ## [0.2.1] - 2025-06-23
 
 ### Fixed

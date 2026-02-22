@@ -55,7 +55,10 @@ export class TokenCryptoService {
       decrypted += decipher.final('utf8');
 
       return decrypted;
-    } catch {
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
       throw new ConfigurationError('Failed to decrypt token');
     }
   }

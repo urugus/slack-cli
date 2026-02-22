@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
-import { ConfigurationError } from '../../src/utils/errors';
+import { ConfigurationError, ValidationError } from '../../src/utils/errors';
 
 describe('TokenCryptoService', () => {
   let service: TokenCryptoService;
@@ -65,35 +65,58 @@ describe('TokenCryptoService', () => {
   });
 
   describe('decrypt error handling', () => {
-    it('should throw error for invalid encrypted data', () => {
-      expect(() => service.decrypt('invalid-data')).toThrow('Failed to decrypt token');
-    });
-
-    it('should throw error for empty encrypted data', () => {
-      expect(() => service.decrypt('')).toThrow('Failed to decrypt token');
-    });
-
-    it('should throw error for malformed encrypted data', () => {
-      // Missing IV separator
-      expect(() => service.decrypt('aabbccdd')).toThrow('Failed to decrypt token');
-    });
-
-    it('should throw ConfigurationError for invalid encrypted data', () => {
+    it('should throw ValidationError for invalid encrypted data format', () => {
       try {
         service.decrypt('invalid-data');
         expect.unreachable('should have thrown');
       } catch (error) {
-        expect(error).toBeInstanceOf(ConfigurationError);
-        expect((error as ConfigurationError).code).toBe('CONFIGURATION_ERROR');
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as ValidationError).code).toBe('VALIDATION_ERROR');
+        expect((error as ValidationError).message).toBe('Invalid encrypted data format');
       }
     });
 
-    it('should throw ConfigurationError for empty encrypted data', () => {
+    it('should throw ValidationError for empty encrypted data', () => {
       try {
         service.decrypt('');
         expect.unreachable('should have thrown');
       } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as ValidationError).message).toBe('Invalid encrypted data format');
+      }
+    });
+
+    it('should throw ValidationError for malformed encrypted data without separator', () => {
+      try {
+        service.decrypt('aabbccdd');
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as ValidationError).message).toBe('Invalid encrypted data format');
+      }
+    });
+
+    it('should throw ValidationError for invalid IV length', () => {
+      // Valid hex but too short for IV (needs 32 hex chars = 16 bytes)
+      try {
+        service.decrypt('aabb:ccdd');
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as ValidationError).message).toBe('Invalid IV length');
+      }
+    });
+
+    it('should throw ConfigurationError for crypto decryption failure', () => {
+      // Valid format (32 hex chars IV + encrypted data) but invalid encrypted content
+      const fakeIv = 'a'.repeat(32);
+      try {
+        service.decrypt(`${fakeIv}:invalidencrypteddata`);
+        expect.unreachable('should have thrown');
+      } catch (error) {
         expect(error).toBeInstanceOf(ConfigurationError);
+        expect((error as ConfigurationError).code).toBe('CONFIGURATION_ERROR');
+        expect((error as ConfigurationError).message).toBe('Failed to decrypt token');
       }
     });
   });

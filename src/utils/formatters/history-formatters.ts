@@ -61,9 +61,12 @@ class JsonHistoryFormatter extends JsonFormatter<HistoryFormatterOptions> {
     return {
       channel: channelName,
       messages: messages.map((message) => ({
+        ts: message.ts,
         timestamp: formatTimestampFixed(message.ts),
         user: resolveUsername(message, users),
         text: message.text || '(no text)',
+        ...(message.thread_ts !== undefined && { thread_ts: message.thread_ts }),
+        ...(message.reply_count !== undefined && { reply_count: message.reply_count }),
       })),
       total: messages.length,
     };

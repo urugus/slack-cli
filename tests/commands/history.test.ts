@@ -457,11 +457,13 @@ describe('history command', () => {
           channel: 'general',
           messages: [
             {
+              ts: '1609459300.000200',
               timestamp: '2021-01-01 00:01:40',
               user: 'jane.smith',
               text: 'Another message',
             },
             {
+              ts: '1609459200.000100',
               timestamp: '2021-01-01 00:00:00',
               user: 'john.doe',
               text: 'Hello world',
@@ -471,6 +473,74 @@ describe('history command', () => {
         };
 
         expect(mockConsole.logSpy).toHaveBeenCalledWith(JSON.stringify(expectedOutput, null, 2));
+      });
+
+      it('should include thread_ts and reply_count in JSON format when present', async () => {
+        vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+          token: 'test-token',
+          updatedAt: new Date().toISOString(),
+        });
+
+        const mockMessages = [
+          {
+            type: 'message',
+            text: 'Thread parent message',
+            user: 'U123456',
+            ts: '1609459200.000100',
+            thread_ts: '1609459200.000100',
+            reply_count: 3,
+          },
+          {
+            type: 'message',
+            text: 'Normal message',
+            user: 'U789012',
+            ts: '1609459100.000100',
+          },
+        ];
+
+        vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+          messages: mockMessages,
+          users: new Map([
+            ['U123456', 'john.doe'],
+            ['U789012', 'jane.smith'],
+          ]),
+        });
+
+        await program.parseAsync([
+          'node',
+          'slack-cli',
+          'history',
+          '-c',
+          'general',
+          '--format',
+          'json',
+        ]);
+
+        const logCall = mockConsole.logSpy.mock.calls.find((call: any[]) => {
+          try {
+            const parsed = JSON.parse(call[0]);
+            return parsed.channel === 'general';
+          } catch {
+            return false;
+          }
+        });
+        expect(logCall).toBeDefined();
+
+        const output = JSON.parse(logCall[0]);
+
+        // Message with thread should include thread_ts and reply_count
+        const threadMessage = output.messages.find(
+          (m: any) => m.text === 'Thread parent message'
+        );
+        expect(threadMessage.ts).toBe('1609459200.000100');
+        expect(threadMessage.thread_ts).toBe('1609459200.000100');
+        expect(threadMessage.reply_count).toBe(3);
+
+        // Normal message should not include thread_ts or reply_count
+        const normalMessage = output.messages.find((m: any) => m.text === 'Normal message');
+        expect(normalMessage.ts).toBe('1609459100.000100');
+        expect(normalMessage.thread_ts).toBeUndefined();
+        expect(normalMessage.reply_count).toBeUndefined();
       });
 
       it('should display messages in simple format when --format simple is specified', async () => {

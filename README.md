@@ -116,6 +116,10 @@ slack-cli history -c general --since "2024-01-01 00:00:00"
 # Get complete conversation of a thread
 slack-cli history -c general --thread 1719207629.000100
 
+# Output in different formats
+slack-cli history -c general --format json
+slack-cli history -c general --format simple
+
 # Use specific profile
 slack-cli history -c general --profile work
 ```
@@ -244,6 +248,7 @@ slack-cli config set --token NEW_TOKEN
 | --number  | -n    | Number of messages to retrieve (default: 10)           |
 | --since   |       | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
 | --thread  | -t    | Thread timestamp to retrieve complete thread messages   |
+| --format  |       | Output format: table, simple, json (default: table)    |
 
 ### unread command
 

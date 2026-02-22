@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { ConfigurationError, ValidationError } from './errors';
 
 export class TokenCryptoService {
   private readonly algorithm = 'aes-256-cbc';
@@ -25,26 +26,26 @@ export class TokenCryptoService {
       // Combine IV and encrypted data
       return iv.toString('hex') + this.separator + encrypted;
     } catch {
-      throw new Error('Failed to encrypt token');
+      throw new ConfigurationError('Failed to encrypt token');
     }
   }
 
   decrypt(encryptedData: string): string {
     try {
       if (!encryptedData || !encryptedData.includes(this.separator)) {
-        throw new Error('Invalid encrypted data format');
+        throw new ValidationError('Invalid encrypted data format');
       }
 
       const parts = encryptedData.split(this.separator);
       if (parts.length !== 2) {
-        throw new Error('Invalid encrypted data format');
+        throw new ValidationError('Invalid encrypted data format');
       }
 
       const iv = Buffer.from(parts[0], 'hex');
       const encrypted = parts[1];
 
       if (iv.length !== this.ivLength) {
-        throw new Error('Invalid IV length');
+        throw new ValidationError('Invalid IV length');
       }
 
       const key = this.deriveKey();
@@ -55,7 +56,7 @@ export class TokenCryptoService {
 
       return decrypted;
     } catch {
-      throw new Error('Failed to decrypt token');
+      throw new ConfigurationError('Failed to decrypt token');
     }
   }
 

@@ -1,4 +1,5 @@
 import { Channel } from './slack-api-client';
+import { ApiError } from './errors';
 
 export type GetChannelsFunction = () => Promise<Channel[]>;
 
@@ -40,15 +41,15 @@ export class ChannelResolver {
   /**
    * Create an error with channel suggestions
    */
-  resolveChannelError(channelName: string, channels: Channel[]): Error {
+  resolveChannelError(channelName: string, channels: Channel[]): ApiError {
     const similarChannels = this.getSimilarChannels(channelName, channels);
 
     if (similarChannels.length > 0) {
-      return new Error(
+      return new ApiError(
         `Channel '${channelName}' not found. Did you mean one of these? ${similarChannels.join(', ')}`
       );
     } else {
-      return new Error(
+      return new ApiError(
         `Channel '${channelName}' not found. Make sure you are a member of this channel.`
       );
     }

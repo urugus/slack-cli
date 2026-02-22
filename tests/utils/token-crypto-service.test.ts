@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
+import { ConfigurationError } from '../../src/utils/errors';
 
 describe('TokenCryptoService', () => {
   let service: TokenCryptoService;
@@ -75,6 +76,25 @@ describe('TokenCryptoService', () => {
     it('should throw error for malformed encrypted data', () => {
       // Missing IV separator
       expect(() => service.decrypt('aabbccdd')).toThrow('Failed to decrypt token');
+    });
+
+    it('should throw ConfigurationError for invalid encrypted data', () => {
+      try {
+        service.decrypt('invalid-data');
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConfigurationError);
+        expect((error as ConfigurationError).code).toBe('CONFIGURATION_ERROR');
+      }
+    });
+
+    it('should throw ConfigurationError for empty encrypted data', () => {
+      try {
+        service.decrypt('');
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConfigurationError);
+      }
     });
   });
 

@@ -11,6 +11,7 @@ import {
   createOptionParser,
 } from '../../src/utils/validators';
 import { Command } from 'commander';
+import { ValidationError } from '../../src/utils/errors';
 
 describe('validators', () => {
   describe('validateRequired', () => {
@@ -292,6 +293,20 @@ describe('validators', () => {
       const optionParser = createOptionParser(parser, validator);
 
       expect(() => optionParser('50', 100)).toThrow('Validation failed');
+    });
+
+    it('should throw ValidationError when validation fails', () => {
+      const parser = vi.fn().mockReturnValue(50);
+      const validator = vi.fn().mockReturnValue('Validation failed');
+      const optionParser = createOptionParser(parser, validator);
+
+      try {
+        optionParser('50', 100);
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as ValidationError).code).toBe('VALIDATION_ERROR');
+      }
     });
 
     it('should work without validator', () => {

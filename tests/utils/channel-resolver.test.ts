@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChannelResolver } from '../../src/utils/channel-resolver';
 import { Channel } from '../../src/utils/slack-api-client';
+import { ApiError } from '../../src/utils/errors';
 
 describe('ChannelResolver', () => {
   let resolver: ChannelResolver;
@@ -119,6 +120,18 @@ describe('ChannelResolver', () => {
       expect(error.message).toContain("Channel 'xyz' not found");
       expect(error.message).toContain('Make sure you are a member of this channel');
       expect(error.message).not.toContain('Did you mean');
+    });
+
+    it('should return ApiError with suggestions', () => {
+      const error = resolver.resolveChannelError('genera', mockChannels);
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).code).toBe('API_ERROR');
+    });
+
+    it('should return ApiError without suggestions', () => {
+      const error = resolver.resolveChannelError('xyz', mockChannels);
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).code).toBe('API_ERROR');
     });
   });
 

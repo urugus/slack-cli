@@ -61,6 +61,7 @@ export interface Message {
   bot_id?: string;
   ts: string;
   thread_ts?: string;
+  reply_count?: number;
   attachments?: unknown[];
   blocks?: unknown[];
 }

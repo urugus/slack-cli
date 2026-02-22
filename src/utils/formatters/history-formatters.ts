@@ -1,19 +1,7 @@
 import chalk from 'chalk';
 import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
-import { formatSlackTimestamp } from '../date-utils';
-
-function formatTimestampFixed(slackTimestamp: string): string {
-  const timestamp = parseFloat(slackTimestamp);
-  const date = new Date(timestamp * 1000);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
-import { formatMessageWithMentions } from '../format-utils';
+import { formatTimestampFixed } from '../date-utils';
+import { formatMessageWithMentions, resolveUsername } from '../format-utils';
 import { Message as SlackMessage } from '../slack-api-client';
 
 export interface HistoryFormatterOptions {
@@ -36,7 +24,7 @@ class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
     console.log('');
     messages.forEach((message) => {
       const timestamp = formatTimestampFixed(message.ts);
-      const username = this.getUsername(message, users);
+      const username = resolveUsername(message, users);
 
       console.log(`${chalk.gray(`[${timestamp}]`)} ${chalk.cyan(username)}`);
       const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
@@ -45,16 +33,6 @@ class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
     });
 
     console.log(chalk.green(`✓ Displayed ${messages.length} message(s)`));
-  }
-
-  private getUsername(message: SlackMessage, users: Map<string, string>): string {
-    if (message.user) {
-      return users.get(message.user) || 'Unknown User';
-    }
-    if (message.bot_id) {
-      return 'Bot';
-    }
-    return 'Unknown';
   }
 }
 
@@ -69,20 +47,10 @@ class SimpleHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> 
 
     messages.forEach((message) => {
       const timestamp = formatTimestampFixed(message.ts);
-      const username = this.getUsername(message, users);
+      const username = resolveUsername(message, users);
       const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
       console.log(`[${timestamp}] ${username}: ${text}`);
     });
-  }
-
-  private getUsername(message: SlackMessage, users: Map<string, string>): string {
-    if (message.user) {
-      return users.get(message.user) || 'Unknown User';
-    }
-    if (message.bot_id) {
-      return 'Bot';
-    }
-    return 'Unknown';
   }
 }
 
@@ -94,21 +62,11 @@ class JsonHistoryFormatter extends JsonFormatter<HistoryFormatterOptions> {
       channel: channelName,
       messages: messages.map((message) => ({
         timestamp: formatTimestampFixed(message.ts),
-        user: this.getUsername(message, users),
+        user: resolveUsername(message, users),
         text: message.text || '(no text)',
       })),
       total: messages.length,
     };
-  }
-
-  private getUsername(message: SlackMessage, users: Map<string, string>): string {
-    if (message.user) {
-      return users.get(message.user) || 'Unknown User';
-    }
-    if (message.bot_id) {
-      return 'Bot';
-    }
-    return 'Unknown';
   }
 }
 

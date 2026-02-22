@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatUnixTimestamp, formatSlackTimestamp } from '../../src/utils/date-utils';
+import { formatUnixTimestamp, formatSlackTimestamp, formatTimestampFixed } from '../../src/utils/date-utils';
 
 describe('date-utils', () => {
   describe('formatUnixTimestamp', () => {
@@ -25,6 +25,18 @@ describe('date-utils', () => {
       const slackTimestamp = '1640995200.123456';
       const result = formatSlackTimestamp(slackTimestamp);
       expect(result).toContain('2022');
+    });
+  });
+
+  describe('formatTimestampFixed', () => {
+    it('should format Slack timestamp to YYYY-MM-DD HH:MM:SS in UTC', () => {
+      const slackTimestamp = '1609459200.000100';
+      expect(formatTimestampFixed(slackTimestamp)).toBe('2021-01-01 00:00:00');
+    });
+
+    it('should pad single-digit values with zeros', () => {
+      const slackTimestamp = '1609502500.000200'; // 2021-01-01 12:01:40 UTC
+      expect(formatTimestampFixed(slackTimestamp)).toBe('2021-01-01 12:01:40');
     });
   });
 });

@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { SearchMatch } from '../slack-api-client';
+import { formatTimestampFixed } from '../date-utils';
 
 export interface SearchFormatterOptions {
   query: string;
@@ -8,18 +9,6 @@ export interface SearchFormatterOptions {
   totalCount: number;
   page: number;
   pageCount: number;
-}
-
-function formatTimestamp(slackTimestamp: string): string {
-  const timestamp = parseFloat(slackTimestamp);
-  const date = new Date(timestamp * 1000);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 class TableSearchFormatter extends AbstractFormatter<SearchFormatterOptions> {
@@ -41,7 +30,7 @@ class TableSearchFormatter extends AbstractFormatter<SearchFormatterOptions> {
     matches.forEach((match) => {
       const channel = match.channel.name ? `#${match.channel.name}` : match.channel.id || 'unknown';
       const username = match.username || match.user || 'Unknown';
-      const timestamp = match.ts ? formatTimestamp(match.ts) : '';
+      const timestamp = match.ts ? formatTimestampFixed(match.ts) : '';
 
       console.log(`${chalk.gray(`[${timestamp}]`)} ${chalk.blue(channel)} ${chalk.cyan(username)}`);
       console.log(match.text || '(no text)');
@@ -67,7 +56,7 @@ class SimpleSearchFormatter extends AbstractFormatter<SearchFormatterOptions> {
     matches.forEach((match) => {
       const channel = match.channel.name ? `#${match.channel.name}` : match.channel.id || 'unknown';
       const username = match.username || match.user || 'Unknown';
-      const timestamp = match.ts ? formatTimestamp(match.ts) : '';
+      const timestamp = match.ts ? formatTimestampFixed(match.ts) : '';
       const text = match.text || '(no text)';
       console.log(`[${channel}] ${username} (${timestamp}): ${text}`);
     });
@@ -90,7 +79,7 @@ class JsonSearchFormatter extends JsonFormatter<SearchFormatterOptions> {
       matches: matches.map((match) => ({
         channel: match.channel.name || match.channel.id || 'unknown',
         username: match.username || match.user || 'Unknown',
-        timestamp: match.ts ? formatTimestamp(match.ts) : '',
+        timestamp: match.ts ? formatTimestampFixed(match.ts) : '',
         text: match.text || '(no text)',
         permalink: match.permalink || '',
       })),

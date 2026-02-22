@@ -163,11 +163,61 @@ describe('ProfileConfigManager', () => {
         defaultProfile: 'default',
       };
       vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(mockStore));
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue();
+      vi.mocked(fs.chmod).mockResolvedValue();
 
       const config = await configManager.getConfig();
 
       expect(config).not.toBeNull();
       expect(config!.token).toBe('xoxb-old-plaintext-token');
+    });
+
+    it('should re-encrypt plaintext token and persist to disk on read', async () => {
+      const mockStore = {
+        profiles: {
+          default: {
+            token: 'xoxb-legacy-plaintext-token',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        },
+        defaultProfile: 'default',
+      };
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(mockStore));
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue();
+      vi.mocked(fs.chmod).mockResolvedValue();
+
+      await configManager.getConfig();
+
+      // Verify the store was written back with encrypted token
+      expect(fs.writeFile).toHaveBeenCalled();
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const savedData = JSON.parse(writeCall[1] as string);
+      const storedToken = savedData.profiles.default.token;
+
+      expect(storedToken).not.toBe('xoxb-legacy-plaintext-token');
+      expect(cryptoService.isEncrypted(storedToken)).toBe(true);
+      expect(cryptoService.decrypt(storedToken)).toBe('xoxb-legacy-plaintext-token');
+    });
+
+    it('should not re-write store when token is already encrypted', async () => {
+      const encryptedToken = cryptoService.encrypt('already-encrypted-token');
+      const mockStore = {
+        profiles: {
+          default: {
+            token: encryptedToken,
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        },
+        defaultProfile: 'default',
+      };
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(mockStore));
+
+      await configManager.getConfig();
+
+      // Should NOT write to disk since token was already encrypted
+      expect(fs.writeFile).not.toHaveBeenCalled();
     });
 
     it('should return config for specified profile', async () => {

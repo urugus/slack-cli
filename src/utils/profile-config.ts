@@ -43,6 +43,15 @@ export class ProfileConfigManager {
       return null;
     }
 
+    // Re-encrypt plaintext tokens and persist to disk
+    if (!this.cryptoService.isEncrypted(config.token)) {
+      store.profiles[profileName] = {
+        ...config,
+        token: this.cryptoService.encrypt(config.token),
+      };
+      await this.saveConfigStore(store);
+    }
+
     return {
       ...config,
       token: this.decryptToken(config.token),

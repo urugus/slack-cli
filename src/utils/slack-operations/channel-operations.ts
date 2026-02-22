@@ -1,7 +1,7 @@
 import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { Channel, ListChannelsOptions } from '../slack-api-client';
+import { Channel, ListChannelsOptions, Message } from '../slack-api-client';
 import { WebClient } from '@slack/web-api';
 
 interface ChannelWithUnreadInfo extends Channel {
@@ -118,12 +118,14 @@ export class ChannelOperations extends BaseSlackClient {
     }
   }
 
-  private async fetchLatestMessage(channelId: string): Promise<any> {
+  private async fetchLatestMessage(channelId: string): Promise<Message | null> {
     const history = await this.client.conversations.history({
       channel: channelId,
       limit: 1,
     });
-    return history.messages && history.messages.length > 0 ? history.messages[0] : null;
+    return history.messages && history.messages.length > 0
+      ? (history.messages[0] as Message)
+      : null;
   }
 
   private async fetchUnreadMessageCount(channelId: string, lastRead: string): Promise<number> {

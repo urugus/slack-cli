@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2026-02-22
+
+### Changed
+- Replace `any` types with proper TypeScript types in `MessageFormatterOptions` (`Channel`, `Message[]`)
+- Replace `any` type in `JsonMessageFormatter` output with explicit `MessageJsonOutput` interface
+- Replace `as any` cast in `MessageOperations.listScheduledMessages` with `ChatScheduledMessagesListArguments`
+- Replace `Promise<any>` return type in `ChannelOperations.fetchLatestMessage` with `Promise<Message | null>`
+- Replace `TOutput = any` default in `JsonFormatter` base class with `TOutput = unknown`
+
+### Added
+- New test file for message formatters (`tests/utils/formatters/message-formatters.test.ts`)
+
 ## [0.4.2] - 2026-02-22
 
 ### Changed

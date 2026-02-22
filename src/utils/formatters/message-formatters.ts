@@ -3,10 +3,11 @@ import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base
 import { formatSlackTimestamp } from '../date-utils';
 import { formatMessageWithMentions } from '../format-utils';
 import { formatChannelName } from '../channel-formatter';
+import { Channel, Message } from '../slack-api-client';
 
 export interface MessageFormatterOptions {
-  channel: any;
-  messages: any[];
+  channel: Channel;
+  messages: Message[];
   users: Map<string, string>;
   countOnly: boolean;
   format: string;
@@ -51,12 +52,23 @@ class SimpleMessageFormatter extends AbstractFormatter<MessageFormatterOptions> 
   }
 }
 
-class JsonMessageFormatter extends JsonFormatter<MessageFormatterOptions> {
-  protected transform(options: MessageFormatterOptions) {
+interface MessageJsonOutput {
+  channel: string;
+  channelId: string;
+  unreadCount: number;
+  messages?: {
+    timestamp: string;
+    author: string;
+    text: string;
+  }[];
+}
+
+class JsonMessageFormatter extends JsonFormatter<MessageFormatterOptions, MessageJsonOutput> {
+  protected transform(options: MessageFormatterOptions): MessageJsonOutput {
     const { channel, messages, users, countOnly } = options;
     const channelName = formatChannelName(channel.name);
 
-    const output: any = {
+    const output: MessageJsonOutput = {
       channel: channelName,
       channelId: channel.id,
       unreadCount: channel.unread_count || 0,

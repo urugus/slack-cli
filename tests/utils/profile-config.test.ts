@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { TokenCryptoService } from '../../src/utils/token-crypto-service';
 
 vi.mock('fs/promises');
 vi.mock('os');
@@ -10,6 +11,7 @@ vi.mock('os');
 describe('ProfileConfigManager', () => {
   let configManager: ProfileConfigManager;
   const mockConfigPath = '/home/user/.slack-cli/config.json';
+  const cryptoService = new TokenCryptoService();
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -32,6 +34,34 @@ describe('ProfileConfigManager', () => {
       );
     });
 
+    it('should save token to current default profile when no profile specified', async () => {
+      const encryptedPersonalToken = cryptoService.encrypt('personal-token');
+      const existingStore = {
+        profiles: {
+          personal: {
+            token: encryptedPersonalToken,
+            updatedAt: '2025-01-01T00:00:00.000Z',
+          },
+        },
+        defaultProfile: 'personal',
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(existingStore));
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue();
+      vi.mocked(fs.chmod).mockResolvedValue();
+
+      await configManager.setToken('updated-token-123');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string);
+
+      // Token should be encrypted on disk
+      expect(cryptoService.isEncrypted(writtenData.profiles.personal.token)).toBe(true);
+      expect(cryptoService.decrypt(writtenData.profiles.personal.token)).toBe('updated-token-123');
+      expect(writtenData.defaultProfile).toBe('personal');
+    });
+
     it('should set token for specified profile', async () => {
       vi.mocked(fs.readFile).mockRejectedValueOnce({ code: 'ENOENT' });
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
@@ -42,7 +72,55 @@ describe('ProfileConfigManager', () => {
 
       const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
       const savedData = JSON.parse(writeCall[1] as string);
-      expect(savedData.profiles.production.token).toBe('test-token');
+      expect(savedData.profiles.production).toBeDefined();
+    });
+
+    it('should preserve existing profiles when adding new one', async () => {
+      const encryptedPersonalToken = cryptoService.encrypt('personal-token');
+      const existingStore = {
+        profiles: {
+          personal: {
+            token: encryptedPersonalToken,
+            updatedAt: '2025-01-01T00:00:00.000Z',
+          },
+        },
+        defaultProfile: 'personal',
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(existingStore));
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue();
+      vi.mocked(fs.chmod).mockResolvedValue();
+
+      await configManager.setToken('work-token-123', 'work');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string);
+
+      expect(writtenData.profiles.personal).toBeDefined();
+      expect(writtenData.profiles.work).toBeDefined();
+      expect(cryptoService.decrypt(writtenData.profiles.work.token)).toBe('work-token-123');
+      expect(writtenData.defaultProfile).toBe('personal');
+    });
+
+    it('should encrypt token before saving to disk', async () => {
+      vi.mocked(fs.readFile).mockRejectedValueOnce({ code: 'ENOENT' });
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue();
+      vi.mocked(fs.chmod).mockResolvedValue();
+
+      await configManager.setToken('xoxb-plaintext-token-value', 'default');
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const savedData = JSON.parse(writeCall[1] as string);
+      const storedToken = savedData.profiles.default.token;
+
+      // Token on disk must NOT be plaintext
+      expect(storedToken).not.toBe('xoxb-plaintext-token-value');
+      // Token on disk must be in encrypted format (IV:ciphertext)
+      expect(cryptoService.isEncrypted(storedToken)).toBe(true);
+      // Decrypting the stored token must return the original
+      expect(cryptoService.decrypt(storedToken)).toBe('xoxb-plaintext-token-value');
     });
   });
 
@@ -55,11 +133,12 @@ describe('ProfileConfigManager', () => {
       expect(config).toBeNull();
     });
 
-    it('should return config for default profile', async () => {
+    it('should decrypt token when reading encrypted config', async () => {
+      const encryptedToken = cryptoService.encrypt('my-secret-token');
       const mockStore = {
         profiles: {
           default: {
-            token: 'test-token',
+            token: encryptedToken,
             updatedAt: '2024-01-01T00:00:00.000Z',
           },
         },
@@ -69,14 +148,34 @@ describe('ProfileConfigManager', () => {
 
       const config = await configManager.getConfig();
 
-      expect(config).toEqual(mockStore.profiles.default);
+      expect(config).not.toBeNull();
+      expect(config!.token).toBe('my-secret-token');
+    });
+
+    it('should return plaintext token as-is for backward compatibility', async () => {
+      const mockStore = {
+        profiles: {
+          default: {
+            token: 'xoxb-old-plaintext-token',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        },
+        defaultProfile: 'default',
+      };
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(mockStore));
+
+      const config = await configManager.getConfig();
+
+      expect(config).not.toBeNull();
+      expect(config!.token).toBe('xoxb-old-plaintext-token');
     });
 
     it('should return config for specified profile', async () => {
+      const encryptedToken = cryptoService.encrypt('prod-token');
       const mockStore = {
         profiles: {
           production: {
-            token: 'prod-token',
+            token: encryptedToken,
             updatedAt: '2024-01-01T00:00:00.000Z',
           },
         },
@@ -86,7 +185,8 @@ describe('ProfileConfigManager', () => {
 
       const config = await configManager.getConfig('production');
 
-      expect(config).toEqual(mockStore.profiles.production);
+      expect(config).not.toBeNull();
+      expect(config!.token).toBe('prod-token');
     });
   });
 
@@ -103,11 +203,11 @@ describe('ProfileConfigManager', () => {
       const mockStore = {
         profiles: {
           default: {
-            token: 'default-token',
+            token: cryptoService.encrypt('default-token'),
             updatedAt: '2024-01-01T00:00:00.000Z',
           },
           production: {
-            token: 'prod-token',
+            token: cryptoService.encrypt('prod-token'),
             updatedAt: '2024-01-02T00:00:00.000Z',
           },
         },
@@ -253,7 +353,7 @@ describe('ProfileConfigManager', () => {
   });
 
   describe('migration', () => {
-    it('should migrate old format to new format', async () => {
+    it('should migrate old format to new format and encrypt the token', async () => {
       const oldConfig = {
         token: 'old-token',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -265,10 +365,41 @@ describe('ProfileConfigManager', () => {
 
       const config = await configManager.getConfig();
 
-      expect(config).toEqual(oldConfig);
+      // The returned token should be the original plaintext
+      expect(config).not.toBeNull();
+      expect(config!.token).toBe('old-token');
+
+      // The migrated data on disk should have encrypted token
       const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
       const savedData = JSON.parse(writeCall[1] as string);
-      expect(savedData.profiles.default).toEqual(oldConfig);
+      expect(savedData.profiles.default).toBeDefined();
+      expect(savedData.profiles.default.token).not.toBe('old-token');
+      expect(cryptoService.isEncrypted(savedData.profiles.default.token)).toBe(true);
+    });
+  });
+
+  describe('token encryption roundtrip', () => {
+    it('should encrypt on save and decrypt on read', async () => {
+      // Save a token
+      vi.mocked(fs.readFile).mockRejectedValueOnce({ code: 'ENOENT' });
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue();
+      vi.mocked(fs.chmod).mockResolvedValue();
+
+      await configManager.setToken('xoxb-my-secret-token-12345');
+
+      // Capture what was written to disk
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const savedDataStr = writeCall[1] as string;
+
+      // Now simulate reading back the same data
+      vi.mocked(fs.readFile).mockResolvedValueOnce(savedDataStr);
+
+      const config = await configManager.getConfig();
+
+      // Should get back the original plaintext token
+      expect(config).not.toBeNull();
+      expect(config!.token).toBe('xoxb-my-secret-token-12345');
     });
   });
 

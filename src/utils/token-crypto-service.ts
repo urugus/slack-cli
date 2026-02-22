@@ -24,7 +24,7 @@ export class TokenCryptoService {
 
       // Combine IV and encrypted data
       return iv.toString('hex') + this.separator + encrypted;
-    } catch (error) {
+    } catch {
       throw new Error('Failed to encrypt token');
     }
   }
@@ -54,7 +54,7 @@ export class TokenCryptoService {
       decrypted += decipher.final('utf8');
 
       return decrypted;
-    } catch (error) {
+    } catch {
       throw new Error('Failed to decrypt token');
     }
   }

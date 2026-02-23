@@ -81,11 +81,7 @@ export class UserOperations extends BaseSlackClient {
 
       const members = (response.members || []) as SlackUser[];
       for (const member of members) {
-        if (
-          member.name?.toLowerCase() === nameLower ||
-          member.profile?.display_name?.toLowerCase() === nameLower ||
-          member.real_name?.toLowerCase() === nameLower
-        ) {
+        if (member.name?.toLowerCase() === nameLower) {
           return member.id!;
         }
       }

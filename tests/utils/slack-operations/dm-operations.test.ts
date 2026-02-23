@@ -64,7 +64,7 @@ describe('UserOperations - DM', () => {
   });
 
   describe('resolveUserIdByName', () => {
-    it('should resolve user ID by display name', async () => {
+    it('should resolve user ID by username (member.name)', async () => {
       mockClient.users.list.mockResolvedValue({
         members: [
           { id: 'U111', name: 'john', profile: { display_name: 'John Doe' } },
@@ -104,7 +104,7 @@ describe('UserOperations - DM', () => {
       );
     });
 
-    it('should match by display_name case-insensitively', async () => {
+    it('should match username case-insensitively', async () => {
       mockClient.users.list.mockResolvedValue({
         members: [
           { id: 'U111', name: 'john.doe', profile: { display_name: 'John Doe' } },
@@ -112,9 +112,22 @@ describe('UserOperations - DM', () => {
         response_metadata: {},
       });
 
-      const userId = await userOps.resolveUserIdByName('John Doe');
+      const userId = await userOps.resolveUserIdByName('John.Doe');
 
       expect(userId).toBe('U111');
+    });
+
+    it('should not match by display_name to avoid misdelivery', async () => {
+      mockClient.users.list.mockResolvedValue({
+        members: [
+          { id: 'U111', name: 'john.doe', profile: { display_name: 'John Doe' } },
+        ],
+        response_metadata: {},
+      });
+
+      await expect(userOps.resolveUserIdByName('John Doe')).rejects.toThrow(
+        "User 'John Doe' not found"
+      );
     });
   });
 });

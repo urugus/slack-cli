@@ -167,6 +167,16 @@ export const optionValidators = {
   },
 
   /**
+   * Validates reaction timestamp if provided
+   */
+  reactionTimestamp: (options: Record<string, unknown>): string | null => {
+    if (options.timestamp) {
+      return formatValidators.threadTimestamp(options.timestamp as string);
+    }
+    return null;
+  },
+
+  /**
    * Validates schedule options for send command
    */
   scheduleTiming: (options: Record<string, unknown>): string | null => {

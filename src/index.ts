@@ -7,6 +7,7 @@ import { setupHistoryCommand } from './commands/history';
 import { setupUnreadCommand } from './commands/unread';
 import { setupScheduledCommand } from './commands/scheduled';
 import { setupSearchCommand } from './commands/search';
+import { setupEditCommand } from './commands/edit';
 import { setupReactionCommand } from './commands/reaction';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -26,6 +27,7 @@ program.addCommand(setupHistoryCommand());
 program.addCommand(setupUnreadCommand());
 program.addCommand(setupScheduledCommand());
 program.addCommand(setupSearchCommand());
+program.addCommand(setupEditCommand());
 program.addCommand(setupReactionCommand());
 
 program.parse();

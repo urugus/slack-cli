@@ -3,6 +3,7 @@ import {
   ChatPostMessageArguments,
   ChatScheduleMessageArguments,
   ChatScheduleMessageResponse,
+  ChatUpdateResponse,
 } from '@slack/web-api';
 import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
@@ -77,6 +78,22 @@ export class MessageOperations extends BaseSlackClient {
       ...(channelId ? { channel: channelId } : {}),
     });
     return (response.scheduled_messages || []) as ScheduledMessage[];
+  }
+
+  async updateMessage(channel: string, ts: string, text: string): Promise<ChatUpdateResponse> {
+    const channelId = await channelResolver.resolveChannelId(channel, () =>
+      this.channelOps.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    return await this.client.chat.update({
+      channel: channelId,
+      ts,
+      text,
+    });
   }
 
   async cancelScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {

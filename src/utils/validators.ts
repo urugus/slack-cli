@@ -167,6 +167,19 @@ export const optionValidators = {
   },
 
   /**
+   * Validates edit message timestamp if provided
+   */
+  editTimestamp: (options: Record<string, unknown>): string | null => {
+    if (options.ts) {
+      const pattern = /^\d{10}\.\d{6}$/;
+      if (!pattern.test(options.ts as string)) {
+        return 'Invalid message timestamp format';
+      }
+    }
+    return null;
+  },
+
+  /**
    * Validates reaction timestamp if provided
    */
   reactionTimestamp: (options: Record<string, unknown>): string | null => {

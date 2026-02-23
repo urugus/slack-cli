@@ -226,6 +226,16 @@ export const optionValidators = {
   },
 
   /**
+   * Validates pin timestamp if provided
+   */
+  pinTimestamp: (options: Record<string, unknown>): string | null => {
+    if (options.timestamp) {
+      return formatValidators.threadTimestamp(options.timestamp as string);
+    }
+    return null;
+  },
+
+  /**
    * Validates schedule options for send command
    */
   scheduleTiming: (options: Record<string, unknown>): string | null => {

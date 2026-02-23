@@ -11,6 +11,7 @@ import { setupEditCommand } from './commands/edit';
 import { setupDeleteCommand } from './commands/delete';
 import { setupUploadCommand } from './commands/upload';
 import { setupReactionCommand } from './commands/reaction';
+import { setupPinCommand } from './commands/pin';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -33,5 +34,6 @@ program.addCommand(setupEditCommand());
 program.addCommand(setupDeleteCommand());
 program.addCommand(setupUploadCommand());
 program.addCommand(setupReactionCommand());
+program.addCommand(setupPinCommand());
 
 program.parse();

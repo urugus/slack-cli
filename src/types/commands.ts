@@ -127,6 +127,24 @@ export interface UsersLookupOptions {
   profile?: string;
 }
 
+export interface ChannelInfoOptions {
+  channel: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface ChannelSetTopicOptions {
+  channel: string;
+  topic: string;
+  profile?: string;
+}
+
+export interface ChannelSetPurposeOptions {
+  channel: string;
+  purpose: string;
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

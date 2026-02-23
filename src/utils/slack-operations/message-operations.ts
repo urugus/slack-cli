@@ -3,7 +3,6 @@ import {
   ChatPostMessageArguments,
   ChatScheduleMessageArguments,
   ChatScheduleMessageResponse,
-  ChatScheduledMessagesListArguments,
 } from '@slack/web-api';
 import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
@@ -73,15 +72,10 @@ export class MessageOperations extends BaseSlackClient {
         )
       : undefined;
 
-    const params: ChatScheduledMessagesListArguments = {
+    const response = await this.client.chat.scheduledMessages.list({
       limit,
-    };
-
-    if (channelId) {
-      params.channel = channelId;
-    }
-
-    const response = await this.client.chat.scheduledMessages.list(params);
+      ...(channelId ? { channel: channelId } : {}),
+    });
     return (response.scheduled_messages || []) as ScheduledMessage[];
   }
 

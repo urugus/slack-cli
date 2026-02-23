@@ -83,6 +83,12 @@ export interface EditOptions {
   profile?: string;
 }
 
+export interface DeleteOptions {
+  channel: string;
+  ts: string;
+  profile?: string;
+}
+
 export interface ReactionOptions {
   channel: string;
   timestamp: string;

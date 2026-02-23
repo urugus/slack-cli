@@ -96,6 +96,21 @@ export class MessageOperations extends BaseSlackClient {
     });
   }
 
+  async deleteMessage(channel: string, ts: string): Promise<void> {
+    const channelId = await channelResolver.resolveChannelId(channel, () =>
+      this.channelOps.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    await this.client.chat.delete({
+      channel: channelId,
+      ts,
+    });
+  }
+
   async cancelScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {
     const channelId = await channelResolver.resolveChannelId(channel, () =>
       this.channelOps.listChannels({

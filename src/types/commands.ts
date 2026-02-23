@@ -64,6 +64,18 @@ export interface UnreadOptions {
   profile?: string;
 }
 
+export interface UploadOptions {
+  channel: string;
+  file?: string;
+  content?: string;
+  filename?: string;
+  title?: string;
+  message?: string;
+  filetype?: string;
+  thread?: string;
+  profile?: string;
+}
+
 export interface EditOptions {
   channel: string;
   ts: string;

@@ -167,6 +167,29 @@ export const optionValidators = {
   },
 
   /**
+   * Validates file or content options for upload command
+   */
+  fileOrContent: (options: Record<string, unknown>): string | null => {
+    if (!options.file && !options.content) {
+      return 'You must specify either --file or --content';
+    }
+    if (options.file && options.content) {
+      return 'Cannot use both --file and --content';
+    }
+    return null;
+  },
+
+  /**
+   * Validates upload thread timestamp if provided
+   */
+  uploadThreadTimestamp: (options: Record<string, unknown>): string | null => {
+    if (options.thread) {
+      return formatValidators.threadTimestamp(options.thread as string);
+    }
+    return null;
+  },
+
+  /**
    * Validates edit message timestamp if provided
    */
   editTimestamp: (options: Record<string, unknown>): string | null => {

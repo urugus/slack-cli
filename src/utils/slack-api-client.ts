@@ -5,6 +5,7 @@ import {
 } from '@slack/web-api';
 import { ChannelOperations } from './slack-operations/channel-operations';
 import { MessageOperations } from './slack-operations/message-operations';
+import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
 import { ReactionOperations } from './slack-operations/reaction-operations';
 import {
   SearchOperations,
@@ -93,12 +94,14 @@ export interface ChannelUnreadResult {
 export class SlackApiClient {
   private channelOps: ChannelOperations;
   private messageOps: MessageOperations;
+  private fileOps: FileOperations;
   private reactionOps: ReactionOperations;
   private searchOps: SearchOperations;
 
   constructor(token: string) {
     this.channelOps = new ChannelOperations(token);
     this.messageOps = new MessageOperations(token);
+    this.fileOps = new FileOperations(token);
     this.reactionOps = new ReactionOperations(token);
     this.searchOps = new SearchOperations(token);
   }
@@ -154,6 +157,10 @@ export class SlackApiClient {
 
   async markAsRead(channelId: string): Promise<void> {
     return this.messageOps.markAsRead(channelId);
+  }
+
+  async uploadFile(options: UploadFileOptions): Promise<void> {
+    return this.fileOps.uploadFile(options);
   }
 
   async addReaction(channel: string, timestamp: string, emoji: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { BaseSlackClient } from './base-client';
+import { ApiError } from '../errors';
 
 export interface SlackUser {
   id?: string;
@@ -58,5 +59,40 @@ export class UserOperations extends BaseSlackClient {
   async lookupByEmail(email: string): Promise<SlackUser> {
     const response = await this.client.users.lookupByEmail({ email });
     return response.user as SlackUser;
+  }
+
+  async openDmChannel(userId: string): Promise<string> {
+    const response = await this.client.conversations.open({
+      users: userId,
+    });
+    return (response.channel as { id: string }).id;
+  }
+
+  async resolveUserIdByName(username: string): Promise<string> {
+    const name = username.replace(/^@/, '');
+    const nameLower = name.toLowerCase();
+
+    let cursor: string | undefined;
+    do {
+      const response = await this.client.users.list({
+        limit: 200,
+        ...(cursor ? { cursor } : {}),
+      });
+
+      const members = (response.members || []) as SlackUser[];
+      for (const member of members) {
+        if (
+          member.name?.toLowerCase() === nameLower ||
+          member.profile?.display_name?.toLowerCase() === nameLower ||
+          member.real_name?.toLowerCase() === nameLower
+        ) {
+          return member.id!;
+        }
+      }
+
+      cursor = response.response_metadata?.next_cursor || undefined;
+    } while (cursor);
+
+    throw new ApiError(`User '${name}' not found`);
   }
 }

@@ -13,8 +13,10 @@ import * as fs from 'fs/promises';
 
 export function setupSendCommand(): Command {
   const sendCommand = new Command('send')
-    .description('Send or schedule a message to a Slack channel')
-    .requiredOption('-c, --channel <channel>', 'Target channel name or ID')
+    .description('Send or schedule a message to a Slack channel or DM')
+    .option('-c, --channel <channel>', 'Target channel name or ID')
+    .option('--user <username>', 'Send DM to user by username')
+    .option('--email <email>', 'Send DM to user by email address')
     .option('-m, --message <message>', 'Message to send')
     .option('-f, --file <file>', 'File containing message content')
     .option('-t, --thread <thread>', 'Thread timestamp to reply to')
@@ -24,6 +26,7 @@ export function setupSendCommand(): Command {
     .hook(
       'preAction',
       createValidationHook([
+        optionValidators.sendTarget,
         optionValidators.messageOrFile,
         optionValidators.threadTimestamp,
         optionValidators.scheduleTiming,
@@ -51,17 +54,42 @@ export function setupSendCommand(): Command {
         const profile = parseProfile(options.profile);
         const client = await createSlackClient(profile);
 
+        // Resolve target channel
+        let targetChannel: string;
+        let targetLabel: string;
+
+        if (options.user) {
+          const userId = await client.resolveUserIdByName(options.user);
+          targetChannel = await client.openDmChannel(userId);
+          targetLabel = `@${options.user.replace(/^@/, '')}`;
+        } else if (options.email) {
+          const user = await client.lookupUserByEmail(options.email);
+          targetChannel = await client.openDmChannel(user.id!);
+          targetLabel = options.email;
+        } else {
+          targetChannel = options.channel!;
+          targetLabel = `#${options.channel}`;
+        }
+
         if (postAt !== null) {
-          await client.scheduleMessage(options.channel, messageContent, postAt, options.thread);
+          await client.scheduleMessage(targetChannel, messageContent, postAt, options.thread);
           const postAtIso = new Date(postAt * 1000).toISOString();
-          console.log(
-            chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SCHEDULED(options.channel, postAtIso)}`)
-          );
+          if (options.user || options.email) {
+            console.log(chalk.green(`✓ Message scheduled to ${targetLabel} at ${postAtIso}`));
+          } else {
+            console.log(
+              chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SCHEDULED(options.channel!, postAtIso)}`)
+            );
+          }
           return;
         }
 
-        await client.sendMessage(options.channel, messageContent, options.thread);
-        console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SENT(options.channel)}`));
+        await client.sendMessage(targetChannel, messageContent, options.thread);
+        if (options.user || options.email) {
+          console.log(chalk.green(`✓ DM sent to ${targetLabel}`));
+        } else {
+          console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.MESSAGE_SENT(options.channel!)}`));
+        }
       })
     );
 

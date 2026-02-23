@@ -120,6 +120,10 @@ export class SlackApiClient {
     return this.messageOps.listScheduledMessages(channel, limit);
   }
 
+  async cancelScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {
+    return this.messageOps.cancelScheduledMessage(channel, scheduledMessageId);
+  }
+
   async listChannels(options: ListChannelsOptions): Promise<Channel[]> {
     return this.channelOps.listChannels(options);
   }

@@ -51,81 +51,164 @@ describe('scheduled command', () => {
     restoreMocks();
   });
 
-  it('should list scheduled messages in table format by default', async () => {
-    vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
-      token: 'test-token',
-      updatedAt: new Date().toISOString(),
+  describe('list subcommand', () => {
+    it('should list scheduled messages in table format by default', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
+        mockScheduledMessages as any
+      );
+
+      await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list']);
+
+      expect(mockSlackClient.listScheduledMessages).toHaveBeenCalledWith(undefined, 50);
+      expect(tableSpy).toHaveBeenCalled();
     });
-    vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-      mockScheduledMessages as any
-    );
 
-    await program.parseAsync(['node', 'slack-cli', 'scheduled']);
+    it('should filter by channel and limit', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
+        mockScheduledMessages as any
+      );
 
-    expect(mockSlackClient.listScheduledMessages).toHaveBeenCalledWith(undefined, 50);
-    expect(tableSpy).toHaveBeenCalled();
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'scheduled',
+        'list',
+        '--channel',
+        'general',
+        '--limit',
+        '10',
+      ]);
+
+      expect(mockSlackClient.listScheduledMessages).toHaveBeenCalledWith('general', 10);
+    });
+
+    it('should output json format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
+        mockScheduledMessages as any
+      );
+
+      await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list', '--format', 'json']);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('"id": "Q123"'));
+    });
+
+    it('should output simple format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
+        mockScheduledMessages as any
+      );
+
+      await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list', '--format', 'simple']);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Q123'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Q456'));
+    });
+
+    it('should show empty message when no scheduled messages', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue([] as any);
+
+      await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list']);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('No scheduled messages found');
+    });
   });
 
-  it('should filter by channel and limit', async () => {
-    vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
-      token: 'test-token',
-      updatedAt: new Date().toISOString(),
+  describe('cancel subcommand', () => {
+    it('should cancel a scheduled message', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.cancelScheduledMessage).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'scheduled',
+        'cancel',
+        '-c',
+        'general',
+        '--id',
+        'Q1298393284',
+      ]);
+
+      expect(mockSlackClient.cancelScheduledMessage).toHaveBeenCalledWith(
+        'general',
+        'Q1298393284'
+      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Scheduled message Q1298393284 cancelled')
+      );
     });
-    vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-      mockScheduledMessages as any
-    );
 
-    await program.parseAsync([
-      'node',
-      'slack-cli',
-      'scheduled',
-      '--channel',
-      'general',
-      '--limit',
-      '10',
-    ]);
+    it('should use specified profile', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'work-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.cancelScheduledMessage).mockResolvedValue();
 
-    expect(mockSlackClient.listScheduledMessages).toHaveBeenCalledWith('general', 10);
-  });
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'scheduled',
+        'cancel',
+        '-c',
+        'general',
+        '--id',
+        'Q123',
+        '--profile',
+        'work',
+      ]);
 
-  it('should output json format', async () => {
-    vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
-      token: 'test-token',
-      updatedAt: new Date().toISOString(),
+      expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
+      expect(SlackApiClient).toHaveBeenCalledWith('work-token');
     });
-    vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-      mockScheduledMessages as any
-    );
 
-    await program.parseAsync(['node', 'slack-cli', 'scheduled', '--format', 'json']);
+    it('should handle API errors', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.cancelScheduledMessage).mockRejectedValue(
+        new Error('invalid_scheduled_message_id')
+      );
 
-    expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('"id": "Q123"'));
-  });
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'scheduled',
+        'cancel',
+        '-c',
+        'general',
+        '--id',
+        'Q_INVALID',
+      ]);
 
-  it('should output simple format', async () => {
-    vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
-      token: 'test-token',
-      updatedAt: new Date().toISOString(),
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.any(String)
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
-    vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-      mockScheduledMessages as any
-    );
-
-    await program.parseAsync(['node', 'slack-cli', 'scheduled', '--format', 'simple']);
-
-    expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Q123'));
-    expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Q456'));
-  });
-
-  it('should show empty message when no scheduled messages', async () => {
-    vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
-      token: 'test-token',
-      updatedAt: new Date().toISOString(),
-    });
-    vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue([] as any);
-
-    await program.parseAsync(['node', 'slack-cli', 'scheduled']);
-
-    expect(mockConsole.logSpy).toHaveBeenCalledWith('No scheduled messages found');
   });
 });

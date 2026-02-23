@@ -17,6 +17,7 @@ export function setupHistoryCommand(): Command {
     .option('-n, --number <number>', 'Number of messages to retrieve')
     .option('--since <date>', 'Get messages since specific date (YYYY-MM-DD HH:MM:SS)')
     .option('-t, --thread <thread>', 'Thread timestamp to retrieve complete thread conversation')
+    .option('--with-link', 'Include permalink URL for each message', false)
     .option('--format <format>', 'Output format: table, simple, json', 'table')
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook(
@@ -62,9 +63,19 @@ export function setupHistoryCommand(): Command {
 
           ({ messages, users } = await client.getHistory(options.channel, historyOptions));
         }
+
+        let permalinks: Map<string, string> | undefined;
+        if (options.withLink && messages.length > 0) {
+          permalinks = await client.getPermalinks(
+            options.channel,
+            messages.map((m) => m.ts)
+          );
+        }
+
         const format = parseFormat(options.format);
         displayHistoryResults(messages, users, options.channel, format, {
           preserveOrder: Boolean(options.thread),
+          permalinks,
         });
       })
     );

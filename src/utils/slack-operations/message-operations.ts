@@ -244,4 +244,56 @@ export class MessageOperations extends BaseSlackClient {
       ts: Date.now() / 1000 + '',
     });
   }
+
+  async getPermalink(channel: string, messageTs: string): Promise<string | null> {
+    try {
+      const channelId = await channelResolver.resolveChannelId(channel, () =>
+        this.channelOps.listChannels({
+          types: 'public_channel,private_channel,im,mpim',
+          exclude_archived: true,
+          limit: DEFAULTS.CHANNELS_LIMIT,
+        })
+      );
+
+      const response = await this.client.chat.getPermalink({
+        channel: channelId,
+        message_ts: messageTs,
+      });
+      return response.permalink || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async getPermalinks(channel: string, messageTimestamps: string[]): Promise<Map<string, string>> {
+    const permalinks = new Map<string, string>();
+
+    if (messageTimestamps.length === 0) {
+      return permalinks;
+    }
+
+    const channelId = await channelResolver.resolveChannelId(channel, () =>
+      this.channelOps.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    for (const ts of messageTimestamps) {
+      try {
+        const response = await this.client.chat.getPermalink({
+          channel: channelId,
+          message_ts: ts,
+        });
+        if (response.permalink) {
+          permalinks.set(ts, response.permalink);
+        }
+      } catch {
+        // Skip failed permalink retrievals gracefully
+      }
+    }
+
+    return permalinks;
+  }
 }

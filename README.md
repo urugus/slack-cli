@@ -242,6 +242,29 @@ slack-cli pin list -c general --format json
 slack-cli pin list -c general --format simple
 ```
 
+### Users
+
+```bash
+# List workspace users
+slack-cli users list
+
+# Limit number of users
+slack-cli users list --limit 50
+
+# Output in different formats
+slack-cli users list --format json
+slack-cli users list --format simple
+
+# Get detailed info for a specific user
+slack-cli users info --id U01ABCDEF
+
+# Look up user by email address
+slack-cli users lookup --email user@example.com
+
+# Use specific profile
+slack-cli users list --profile work
+```
+
 ### Scheduled Messages
 
 ```bash
@@ -393,6 +416,31 @@ Subcommands: `add`, `remove`, `list`
 | --channel | -c    | Channel name or ID (required)                       |
 | --format  |       | Output format: table, simple, json (default: table) |
 
+### users command
+
+Subcommands: `list`, `info`, `lookup`
+
+#### users list
+
+| Option   | Short | Description                                         |
+| -------- | ----- | --------------------------------------------------- |
+| --limit  |       | Maximum number of users to list (default: 100)      |
+| --format |       | Output format: table, simple, json (default: table) |
+
+#### users info
+
+| Option   | Short | Description                                         |
+| -------- | ----- | --------------------------------------------------- |
+| --id     |       | User ID (required)                                  |
+| --format |       | Output format: table, simple, json (default: table) |
+
+#### users lookup
+
+| Option   | Short | Description                                         |
+| -------- | ----- | --------------------------------------------------- |
+| --email  |       | Email address to look up (required)                 |
+| --format |       | Output format: table, simple, json (default: table) |
+
 ### scheduled command
 
 Subcommands: `list`, `cancel`
@@ -422,7 +470,8 @@ Your Slack API token needs the following scopes:
 - `channels:history` - Read channel message history
 - `groups:history` - Read private channel message history
 - `im:history` - Read direct message history
-- `users:read` - Access user information for unread counts
+- `users:read` - Access user information for unread counts and user listing
+- `users:read.email` - Look up users by email address
 - `search:read` - Search messages (user token only, not supported with bot tokens)
 - `reactions:write` - Add and remove reactions
 - `pins:read` - List pinned items in a channel

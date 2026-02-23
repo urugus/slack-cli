@@ -8,6 +8,7 @@ import { MessageOperations } from './slack-operations/message-operations';
 import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
 import { ReactionOperations } from './slack-operations/reaction-operations';
 import { PinOperations, PinnedItem } from './slack-operations/pin-operations';
+import { UserOperations, SlackUser } from './slack-operations/user-operations';
 import {
   SearchOperations,
   SearchResult,
@@ -15,7 +16,7 @@ import {
   SearchMatch,
 } from './slack-operations/search-operations';
 
-export type { SearchResult, SearchMessagesOptions, SearchMatch, PinnedItem };
+export type { SearchResult, SearchMessagesOptions, SearchMatch, PinnedItem, SlackUser };
 
 export interface Channel {
   id: string;
@@ -98,6 +99,7 @@ export class SlackApiClient {
   private fileOps: FileOperations;
   private reactionOps: ReactionOperations;
   private pinOps: PinOperations;
+  private userOps: UserOperations;
   private searchOps: SearchOperations;
 
   constructor(token: string) {
@@ -106,6 +108,7 @@ export class SlackApiClient {
     this.fileOps = new FileOperations(token);
     this.reactionOps = new ReactionOperations(token);
     this.pinOps = new PinOperations(token);
+    this.userOps = new UserOperations(token);
     this.searchOps = new SearchOperations(token);
   }
 
@@ -188,6 +191,18 @@ export class SlackApiClient {
 
   async listPins(channel: string): Promise<PinnedItem[]> {
     return this.pinOps.listPins(channel);
+  }
+
+  async listUsers(limit?: number): Promise<SlackUser[]> {
+    return this.userOps.listUsers(limit);
+  }
+
+  async getUserInfo(userId: string): Promise<SlackUser> {
+    return this.userOps.getUserInfo(userId);
+  }
+
+  async lookupUserByEmail(email: string): Promise<SlackUser> {
+    return this.userOps.lookupByEmail(email);
   }
 
   async searchMessages(query: string, options?: SearchMessagesOptions): Promise<SearchResult> {

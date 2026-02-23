@@ -58,6 +58,13 @@ export interface UnreadOptions {
   profile?: string;
 }
 
+export interface ReactionOptions {
+  channel: string;
+  timestamp: string;
+  emoji: string;
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

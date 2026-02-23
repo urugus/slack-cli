@@ -244,6 +244,14 @@ export class SlackApiClient {
     return this.userOps.lookupByEmail(email);
   }
 
+  async openDmChannel(userId: string): Promise<string> {
+    return this.userOps.openDmChannel(userId);
+  }
+
+  async resolveUserIdByName(username: string): Promise<string> {
+    return this.userOps.resolveUserIdByName(username);
+  }
+
   async searchMessages(query: string, options?: SearchMessagesOptions): Promise<SearchResult> {
     return this.searchOps.searchMessages(query, options);
   }

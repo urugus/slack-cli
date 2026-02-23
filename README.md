@@ -70,6 +70,12 @@ slack-cli send -c channel-name -m "Scheduled message" --at "2026-03-01T09:00:00Z
 
 # Schedule after N minutes
 slack-cli send -c channel-name -m "Scheduled message" --after 30
+
+# Send DM by username
+slack-cli send --user @john -m "Hello via DM!"
+
+# Send DM by email
+slack-cli send --email john@example.com -m "Hello via DM!"
 ```
 
 ### List Channels
@@ -492,6 +498,7 @@ Your Slack API token needs the following scopes:
 - `channels:history` - Read channel message history
 - `groups:history` - Read private channel message history
 - `im:history` - Read direct message history
+- `im:write` - Open DM channels for --user/--email DM sending
 - `users:read` - Access user information for unread counts and user listing
 - `users:read.email` - Look up users by email address
 - `search:read` - Search messages (user token only, not supported with bot tokens)

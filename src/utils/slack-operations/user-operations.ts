@@ -24,6 +24,10 @@ export class UserOperations extends BaseSlackClient {
   }
 
   async listUsers(limit?: number): Promise<SlackUser[]> {
+    if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+      return [];
+    }
+
     const users: SlackUser[] = [];
     let cursor: string | undefined;
 
@@ -38,7 +42,7 @@ export class UserOperations extends BaseSlackClient {
 
       cursor = response.response_metadata?.next_cursor || undefined;
 
-      if (limit && users.length >= limit) {
+      if (limit !== undefined && users.length >= limit) {
         return users.slice(0, limit);
       }
     } while (cursor);

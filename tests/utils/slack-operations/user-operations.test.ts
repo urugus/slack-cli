@@ -102,6 +102,27 @@ describe('UserOperations', () => {
       expect(result).toHaveLength(2);
     });
 
+    it('should return empty array when limit is 0', async () => {
+      const result = await userOps.listUsers(0);
+
+      expect(result).toEqual([]);
+      expect(mockClient.users.list).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array when limit is negative', async () => {
+      const result = await userOps.listUsers(-1);
+
+      expect(result).toEqual([]);
+      expect(mockClient.users.list).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array when limit is NaN', async () => {
+      const result = await userOps.listUsers(NaN);
+
+      expect(result).toEqual([]);
+      expect(mockClient.users.list).not.toHaveBeenCalled();
+    });
+
     it('should return empty array when no members exist', async () => {
       mockClient.users.list.mockResolvedValue({
         ok: true,

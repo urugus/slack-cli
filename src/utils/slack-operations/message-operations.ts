@@ -74,8 +74,6 @@ export class MessageOperations extends BaseSlackClient {
 
     const response = await this.client.chat.scheduledMessages.list({
       limit,
-      latest: undefined,
-      oldest: undefined,
       ...(channelId ? { channel: channelId } : {}),
     });
     return (response.scheduled_messages || []) as ScheduledMessage[];

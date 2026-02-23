@@ -189,6 +189,16 @@ slack-cli edit -c general --ts 1234567890.123456 -m "Updated message text"
 slack-cli edit -c general --ts 1234567890.123456 -m "Fixed typo" --profile work
 ```
 
+### Delete Messages
+
+```bash
+# Delete a message
+slack-cli delete -c general --ts 1234567890.123456
+
+# Use specific profile
+slack-cli delete -c general --ts 1234567890.123456 --profile work
+```
+
 ### Upload Files
 
 ```bash
@@ -317,6 +327,13 @@ slack-cli config set --token NEW_TOKEN
 | --channel | -c    | Target channel name or ID (required)           |
 | --ts      |       | Message timestamp to edit (required)           |
 | --message | -m    | New message text (required)                    |
+
+### delete command
+
+| Option    | Short | Description                                    |
+| --------- | ----- | ---------------------------------------------- |
+| --channel | -c    | Target channel name or ID (required)           |
+| --ts      |       | Message timestamp to delete (required)         |
 
 ### upload command
 

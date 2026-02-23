@@ -127,6 +127,10 @@ export class SlackApiClient {
     return this.messageOps.updateMessage(channel, ts, text);
   }
 
+  async deleteMessage(channel: string, ts: string): Promise<void> {
+    return this.messageOps.deleteMessage(channel, ts);
+  }
+
   async listScheduledMessages(channel?: string, limit = 50): Promise<ScheduledMessage[]> {
     return this.messageOps.listScheduledMessages(channel, limit);
   }

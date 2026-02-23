@@ -8,6 +8,7 @@ import { setupUnreadCommand } from './commands/unread';
 import { setupScheduledCommand } from './commands/scheduled';
 import { setupSearchCommand } from './commands/search';
 import { setupEditCommand } from './commands/edit';
+import { setupDeleteCommand } from './commands/delete';
 import { setupUploadCommand } from './commands/upload';
 import { setupReactionCommand } from './commands/reaction';
 import { readFileSync } from 'fs';
@@ -29,6 +30,7 @@ program.addCommand(setupUnreadCommand());
 program.addCommand(setupScheduledCommand());
 program.addCommand(setupSearchCommand());
 program.addCommand(setupEditCommand());
+program.addCommand(setupDeleteCommand());
 program.addCommand(setupUploadCommand());
 program.addCommand(setupReactionCommand());
 

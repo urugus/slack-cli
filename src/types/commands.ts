@@ -51,6 +51,7 @@ export interface HistoryOptions {
   number?: string;
   since?: string;
   thread?: string;
+  withLink?: boolean;
   format?: 'table' | 'simple' | 'json';
   profile?: string;
 }

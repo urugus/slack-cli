@@ -120,6 +120,9 @@ slack-cli history -c general --thread 1719207629.000100
 slack-cli history -c general --format json
 slack-cli history -c general --format simple
 
+# Include permalink for each message
+slack-cli history -c general --with-link
+
 # Use specific profile
 slack-cli history -c general --profile work
 ```

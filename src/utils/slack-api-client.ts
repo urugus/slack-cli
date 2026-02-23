@@ -169,6 +169,14 @@ export class SlackApiClient {
     return this.messageOps.markAsRead(channelId);
   }
 
+  async getPermalink(channel: string, messageTs: string): Promise<string | null> {
+    return this.messageOps.getPermalink(channel, messageTs);
+  }
+
+  async getPermalinks(channel: string, messageTimestamps: string[]): Promise<Map<string, string>> {
+    return this.messageOps.getPermalinks(channel, messageTimestamps);
+  }
+
   async uploadFile(options: UploadFileOptions): Promise<void> {
     return this.fileOps.uploadFile(options);
   }

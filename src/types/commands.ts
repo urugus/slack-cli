@@ -108,6 +108,24 @@ export interface PinListOptions {
   profile?: string;
 }
 
+export interface UsersListOptions {
+  limit?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface UsersInfoOptions {
+  id: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface UsersLookupOptions {
+  email: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

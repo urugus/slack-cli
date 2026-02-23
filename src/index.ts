@@ -8,6 +8,7 @@ import { setupUnreadCommand } from './commands/unread';
 import { setupScheduledCommand } from './commands/scheduled';
 import { setupSearchCommand } from './commands/search';
 import { setupEditCommand } from './commands/edit';
+import { setupUploadCommand } from './commands/upload';
 import { setupReactionCommand } from './commands/reaction';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -28,6 +29,7 @@ program.addCommand(setupUnreadCommand());
 program.addCommand(setupScheduledCommand());
 program.addCommand(setupSearchCommand());
 program.addCommand(setupEditCommand());
+program.addCommand(setupUploadCommand());
 program.addCommand(setupReactionCommand());
 
 program.parse();

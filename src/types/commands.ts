@@ -25,10 +25,16 @@ export interface SendOptions {
   profile?: string;
 }
 
-export interface ScheduledOptions {
+export interface ScheduledListOptions {
   channel?: string;
   limit?: string;
   format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface ScheduledCancelOptions {
+  channel: string;
+  id: string;
   profile?: string;
 }
 

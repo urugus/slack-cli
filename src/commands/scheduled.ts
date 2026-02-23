@@ -1,8 +1,9 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import { wrapCommand } from '../utils/command-wrapper';
 import { createSlackClient } from '../utils/client-factory';
-import { ScheduledOptions } from '../types/commands';
-import { parseFormat, parseLimit } from '../utils/option-parsers';
+import { ScheduledListOptions, ScheduledCancelOptions } from '../types/commands';
+import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 function formatPostAt(postAt: number): string {
@@ -33,7 +34,11 @@ function renderSimple(
 }
 
 export function setupScheduledCommand(): Command {
-  const scheduledCommand = new Command('scheduled')
+  const scheduledCommand = new Command('scheduled').description(
+    'Manage scheduled messages (list, cancel)'
+  );
+
+  const listCommand = new Command('list')
     .description('List scheduled messages')
     .option('-c, --channel <channel>', 'Filter by channel name or ID')
     .option('--limit <number>', 'Maximum number of scheduled messages to list', '50')
@@ -41,8 +46,9 @@ export function setupScheduledCommand(): Command {
     .option('--profile <profile>', 'Use specific workspace profile')
     .hook('preAction', createValidationHook([optionValidators.format]))
     .action(
-      wrapCommand(async (options: ScheduledOptions) => {
-        const client = await createSlackClient(options.profile);
+      wrapCommand(async (options: ScheduledListOptions) => {
+        const profile = parseProfile(options.profile);
+        const client = await createSlackClient(profile);
         const limit = parseLimit(options.limit, 50);
         const messages = await client.listScheduledMessages(options.channel, limit);
 
@@ -66,6 +72,24 @@ export function setupScheduledCommand(): Command {
         renderTable(messages);
       })
     );
+
+  const cancelCommand = new Command('cancel')
+    .description('Cancel a scheduled message')
+    .requiredOption('-c, --channel <channel>', 'Channel name or ID')
+    .requiredOption('--id <scheduledMessageId>', 'Scheduled message ID')
+    .option('--profile <profile>', 'Use specific workspace profile')
+    .action(
+      wrapCommand(async (options: ScheduledCancelOptions) => {
+        const profile = parseProfile(options.profile);
+        const client = await createSlackClient(profile);
+
+        await client.cancelScheduledMessage(options.channel, options.id);
+        console.log(chalk.green(`✓ Scheduled message ${options.id} cancelled`));
+      })
+    );
+
+  scheduledCommand.addCommand(listCommand);
+  scheduledCommand.addCommand(cancelCommand);
 
   return scheduledCommand;
 }

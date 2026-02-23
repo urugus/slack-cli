@@ -179,21 +179,60 @@ slack-cli search -q "error" --format simple
 slack-cli search -q "release" --profile work
 ```
 
-### List Scheduled Messages
+### Edit Messages
+
+```bash
+# Edit a sent message
+slack-cli edit -c general --ts 1234567890.123456 -m "Updated message text"
+
+# Use specific profile
+slack-cli edit -c general --ts 1234567890.123456 -m "Fixed typo" --profile work
+```
+
+### Upload Files
+
+```bash
+# Upload a file
+slack-cli upload -c general -f ./report.csv
+
+# Upload with title and initial comment
+slack-cli upload -c general -f ./report.csv --title "Daily Report" -m "Here is the report"
+
+# Upload a text snippet
+slack-cli upload -c general --content 'console.log("hello")' --filename snippet.js --filetype javascript
+
+# Upload as a thread reply
+slack-cli upload -c general -f ./logs.txt -t 1234567890.123456
+```
+
+### Reactions
+
+```bash
+# Add a reaction to a message
+slack-cli reaction add -c general -t 1234567890.123456 -e thumbsup
+
+# Remove a reaction from a message
+slack-cli reaction remove -c general -t 1234567890.123456 -e thumbsup
+```
+
+### Scheduled Messages
 
 ```bash
 # List scheduled messages
-slack-cli scheduled
+slack-cli scheduled list
 
 # Filter by channel
-slack-cli scheduled -c general
+slack-cli scheduled list -c general
 
 # Limit results
-slack-cli scheduled --limit 20
+slack-cli scheduled list --limit 20
 
 # Output in different formats
-slack-cli scheduled --format json
-slack-cli scheduled --format simple
+slack-cli scheduled list --format json
+slack-cli scheduled list --format simple
+
+# Cancel a scheduled message
+slack-cli scheduled cancel -c general --id Q1298393284
 ```
 
 ### Other Commands
@@ -271,7 +310,42 @@ slack-cli config set --token NEW_TOKEN
 | --page     |       | Page number, 1-100 (default: 1)                     |
 | --format   |       | Output format: table, simple, json (default: table) |
 
+### edit command
+
+| Option    | Short | Description                                    |
+| --------- | ----- | ---------------------------------------------- |
+| --channel | -c    | Target channel name or ID (required)           |
+| --ts      |       | Message timestamp to edit (required)           |
+| --message | -m    | New message text (required)                    |
+
+### upload command
+
+| Option     | Short | Description                                      |
+| ---------- | ----- | ------------------------------------------------ |
+| --channel  | -c    | Target channel name or ID (required)             |
+| --file     | -f    | File path to upload                              |
+| --content  |       | Text content to upload as snippet                |
+| --filename |       | Override filename                                |
+| --title    |       | File title                                       |
+| --message  | -m    | Initial comment with the file                    |
+| --filetype |       | Snippet type (e.g. python, javascript, csv)      |
+| --thread   | -t    | Thread timestamp to upload as reply              |
+
+### reaction command
+
+| Option      | Short | Description                              |
+| ----------- | ----- | ---------------------------------------- |
+| --channel   | -c    | Channel name or ID (required)            |
+| --timestamp | -t    | Message timestamp (required)             |
+| --emoji     | -e    | Emoji name without colons (required)     |
+
+Subcommands: `add`, `remove`
+
 ### scheduled command
+
+Subcommands: `list`, `cancel`
+
+#### scheduled list
 
 | Option    | Short | Description                                                |
 | --------- | ----- | ---------------------------------------------------------- |
@@ -279,11 +353,18 @@ slack-cli config set --token NEW_TOKEN
 | --limit   |       | Maximum number of scheduled messages to list (default: 50) |
 | --format  |       | Output format: table, simple, json (default: table)        |
 
+#### scheduled cancel
+
+| Option    | Short | Description                             |
+| --------- | ----- | --------------------------------------- |
+| --channel | -c    | Channel name or ID (required)           |
+| --id      |       | Scheduled message ID (required)         |
+
 ## Required Permissions
 
 Your Slack API token needs the following scopes:
 
-- `chat:write` - Send messages
+- `chat:write` - Send and edit messages
 - `channels:read` - List public channels
 - `groups:read` - List private channels
 - `channels:history` - Read channel message history
@@ -291,6 +372,8 @@ Your Slack API token needs the following scopes:
 - `im:history` - Read direct message history
 - `users:read` - Access user information for unread counts
 - `search:read` - Search messages (user token only, not supported with bot tokens)
+- `reactions:write` - Add and remove reactions
+- `files:write` - Upload files and snippets
 
 ## Advanced Features
 

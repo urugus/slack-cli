@@ -64,7 +64,7 @@ describe('MessageOperations', () => {
 
       const result = await messageOps.listScheduledMessages(undefined, 20);
 
-      expect(mockClient.chat.scheduledMessages.list).toHaveBeenCalledWith({ limit: 20 });
+      expect(mockClient.chat.scheduledMessages.list).toHaveBeenCalledWith({ limit: 20, latest: undefined, oldest: undefined });
       expect(result).toHaveLength(1);
     });
   });

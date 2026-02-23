@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] - 2026-02-22
+
+### Changed
+- Replace generic `Error` with `ConfigurationError` in `TokenCryptoService` (encrypt/decrypt failures)
+- Replace generic `Error` with `ValidationError` in `TokenCryptoService` (invalid data format validation)
+- Replace generic `Error` with `ConfigurationError` in `ProfileConfigManager` (profile not found, invalid config)
+- Replace generic `Error` with `ValidationError` in `createOptionParser` (validation failures)
+- Replace generic `Error` with `ApiError` in `ChannelResolver` (channel not found errors)
+
+### Added
+- Error type verification tests for `TokenCryptoService`, `ProfileConfigManager`, `ChannelResolver`, and `createOptionParser`
+
 ## [0.4.3] - 2026-02-22
 
 ### Changed

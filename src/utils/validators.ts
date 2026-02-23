@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ERROR_MESSAGES } from './constants';
 import { parseScheduledTimestamp } from './schedule-utils';
+import { ValidationError } from './errors';
 
 /**
  * Common validation functions for CLI commands
@@ -309,7 +310,7 @@ export function createOptionParser<T>(
     if (validator) {
       const error = validator(parsed);
       if (error) {
-        throw new Error(error);
+        throw new ValidationError(error);
       }
     }
     return parsed;

@@ -5,6 +5,7 @@ import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/confi
 import { DEFAULT_PROFILE_NAME, ERROR_MESSAGES, FILE_PERMISSIONS } from './constants';
 import { maskToken } from './token-utils';
 import { TokenCryptoService } from './token-crypto-service';
+import { ConfigurationError } from './errors';
 
 export class ProfileConfigManager {
   private configPath: string;
@@ -73,7 +74,7 @@ export class ProfileConfigManager {
     const store = await this.getConfigStore();
 
     if (!store.profiles[profile]) {
-      throw new Error(`Profile "${profile}" does not exist`);
+      throw new ConfigurationError(`Profile "${profile}" does not exist`);
     }
 
     store.defaultProfile = profile;
@@ -140,7 +141,7 @@ export class ProfileConfigManager {
         return { profiles: {} };
       }
       if (error instanceof SyntaxError) {
-        throw new Error(ERROR_MESSAGES.INVALID_CONFIG_FORMAT);
+        throw new ConfigurationError(ERROR_MESSAGES.INVALID_CONFIG_FORMAT);
       }
       throw error;
     }

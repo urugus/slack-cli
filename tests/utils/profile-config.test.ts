@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
+import { ConfigurationError } from '../../src/utils/errors';
 
 vi.mock('fs/promises');
 vi.mock('os');
@@ -307,6 +308,24 @@ describe('ProfileConfigManager', () => {
         'Profile "nonexistent" does not exist',
       );
     });
+
+    it('should throw ConfigurationError when profile does not exist', async () => {
+      const mockStore = {
+        profiles: {
+          default: { token: 'default-token', updatedAt: '2024-01-01T00:00:00.000Z' },
+        },
+        defaultProfile: 'default',
+      };
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(mockStore));
+
+      try {
+        await configManager.useProfile('nonexistent');
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConfigurationError);
+        expect((error as ConfigurationError).code).toBe('CONFIGURATION_ERROR');
+      }
+    });
   });
 
   describe('getCurrentProfile', () => {
@@ -458,6 +477,18 @@ describe('ProfileConfigManager', () => {
       vi.mocked(fs.readFile).mockResolvedValueOnce('invalid json');
 
       await expect(configManager.getConfig()).rejects.toThrow('Invalid config file format');
+    });
+
+    it('should throw ConfigurationError for invalid JSON', async () => {
+      vi.mocked(fs.readFile).mockResolvedValueOnce('invalid json');
+
+      try {
+        await configManager.getConfig();
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConfigurationError);
+        expect((error as ConfigurationError).code).toBe('CONFIGURATION_ERROR');
+      }
     });
   });
 });

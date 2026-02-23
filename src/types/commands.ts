@@ -64,6 +64,13 @@ export interface UnreadOptions {
   profile?: string;
 }
 
+export interface EditOptions {
+  channel: string;
+  ts: string;
+  message: string;
+  profile?: string;
+}
+
 export interface ReactionOptions {
   channel: string;
   timestamp: string;

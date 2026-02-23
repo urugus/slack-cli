@@ -1,4 +1,8 @@
-import { ChatPostMessageResponse, ChatScheduleMessageResponse } from '@slack/web-api';
+import {
+  ChatPostMessageResponse,
+  ChatScheduleMessageResponse,
+  ChatUpdateResponse,
+} from '@slack/web-api';
 import { ChannelOperations } from './slack-operations/channel-operations';
 import { MessageOperations } from './slack-operations/message-operations';
 import { ReactionOperations } from './slack-operations/reaction-operations';
@@ -114,6 +118,10 @@ export class SlackApiClient {
     thread_ts?: string
   ): Promise<ChatScheduleMessageResponse> {
     return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts);
+  }
+
+  async updateMessage(channel: string, ts: string, text: string): Promise<ChatUpdateResponse> {
+    return this.messageOps.updateMessage(channel, ts, text);
   }
 
   async listScheduledMessages(channel?: string, limit = 50): Promise<ScheduledMessage[]> {

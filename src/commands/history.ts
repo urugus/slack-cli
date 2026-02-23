@@ -66,10 +66,14 @@ export function setupHistoryCommand(): Command {
 
         let permalinks: Map<string, string> | undefined;
         if (options.withLink && messages.length > 0) {
-          permalinks = await client.getPermalinks(
-            options.channel,
-            messages.map((m) => m.ts)
-          );
+          try {
+            permalinks = await client.getPermalinks(
+              options.channel,
+              messages.map((m) => m.ts)
+            );
+          } catch {
+            // Degrade gracefully: show history without links
+          }
         }
 
         const format = parseFormat(options.format);

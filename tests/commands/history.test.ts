@@ -813,6 +813,44 @@ describe('history command', () => {
       expect(mockSlackClient.getPermalinks).not.toHaveBeenCalled();
     });
 
+    it('should degrade gracefully when permalink fetch fails with --with-link', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+        messages: [
+          {
+            type: 'message',
+            text: 'Hello',
+            user: 'U123456',
+            ts: '1609459200.000100',
+          },
+        ],
+        users: new Map([['U123456', 'john.doe']]),
+      });
+
+      vi.mocked(mockSlackClient.getPermalinks).mockRejectedValue(
+        new Error('channel_not_found')
+      );
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '-c',
+        'general',
+        '--with-link',
+      ]);
+
+      // Should still display messages without permalinks
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Hello'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('✓ Displayed 1 message(s)')
+      );
+    });
+
     it('should handle messages without user info gracefully', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

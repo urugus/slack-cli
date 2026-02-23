@@ -225,6 +225,23 @@ slack-cli reaction add -c general -t 1234567890.123456 -e thumbsup
 slack-cli reaction remove -c general -t 1234567890.123456 -e thumbsup
 ```
 
+### Pins
+
+```bash
+# Pin a message
+slack-cli pin add -c general -t 1234567890.123456
+
+# Unpin a message
+slack-cli pin remove -c general -t 1234567890.123456
+
+# List pinned items in a channel
+slack-cli pin list -c general
+
+# Output in different formats
+slack-cli pin list -c general --format json
+slack-cli pin list -c general --format simple
+```
+
 ### Scheduled Messages
 
 ```bash
@@ -358,6 +375,24 @@ slack-cli config set --token NEW_TOKEN
 
 Subcommands: `add`, `remove`
 
+### pin command
+
+Subcommands: `add`, `remove`, `list`
+
+#### pin add / pin remove
+
+| Option      | Short | Description                          |
+| ----------- | ----- | ------------------------------------ |
+| --channel   | -c    | Channel name or ID (required)        |
+| --timestamp | -t    | Message timestamp (required)         |
+
+#### pin list
+
+| Option    | Short | Description                                         |
+| --------- | ----- | --------------------------------------------------- |
+| --channel | -c    | Channel name or ID (required)                       |
+| --format  |       | Output format: table, simple, json (default: table) |
+
 ### scheduled command
 
 Subcommands: `list`, `cancel`
@@ -390,6 +425,8 @@ Your Slack API token needs the following scopes:
 - `users:read` - Access user information for unread counts
 - `search:read` - Search messages (user token only, not supported with bot tokens)
 - `reactions:write` - Add and remove reactions
+- `pins:read` - List pinned items in a channel
+- `pins:write` - Pin and unpin messages
 - `files:write` - Upload files and snippets
 
 ## Advanced Features

@@ -7,6 +7,7 @@ import { ChannelOperations } from './slack-operations/channel-operations';
 import { MessageOperations } from './slack-operations/message-operations';
 import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
 import { ReactionOperations } from './slack-operations/reaction-operations';
+import { PinOperations, PinnedItem } from './slack-operations/pin-operations';
 import {
   SearchOperations,
   SearchResult,
@@ -14,7 +15,7 @@ import {
   SearchMatch,
 } from './slack-operations/search-operations';
 
-export type { SearchResult, SearchMessagesOptions, SearchMatch };
+export type { SearchResult, SearchMessagesOptions, SearchMatch, PinnedItem };
 
 export interface Channel {
   id: string;
@@ -96,6 +97,7 @@ export class SlackApiClient {
   private messageOps: MessageOperations;
   private fileOps: FileOperations;
   private reactionOps: ReactionOperations;
+  private pinOps: PinOperations;
   private searchOps: SearchOperations;
 
   constructor(token: string) {
@@ -103,6 +105,7 @@ export class SlackApiClient {
     this.messageOps = new MessageOperations(token);
     this.fileOps = new FileOperations(token);
     this.reactionOps = new ReactionOperations(token);
+    this.pinOps = new PinOperations(token);
     this.searchOps = new SearchOperations(token);
   }
 
@@ -173,6 +176,18 @@ export class SlackApiClient {
 
   async removeReaction(channel: string, timestamp: string, emoji: string): Promise<void> {
     return this.reactionOps.removeReaction(channel, timestamp, emoji);
+  }
+
+  async addPin(channel: string, timestamp: string): Promise<void> {
+    return this.pinOps.addPin(channel, timestamp);
+  }
+
+  async removePin(channel: string, timestamp: string): Promise<void> {
+    return this.pinOps.removePin(channel, timestamp);
+  }
+
+  async listPins(channel: string): Promise<PinnedItem[]> {
+    return this.pinOps.listPins(channel);
   }
 
   async searchMessages(query: string, options?: SearchMessagesOptions): Promise<SearchResult> {

@@ -96,6 +96,18 @@ export interface ReactionOptions {
   profile?: string;
 }
 
+export interface PinOptions {
+  channel: string;
+  timestamp: string;
+  profile?: string;
+}
+
+export interface PinListOptions {
+  channel: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

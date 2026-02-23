@@ -51,6 +51,25 @@ export interface Channel {
   };
 }
 
+export interface ChannelDetail {
+  id: string;
+  name: string;
+  is_private: boolean;
+  is_archived?: boolean;
+  created: number;
+  num_members?: number;
+  topic?: {
+    value: string;
+    creator?: string;
+    last_set?: number;
+  };
+  purpose?: {
+    value: string;
+    creator?: string;
+    last_set?: number;
+  };
+}
+
 export interface ListChannelsOptions {
   types: string;
   exclude_archived: boolean;
@@ -147,6 +166,18 @@ export class SlackApiClient {
 
   async listChannels(options: ListChannelsOptions): Promise<Channel[]> {
     return this.channelOps.listChannels(options);
+  }
+
+  async getChannelDetail(channelNameOrId: string): Promise<ChannelDetail> {
+    return this.channelOps.getChannelDetail(channelNameOrId);
+  }
+
+  async setTopic(channelNameOrId: string, topic: string): Promise<void> {
+    return this.channelOps.setTopic(channelNameOrId, topic);
+  }
+
+  async setPurpose(channelNameOrId: string, purpose: string): Promise<void> {
+    return this.channelOps.setPurpose(channelNameOrId, purpose);
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {

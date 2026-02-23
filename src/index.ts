@@ -13,6 +13,7 @@ import { setupUploadCommand } from './commands/upload';
 import { setupReactionCommand } from './commands/reaction';
 import { setupPinCommand } from './commands/pin';
 import { setupUsersCommand } from './commands/users';
+import { setupChannelCommand } from './commands/channel';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -37,5 +38,6 @@ program.addCommand(setupUploadCommand());
 program.addCommand(setupReactionCommand());
 program.addCommand(setupPinCommand());
 program.addCommand(setupUsersCommand());
+program.addCommand(setupChannelCommand());
 
 program.parse();

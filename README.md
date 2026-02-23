@@ -101,6 +101,23 @@ slack-cli channels --format json
 slack-cli channels --format simple
 ```
 
+### Channel Info & Management
+
+```bash
+# Display channel details (topic, purpose, members, etc.)
+slack-cli channel info -c general
+
+# Output channel info in different formats
+slack-cli channel info -c general --format json
+slack-cli channel info -c general --format simple
+
+# Set channel topic
+slack-cli channel set-topic -c general --topic "Current sprint: v2.0"
+
+# Set channel purpose
+slack-cli channel set-purpose -c general --purpose "Project X development channel"
+```
+
 ### View Message History
 
 ```bash
@@ -468,8 +485,10 @@ Subcommands: `list`, `cancel`
 Your Slack API token needs the following scopes:
 
 - `chat:write` - Send and edit messages
-- `channels:read` - List public channels
-- `groups:read` - List private channels
+- `channels:read` - List public channels and get channel info
+- `channels:write` - Set topic/purpose for public channels
+- `groups:read` - List private channels and get channel info
+- `groups:write` - Set topic/purpose for private channels
 - `channels:history` - Read channel message history
 - `groups:history` - Read private channel message history
 - `im:history` - Read direct message history

@@ -36,9 +36,7 @@ export function setupSendEphemeralCommand(): Command {
           options.thread
         );
 
-        console.log(
-          chalk.green(`✓ ${SUCCESS_MESSAGES.EPHEMERAL_MESSAGE_SENT(options.channel)}`)
-        );
+        console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.EPHEMERAL_MESSAGE_SENT(options.channel)}`));
       })
     );
 

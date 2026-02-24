@@ -164,6 +164,36 @@ export const optionValidators = {
   },
 
   /**
+   * Validates required channel option
+   */
+  requiredChannel: (options: Record<string, unknown>): string | null => {
+    if (!options.channel) {
+      return '--channel is required';
+    }
+    return null;
+  },
+
+  /**
+   * Validates required user option
+   */
+  requiredUser: (options: Record<string, unknown>): string | null => {
+    if (!options.user) {
+      return '--user is required';
+    }
+    return null;
+  },
+
+  /**
+   * Validates required message option
+   */
+  requiredMessage: (options: Record<string, unknown>): string | null => {
+    if (!options.message) {
+      return '--message is required';
+    }
+    return null;
+  },
+
+  /**
    * Validates message/file options for send command
    */
   messageOrFile: (options: Record<string, unknown>): string | null => {

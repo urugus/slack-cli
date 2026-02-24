@@ -1,6 +1,8 @@
 import {
   ChatPostMessageResponse,
   ChatPostMessageArguments,
+  ChatPostEphemeralResponse,
+  ChatPostEphemeralArguments,
   ChatScheduleMessageArguments,
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
@@ -41,6 +43,25 @@ export class MessageOperations extends BaseSlackClient {
     }
 
     return await this.client.chat.postMessage(params);
+  }
+
+  async sendEphemeralMessage(
+    channel: string,
+    user: string,
+    text: string,
+    thread_ts?: string
+  ): Promise<ChatPostEphemeralResponse> {
+    const params: ChatPostEphemeralArguments = {
+      channel,
+      user,
+      text,
+    };
+
+    if (thread_ts) {
+      params.thread_ts = thread_ts;
+    }
+
+    return await this.client.chat.postEphemeral(params);
   }
 
   async scheduleMessage(

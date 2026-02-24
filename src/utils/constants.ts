@@ -40,6 +40,8 @@ export const SUCCESS_MESSAGES = {
   MESSAGE_SENT: (channel: string) => `Message sent successfully to #${channel}`,
   MESSAGE_SCHEDULED: (channel: string, postAtIso: string) =>
     `Message scheduled to #${channel} at ${postAtIso}`,
+  EPHEMERAL_MESSAGE_SENT: (channel: string) =>
+    `Ephemeral message sent to #${channel}`,
 } as const;
 
 // File and system constants

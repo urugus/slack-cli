@@ -1,5 +1,6 @@
 import {
   ChatPostMessageResponse,
+  ChatPostEphemeralResponse,
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
@@ -150,6 +151,15 @@ export class SlackApiClient {
     thread_ts?: string
   ): Promise<ChatPostMessageResponse> {
     return this.messageOps.sendMessage(channel, text, thread_ts);
+  }
+
+  async sendEphemeralMessage(
+    channel: string,
+    user: string,
+    text: string,
+    thread_ts?: string
+  ): Promise<ChatPostEphemeralResponse> {
+    return this.messageOps.sendEphemeralMessage(channel, user, text, thread_ts);
   }
 
   async scheduleMessage(

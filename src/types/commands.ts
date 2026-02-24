@@ -161,6 +161,14 @@ export interface MembersOptions {
   profile?: string;
 }
 
+export interface SendEphemeralOptions {
+  channel: string;
+  user: string;
+  message: string;
+  thread?: string;
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

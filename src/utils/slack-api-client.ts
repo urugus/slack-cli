@@ -1,22 +1,41 @@
 import {
   ChatPostMessageResponse,
+  ChatPostEphemeralResponse,
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
-import { ChannelOperations } from './slack-operations/channel-operations';
+import {
+  ChannelOperations,
+  ChannelMembersOptions,
+  ChannelMembersResult,
+} from './slack-operations/channel-operations';
 import { MessageOperations } from './slack-operations/message-operations';
 import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
 import { ReactionOperations } from './slack-operations/reaction-operations';
 import { PinOperations, PinnedItem } from './slack-operations/pin-operations';
-import { UserOperations, SlackUser } from './slack-operations/user-operations';
+import { UserOperations, SlackUser, UserPresence } from './slack-operations/user-operations';
+import { ReminderOperations, Reminder } from './slack-operations/reminder-operations';
 import {
   SearchOperations,
   SearchResult,
   SearchMessagesOptions,
   SearchMatch,
 } from './slack-operations/search-operations';
+import { StarOperations, StarredItem, StarListResult } from './slack-operations/star-operations';
 
-export type { SearchResult, SearchMessagesOptions, SearchMatch, PinnedItem, SlackUser };
+export type {
+  SearchResult,
+  SearchMessagesOptions,
+  SearchMatch,
+  PinnedItem,
+  SlackUser,
+  UserPresence,
+  ChannelMembersOptions,
+  ChannelMembersResult,
+  Reminder,
+  StarredItem,
+  StarListResult,
+};
 
 export interface Channel {
   id: string;
@@ -39,6 +58,25 @@ export interface Channel {
   unread_count?: number;
   unread_count_display?: number;
   last_read?: string;
+  topic?: {
+    value: string;
+    creator?: string;
+    last_set?: number;
+  };
+  purpose?: {
+    value: string;
+    creator?: string;
+    last_set?: number;
+  };
+}
+
+export interface ChannelDetail {
+  id: string;
+  name: string;
+  is_private: boolean;
+  is_archived?: boolean;
+  created: number;
+  num_members?: number;
   topic?: {
     value: string;
     creator?: string;
@@ -101,6 +139,8 @@ export class SlackApiClient {
   private pinOps: PinOperations;
   private userOps: UserOperations;
   private searchOps: SearchOperations;
+  private reminderOps: ReminderOperations;
+  private starOps: StarOperations;
 
   constructor(token: string) {
     this.channelOps = new ChannelOperations(token);
@@ -110,6 +150,8 @@ export class SlackApiClient {
     this.pinOps = new PinOperations(token);
     this.userOps = new UserOperations(token);
     this.searchOps = new SearchOperations(token);
+    this.reminderOps = new ReminderOperations(token);
+    this.starOps = new StarOperations(token);
   }
 
   async sendMessage(
@@ -118,6 +160,15 @@ export class SlackApiClient {
     thread_ts?: string
   ): Promise<ChatPostMessageResponse> {
     return this.messageOps.sendMessage(channel, text, thread_ts);
+  }
+
+  async sendEphemeralMessage(
+    channel: string,
+    user: string,
+    text: string,
+    thread_ts?: string
+  ): Promise<ChatPostEphemeralResponse> {
+    return this.messageOps.sendEphemeralMessage(channel, user, text, thread_ts);
   }
 
   async scheduleMessage(
@@ -149,6 +200,18 @@ export class SlackApiClient {
     return this.channelOps.listChannels(options);
   }
 
+  async getChannelDetail(channelNameOrId: string): Promise<ChannelDetail> {
+    return this.channelOps.getChannelDetail(channelNameOrId);
+  }
+
+  async setTopic(channelNameOrId: string, topic: string): Promise<void> {
+    return this.channelOps.setTopic(channelNameOrId, topic);
+  }
+
+  async setPurpose(channelNameOrId: string, purpose: string): Promise<void> {
+    return this.channelOps.setPurpose(channelNameOrId, purpose);
+  }
+
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {
     return this.messageOps.getHistory(channel, options);
   }
@@ -167,6 +230,14 @@ export class SlackApiClient {
 
   async markAsRead(channelId: string): Promise<void> {
     return this.messageOps.markAsRead(channelId);
+  }
+
+  async getPermalink(channel: string, messageTs: string): Promise<string | null> {
+    return this.messageOps.getPermalink(channel, messageTs);
+  }
+
+  async getPermalinks(channel: string, messageTimestamps: string[]): Promise<Map<string, string>> {
+    return this.messageOps.getPermalinks(channel, messageTimestamps);
   }
 
   async uploadFile(options: UploadFileOptions): Promise<void> {
@@ -205,8 +276,63 @@ export class SlackApiClient {
     return this.userOps.lookupByEmail(email);
   }
 
+  async openDmChannel(userId: string): Promise<string> {
+    return this.userOps.openDmChannel(userId);
+  }
+
+  async getUserPresence(userId: string): Promise<UserPresence> {
+    return this.userOps.getPresence(userId);
+  }
+
+  async resolveUserIdByName(username: string): Promise<string> {
+    return this.userOps.resolveUserIdByName(username);
+  }
+
   async searchMessages(query: string, options?: SearchMessagesOptions): Promise<SearchResult> {
     return this.searchOps.searchMessages(query, options);
+  }
+
+  async joinChannel(channelNameOrId: string): Promise<void> {
+    return this.channelOps.joinChannel(channelNameOrId);
+  }
+
+  async leaveChannel(channelNameOrId: string): Promise<void> {
+    return this.channelOps.leaveChannel(channelNameOrId);
+  }
+
+  async getChannelMembers(
+    channelNameOrId: string,
+    options?: ChannelMembersOptions
+  ): Promise<ChannelMembersResult> {
+    return this.channelOps.getChannelMembers(channelNameOrId, options);
+  }
+
+  async addReminder(text: string, time: number): Promise<Reminder> {
+    return this.reminderOps.addReminder(text, time);
+  }
+
+  async listReminders(): Promise<Reminder[]> {
+    return this.reminderOps.listReminders();
+  }
+
+  async deleteReminder(reminderId: string): Promise<void> {
+    return this.reminderOps.deleteReminder(reminderId);
+  }
+
+  async completeReminder(reminderId: string): Promise<void> {
+    return this.reminderOps.completeReminder(reminderId);
+  }
+
+  async addStar(channel: string, timestamp: string): Promise<void> {
+    return this.starOps.addStar(channel, timestamp);
+  }
+
+  async listStars(count?: number): Promise<StarListResult> {
+    return this.starOps.listStars(count);
+  }
+
+  async removeStar(channel: string, timestamp: string): Promise<void> {
+    return this.starOps.removeStar(channel, timestamp);
   }
 }
 

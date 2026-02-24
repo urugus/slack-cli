@@ -70,6 +70,12 @@ slack-cli send -c channel-name -m "Scheduled message" --at "2026-03-01T09:00:00Z
 
 # Schedule after N minutes
 slack-cli send -c channel-name -m "Scheduled message" --after 30
+
+# Send DM by username
+slack-cli send --user @john -m "Hello via DM!"
+
+# Send DM by email
+slack-cli send --email john@example.com -m "Hello via DM!"
 ```
 
 ### List Channels
@@ -101,6 +107,23 @@ slack-cli channels --format json
 slack-cli channels --format simple
 ```
 
+### Channel Info & Management
+
+```bash
+# Display channel details (topic, purpose, members, etc.)
+slack-cli channel info -c general
+
+# Output channel info in different formats
+slack-cli channel info -c general --format json
+slack-cli channel info -c general --format simple
+
+# Set channel topic
+slack-cli channel set-topic -c general --topic "Current sprint: v2.0"
+
+# Set channel purpose
+slack-cli channel set-purpose -c general --purpose "Project X development channel"
+```
+
 ### View Message History
 
 ```bash
@@ -119,6 +142,9 @@ slack-cli history -c general --thread 1719207629.000100
 # Output in different formats
 slack-cli history -c general --format json
 slack-cli history -c general --format simple
+
+# Include permalink for each message
+slack-cli history -c general --with-link
 
 # Use specific profile
 slack-cli history -c general --profile work
@@ -465,11 +491,14 @@ Subcommands: `list`, `cancel`
 Your Slack API token needs the following scopes:
 
 - `chat:write` - Send and edit messages
-- `channels:read` - List public channels
-- `groups:read` - List private channels
+- `channels:read` - List public channels and get channel info
+- `channels:write` - Set topic/purpose for public channels
+- `groups:read` - List private channels and get channel info
+- `groups:write` - Set topic/purpose for private channels
 - `channels:history` - Read channel message history
 - `groups:history` - Read private channel message history
 - `im:history` - Read direct message history
+- `im:write` - Open DM channels for --user/--email DM sending
 - `users:read` - Access user information for unread counts and user listing
 - `users:read.email` - Look up users by email address
 - `search:read` - Search messages (user token only, not supported with bot tokens)

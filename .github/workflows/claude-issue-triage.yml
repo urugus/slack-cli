@@ -1,0 +1,55 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    if: >
+      !contains(github.event.issue.title, '[dependabot]') &&
+      github.event.issue.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Analyze and Refine Issue
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            新しい Issue を分析し、要件を整理してください。
+
+            Issue #${{ github.event.issue.number }}
+            タイトル: ${{ github.event.issue.title }}
+            内容: ${{ github.event.issue.body }}
+
+            以下を実行してください:
+            1. CLAUDE.md を読み、プロジェクトの開発方針を把握する
+            2. コードベースを調査し、影響範囲を特定する
+            3. 要件の明確さを判断する
+
+            【要件が明確な場合】（実装対象・期待動作・スコープが十分に特定できる場合）
+            - Issue にコメントを投稿する:
+              - 要件の理解内容
+              - 影響するファイル・モジュール
+              - TDD での実装アプローチ案
+              - 「要件が明確なため、実装を開始します」と記載
+            - "approved" ラベルを付与する（これにより自動的に実装が開始される）
+
+            【要件に不明点がある場合】
+            - Issue にコメントを投稿する:
+              - 要件の理解内容
+              - 影響するファイル・モジュール
+              - 不明点・確認事項のリスト
+              - TDD での実装アプローチ案
+            - "needs-refinement" ラベルを付与する
+
+            コメントは日本語で書くこと。

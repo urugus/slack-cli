@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StarOperations } from '../../../src/utils/slack-operations/star-operations';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    stars: {
-      add: vi.fn(),
-      list: vi.fn(),
-      remove: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      stars: {
+        add: vi.fn(),
+        list: vi.fn(),
+        remove: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

@@ -2,16 +2,18 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UserOperations } from '../../../src/utils/slack-operations/user-operations';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    conversations: {
-      open: vi.fn(),
-    },
-    users: {
-      list: vi.fn(),
-      info: vi.fn(),
-      lookupByEmail: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      conversations: {
+        open: vi.fn(),
+      },
+      users: {
+        list: vi.fn(),
+        info: vi.fn(),
+        lookupByEmail: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

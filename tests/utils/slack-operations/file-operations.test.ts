@@ -3,11 +3,13 @@ import { FileOperations } from '../../../src/utils/slack-operations/file-operati
 import { channelResolver } from '../../../src/utils/channel-resolver';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    files: {
-      uploadV2: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      files: {
+        uploadV2: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

@@ -16,7 +16,9 @@ describe('profile config command', () => {
     vi.clearAllMocks();
     
     mockConfigManager = new ProfileConfigManager();
-    vi.mocked(ProfileConfigManager).mockReturnValue(mockConfigManager);
+    vi.mocked(ProfileConfigManager).mockImplementation(function () {
+      return mockConfigManager;
+    } as any);
     
     mockConsole = setupMockConsole();
     program = createTestProgram();

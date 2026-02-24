@@ -2,14 +2,16 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ChannelOperations } from '../../../src/utils/slack-operations/channel-operations';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    conversations: {
-      list: vi.fn(),
-      info: vi.fn(),
-      history: vi.fn(),
-      members: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      conversations: {
+        list: vi.fn(),
+        info: vi.fn(),
+        history: vi.fn(),
+        members: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

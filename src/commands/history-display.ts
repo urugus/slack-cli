@@ -3,6 +3,7 @@ import { createHistoryFormatter } from '../utils/formatters/history-formatters';
 
 interface DisplayHistoryOptions {
   preserveOrder?: boolean;
+  permalinks?: Map<string, string>;
 }
 
 export function displayHistoryResults(
@@ -20,5 +21,6 @@ export function displayHistoryResults(
     channelName,
     messages: orderedMessages,
     users,
+    permalinks: options.permalinks,
   });
 }

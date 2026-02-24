@@ -7,6 +7,7 @@ vi.mock('@slack/web-api', () => ({
       list: vi.fn(),
       info: vi.fn(),
       lookupByEmail: vi.fn(),
+      getPresence: vi.fn(),
     },
   })),
   LogLevel: {
@@ -201,6 +202,38 @@ describe('UserOperations', () => {
       await expect(userOps.lookupByEmail('notfound@example.com')).rejects.toThrow(
         'users_not_found'
       );
+    });
+  });
+
+  describe('getPresence', () => {
+    it('should get user presence as active', async () => {
+      mockClient.users.getPresence.mockResolvedValue({
+        ok: true,
+        presence: 'active',
+      });
+
+      const result = await userOps.getPresence('U123');
+
+      expect(mockClient.users.getPresence).toHaveBeenCalledWith({ user: 'U123' });
+      expect(result).toEqual({ presence: 'active' });
+    });
+
+    it('should get user presence as away', async () => {
+      mockClient.users.getPresence.mockResolvedValue({
+        ok: true,
+        presence: 'away',
+      });
+
+      const result = await userOps.getPresence('U456');
+
+      expect(mockClient.users.getPresence).toHaveBeenCalledWith({ user: 'U456' });
+      expect(result).toEqual({ presence: 'away' });
+    });
+
+    it('should throw when user not found', async () => {
+      mockClient.users.getPresence.mockRejectedValue(new Error('user_not_found'));
+
+      await expect(userOps.getPresence('UINVALID')).rejects.toThrow('user_not_found');
     });
   });
 });

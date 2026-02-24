@@ -16,7 +16,9 @@ export interface ConfigClearOptions {
 }
 
 export interface SendOptions {
-  channel: string;
+  channel?: string;
+  user?: string;
+  email?: string;
   message?: string;
   file?: string;
   thread?: string;
@@ -51,6 +53,7 @@ export interface HistoryOptions {
   number?: string;
   since?: string;
   thread?: string;
+  withLink?: boolean;
   format?: 'table' | 'simple' | 'json';
   profile?: string;
 }
@@ -126,6 +129,56 @@ export interface UsersLookupOptions {
   profile?: string;
 }
 
+export interface UsersPresenceOptions {
+  id?: string;
+  name?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface ChannelInfoOptions {
+  channel: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface ChannelSetTopicOptions {
+  channel: string;
+  topic: string;
+  profile?: string;
+}
+
+export interface ChannelSetPurposeOptions {
+  channel: string;
+  purpose: string;
+  profile?: string;
+}
+
+export interface MembersOptions {
+  channel: string;
+  limit?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface SendEphemeralOptions {
+  channel: string;
+  user: string;
+  message: string;
+  thread?: string;
+  profile?: string;
+}
+
+export interface JoinOptions {
+  channel: string;
+  profile?: string;
+}
+
+export interface LeaveOptions {
+  channel: string;
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';
@@ -133,5 +186,45 @@ export interface SearchOptions {
   number?: string;
   page?: string;
   format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface ReminderAddOptions {
+  text: string;
+  at?: string;
+  after?: string;
+  profile?: string;
+}
+
+export interface ReminderListOptions {
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface ReminderDeleteOptions {
+  id: string;
+  profile?: string;
+}
+
+export interface ReminderCompleteOptions {
+  id: string;
+  profile?: string;
+}
+
+export interface BookmarkAddOptions {
+  channel: string;
+  ts: string;
+  profile?: string;
+}
+
+export interface BookmarkListOptions {
+  limit?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface BookmarkRemoveOptions {
+  channel: string;
+  ts: string;
   profile?: string;
 }

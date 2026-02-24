@@ -13,6 +13,13 @@ import { setupUploadCommand } from './commands/upload';
 import { setupReactionCommand } from './commands/reaction';
 import { setupPinCommand } from './commands/pin';
 import { setupUsersCommand } from './commands/users';
+import { setupChannelCommand } from './commands/channel';
+import { setupMembersCommand } from './commands/members';
+import { setupSendEphemeralCommand } from './commands/send-ephemeral';
+import { setupJoinCommand } from './commands/join';
+import { setupLeaveCommand } from './commands/leave';
+import { setupReminderCommand } from './commands/reminder';
+import { setupBookmarkCommand } from './commands/bookmark';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -37,5 +44,12 @@ program.addCommand(setupUploadCommand());
 program.addCommand(setupReactionCommand());
 program.addCommand(setupPinCommand());
 program.addCommand(setupUsersCommand());
+program.addCommand(setupChannelCommand());
+program.addCommand(setupMembersCommand());
+program.addCommand(setupSendEphemeralCommand());
+program.addCommand(setupJoinCommand());
+program.addCommand(setupLeaveCommand());
+program.addCommand(setupReminderCommand());
+program.addCommand(setupBookmarkCommand());
 
 program.parse();

@@ -4,6 +4,16 @@ import { DEFAULTS } from '../constants';
 import { Channel, ChannelDetail, ListChannelsOptions, Message } from '../slack-api-client';
 import { WebClient } from '@slack/web-api';
 
+export interface ChannelMembersOptions {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ChannelMembersResult {
+  members: string[];
+  nextCursor: string;
+}
+
 interface ChannelWithUnreadInfo extends Channel {
   unread_count: number;
   unread_count_display: number;
@@ -206,5 +216,29 @@ export class ChannelOperations extends BaseSlackClient {
       channel: channelId,
       purpose,
     });
+  }
+
+  async getChannelMembers(
+    channelNameOrId: string,
+    options: ChannelMembersOptions = {}
+  ): Promise<ChannelMembersResult> {
+    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
+      this.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    const response = await this.client.conversations.members({
+      channel: channelId,
+      limit: options.limit ?? 100,
+      cursor: options.cursor,
+    });
+
+    return {
+      members: (response.members as string[]) || [],
+      nextCursor: response.response_metadata?.next_cursor || '',
+    };
   }
 }

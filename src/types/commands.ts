@@ -154,6 +154,13 @@ export interface ChannelSetPurposeOptions {
   profile?: string;
 }
 
+export interface MembersOptions {
+  channel: string;
+  limit?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

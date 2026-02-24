@@ -21,6 +21,7 @@ import {
   SearchMessagesOptions,
   SearchMatch,
 } from './slack-operations/search-operations';
+import { StarOperations, StarredItem, StarListResult } from './slack-operations/star-operations';
 
 export type {
   SearchResult,
@@ -32,6 +33,8 @@ export type {
   ChannelMembersOptions,
   ChannelMembersResult,
   Reminder,
+  StarredItem,
+  StarListResult,
 };
 
 export interface Channel {
@@ -137,6 +140,7 @@ export class SlackApiClient {
   private userOps: UserOperations;
   private searchOps: SearchOperations;
   private reminderOps: ReminderOperations;
+  private starOps: StarOperations;
 
   constructor(token: string) {
     this.channelOps = new ChannelOperations(token);
@@ -147,6 +151,7 @@ export class SlackApiClient {
     this.userOps = new UserOperations(token);
     this.searchOps = new SearchOperations(token);
     this.reminderOps = new ReminderOperations(token);
+    this.starOps = new StarOperations(token);
   }
 
   async sendMessage(
@@ -316,6 +321,18 @@ export class SlackApiClient {
 
   async completeReminder(reminderId: string): Promise<void> {
     return this.reminderOps.completeReminder(reminderId);
+  }
+
+  async addStar(channel: string, timestamp: string): Promise<void> {
+    return this.starOps.addStar(channel, timestamp);
+  }
+
+  async listStars(count?: number): Promise<StarListResult> {
+    return this.starOps.listStars(count);
+  }
+
+  async removeStar(channel: string, timestamp: string): Promise<void> {
+    return this.starOps.removeStar(channel, timestamp);
   }
 }
 

@@ -210,3 +210,21 @@ export interface ReminderCompleteOptions {
   id: string;
   profile?: string;
 }
+
+export interface BookmarkAddOptions {
+  channel: string;
+  ts: string;
+  profile?: string;
+}
+
+export interface BookmarkListOptions {
+  limit?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface BookmarkRemoveOptions {
+  channel: string;
+  ts: string;
+  profile?: string;
+}

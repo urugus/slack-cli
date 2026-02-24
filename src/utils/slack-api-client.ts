@@ -16,7 +16,14 @@ import {
   SearchMatch,
 } from './slack-operations/search-operations';
 
-export type { SearchResult, SearchMessagesOptions, SearchMatch, PinnedItem, SlackUser, UserPresence };
+export type {
+  SearchResult,
+  SearchMessagesOptions,
+  SearchMatch,
+  PinnedItem,
+  SlackUser,
+  UserPresence,
+};
 
 export interface Channel {
   id: string;

@@ -302,6 +302,169 @@ describe('users command', () => {
     });
   });
 
+  describe('presence subcommand', () => {
+    it('should display user presence by id in table format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.getUserPresence).mockResolvedValue({
+        presence: 'active',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'users',
+        'presence',
+        '--id',
+        'U123',
+      ]);
+
+      expect(mockSlackClient.getUserPresence).toHaveBeenCalledWith('U123');
+      expect(mockConsole.logSpy).toHaveBeenCalled();
+    });
+
+    it('should display user presence by name', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.resolveUserIdByName).mockResolvedValue('U123');
+      vi.mocked(mockSlackClient.getUserPresence).mockResolvedValue({
+        presence: 'away',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'users',
+        'presence',
+        '--name',
+        '@alice',
+      ]);
+
+      expect(mockSlackClient.resolveUserIdByName).toHaveBeenCalledWith('@alice');
+      expect(mockSlackClient.getUserPresence).toHaveBeenCalledWith('U123');
+      expect(mockConsole.logSpy).toHaveBeenCalled();
+    });
+
+    it('should display user presence in json format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      const presenceResult = { presence: 'active' };
+      vi.mocked(mockSlackClient.getUserPresence).mockResolvedValue(presenceResult);
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'users',
+        'presence',
+        '--id',
+        'U123',
+        '--format',
+        'json',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(JSON.stringify(presenceResult, null, 2));
+    });
+
+    it('should display user presence in simple format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.getUserPresence).mockResolvedValue({
+        presence: 'active',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'users',
+        'presence',
+        '--id',
+        'U123',
+        '--format',
+        'simple',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('active'));
+    });
+
+    it('should display away presence in table format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.getUserPresence).mockResolvedValue({
+        presence: 'away',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'users',
+        'presence',
+        '--id',
+        'U123',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalled();
+    });
+
+    it('should handle user not found error', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.getUserPresence).mockRejectedValue(
+        new Error('user_not_found')
+      );
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'users',
+        'presence',
+        '--id',
+        'UINVALID',
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.any(String)
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('should use specified profile', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'work-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.getUserPresence).mockResolvedValue({
+        presence: 'active',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'users',
+        'presence',
+        '--id',
+        'U123',
+        '--profile',
+        'work',
+      ]);
+
+      expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
+      expect(SlackApiClient).toHaveBeenCalledWith('work-token');
+    });
+  });
+
   describe('error handling', () => {
     it('should handle missing configuration', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);

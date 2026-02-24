@@ -8,7 +8,7 @@ import { MessageOperations } from './slack-operations/message-operations';
 import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
 import { ReactionOperations } from './slack-operations/reaction-operations';
 import { PinOperations, PinnedItem } from './slack-operations/pin-operations';
-import { UserOperations, SlackUser } from './slack-operations/user-operations';
+import { UserOperations, SlackUser, UserPresence } from './slack-operations/user-operations';
 import {
   SearchOperations,
   SearchResult,
@@ -16,7 +16,14 @@ import {
   SearchMatch,
 } from './slack-operations/search-operations';
 
-export type { SearchResult, SearchMessagesOptions, SearchMatch, PinnedItem, SlackUser };
+export type {
+  SearchResult,
+  SearchMessagesOptions,
+  SearchMatch,
+  PinnedItem,
+  SlackUser,
+  UserPresence,
+};
 
 export interface Channel {
   id: string;
@@ -246,6 +253,10 @@ export class SlackApiClient {
 
   async openDmChannel(userId: string): Promise<string> {
     return this.userOps.openDmChannel(userId);
+  }
+
+  async getUserPresence(userId: string): Promise<UserPresence> {
+    return this.userOps.getPresence(userId);
   }
 
   async resolveUserIdByName(username: string): Promise<string> {

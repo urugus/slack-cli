@@ -1,6 +1,10 @@
 import { BaseSlackClient } from './base-client';
 import { ApiError } from '../errors';
 
+export interface UserPresence {
+  presence: string;
+}
+
 export interface SlackUser {
   id?: string;
   name?: string;
@@ -66,6 +70,11 @@ export class UserOperations extends BaseSlackClient {
       users: userId,
     });
     return (response.channel as { id: string }).id;
+  }
+
+  async getPresence(userId: string): Promise<UserPresence> {
+    const response = await this.client.users.getPresence({ user: userId });
+    return { presence: response.presence as string };
   }
 
   async resolveUserIdByName(username: string): Promise<string> {

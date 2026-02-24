@@ -48,9 +48,7 @@ class BookmarkSimpleFormatter extends AbstractFormatter<BookmarkFormatterOptions
   format({ items }: BookmarkFormatterOptions): void {
     items.forEach((item) => {
       const savedAt = formatDate(item.date_create);
-      console.log(
-        `${item.channel}\t${item.message?.ts}\t${item.message?.text}\t${savedAt}`
-      );
+      console.log(`${item.channel}\t${item.message?.ts}\t${item.message?.text}\t${savedAt}`);
     });
   }
 }

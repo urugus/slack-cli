@@ -2,19 +2,13 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { wrapCommand } from '../utils/command-wrapper';
 import { createSlackClient } from '../utils/client-factory';
-import {
-  BookmarkAddOptions,
-  BookmarkListOptions,
-  BookmarkRemoveOptions,
-} from '../types/commands';
+import { BookmarkAddOptions, BookmarkListOptions, BookmarkRemoveOptions } from '../types/commands';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
 import { createBookmarkFormatter } from '../utils/formatters/bookmark-formatters';
 
 export function setupBookmarkCommand(): Command {
-  const bookmarkCommand = new Command('bookmark').description(
-    'Manage saved items (あとで読む)'
-  );
+  const bookmarkCommand = new Command('bookmark').description('Manage saved items (あとで読む)');
 
   const addCommand = new Command('add')
     .description('Save a message for later')

@@ -21,11 +21,7 @@ import {
   SearchMessagesOptions,
   SearchMatch,
 } from './slack-operations/search-operations';
-import {
-  StarOperations,
-  StarredItem,
-  StarListResult,
-} from './slack-operations/star-operations';
+import { StarOperations, StarredItem, StarListResult } from './slack-operations/star-operations';
 
 export type {
   SearchResult,

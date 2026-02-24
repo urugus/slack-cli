@@ -218,6 +218,34 @@ export class ChannelOperations extends BaseSlackClient {
     });
   }
 
+  async joinChannel(channelNameOrId: string): Promise<void> {
+    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
+      this.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    await this.client.conversations.join({
+      channel: channelId,
+    });
+  }
+
+  async leaveChannel(channelNameOrId: string): Promise<void> {
+    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
+      this.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    await this.client.conversations.leave({
+      channel: channelId,
+    });
+  }
+
   async getChannelMembers(
     channelNameOrId: string,
     options: ChannelMembersOptions = {}

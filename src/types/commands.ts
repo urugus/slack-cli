@@ -129,6 +129,13 @@ export interface UsersLookupOptions {
   profile?: string;
 }
 
+export interface UsersPresenceOptions {
+  id?: string;
+  name?: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
 export interface ChannelInfoOptions {
   channel: string;
   format?: 'table' | 'simple' | 'json';

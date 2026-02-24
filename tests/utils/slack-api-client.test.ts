@@ -28,7 +28,9 @@ describe('SlackApiClient', () => {
         info: vi.fn(),
       },
     };
-    vi.mocked(WebClient).mockReturnValue(mockWebClient);
+    vi.mocked(WebClient).mockImplementation(function () {
+      return mockWebClient;
+    } as any);
     client = new SlackApiClient('test-token');
   });
 

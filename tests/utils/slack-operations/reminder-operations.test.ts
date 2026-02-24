@@ -2,14 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ReminderOperations } from '../../../src/utils/slack-operations/reminder-operations';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    reminders: {
-      add: vi.fn(),
-      list: vi.fn(),
-      delete: vi.fn(),
-      complete: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      reminders: {
+        add: vi.fn(),
+        list: vi.fn(),
+        delete: vi.fn(),
+        complete: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

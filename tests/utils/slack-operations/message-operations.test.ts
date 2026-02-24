@@ -3,22 +3,24 @@ import { MessageOperations } from '../../../src/utils/slack-operations/message-o
 import { channelResolver } from '../../../src/utils/channel-resolver';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    conversations: {
-      history: vi.fn(),
-      replies: vi.fn(),
-    },
-    users: {
-      info: vi.fn(),
-    },
-    chat: {
-      postMessage: vi.fn(),
-      scheduleMessage: vi.fn(),
-      scheduledMessages: {
-        list: vi.fn(),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      conversations: {
+        history: vi.fn(),
+        replies: vi.fn(),
       },
-    },
-  })),
+      users: {
+        info: vi.fn(),
+      },
+      chat: {
+        postMessage: vi.fn(),
+        scheduleMessage: vi.fn(),
+        scheduledMessages: {
+          list: vi.fn(),
+        },
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

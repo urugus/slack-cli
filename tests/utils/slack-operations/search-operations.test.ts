@@ -2,11 +2,13 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { SearchOperations } from '../../../src/utils/slack-operations/search-operations';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    search: {
-      messages: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      search: {
+        messages: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

@@ -3,12 +3,14 @@ import { ReactionOperations } from '../../../src/utils/slack-operations/reaction
 import { channelResolver } from '../../../src/utils/channel-resolver';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    reactions: {
-      add: vi.fn(),
-      remove: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      reactions: {
+        add: vi.fn(),
+        remove: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

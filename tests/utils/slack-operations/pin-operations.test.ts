@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PinOperations } from '../../../src/utils/slack-operations/pin-operations';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    pins: {
-      add: vi.fn(),
-      remove: vi.fn(),
-      list: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      pins: {
+        add: vi.fn(),
+        remove: vi.fn(),
+        list: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

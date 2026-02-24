@@ -35,10 +35,14 @@ describe('scheduled command', () => {
     vi.clearAllMocks();
 
     mockConfigManager = new ProfileConfigManager();
-    vi.mocked(ProfileConfigManager).mockReturnValue(mockConfigManager);
+    vi.mocked(ProfileConfigManager).mockImplementation(function () {
+      return mockConfigManager;
+    } as any);
 
     mockSlackClient = new SlackApiClient('test-token');
-    vi.mocked(SlackApiClient).mockReturnValue(mockSlackClient);
+    vi.mocked(SlackApiClient).mockImplementation(function () {
+      return mockSlackClient;
+    } as any);
 
     mockConsole = setupMockConsole();
     tableSpy = vi.spyOn(console, 'table').mockImplementation(() => {});

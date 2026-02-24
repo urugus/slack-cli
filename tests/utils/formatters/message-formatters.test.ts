@@ -1,4 +1,4 @@
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { createMessageFormatter, MessageFormatterOptions } from '../../../src/utils/formatters/message-formatters';
 import { Channel, Message } from '../../../src/utils/slack-api-client';
 
@@ -7,6 +7,10 @@ describe('MessageFormatters', () => {
 
   beforeEach(() => {
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
   });
 
   const createChannel = (overrides: Partial<Channel> = {}): Channel => ({

@@ -2,27 +2,29 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { MessageOperations } from '../../../src/utils/slack-operations/message-operations';
 
 vi.mock('@slack/web-api', () => ({
-  WebClient: vi.fn().mockImplementation(() => ({
-    chat: {
-      getPermalink: vi.fn(),
-      postMessage: vi.fn(),
-      scheduleMessage: vi.fn(),
-      scheduledMessages: { list: vi.fn() },
-      update: vi.fn(),
-      delete: vi.fn(),
-      deleteScheduledMessage: vi.fn(),
-    },
-    conversations: {
-      list: vi.fn(),
-      history: vi.fn(),
-      replies: vi.fn(),
-      mark: vi.fn(),
-      info: vi.fn(),
-    },
-    users: {
-      info: vi.fn(),
-    },
-  })),
+  WebClient: vi.fn().mockImplementation(function () {
+    return {
+      chat: {
+        getPermalink: vi.fn(),
+        postMessage: vi.fn(),
+        scheduleMessage: vi.fn(),
+        scheduledMessages: { list: vi.fn() },
+        update: vi.fn(),
+        delete: vi.fn(),
+        deleteScheduledMessage: vi.fn(),
+      },
+      conversations: {
+        list: vi.fn(),
+        history: vi.fn(),
+        replies: vi.fn(),
+        mark: vi.fn(),
+        info: vi.fn(),
+      },
+      users: {
+        info: vi.fn(),
+      },
+    };
+  }),
   LogLevel: {
     ERROR: 'error',
   },

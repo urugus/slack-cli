@@ -24,10 +24,7 @@ export function setupReminderCommand(): Command {
     .option('--at <datetime>', 'Absolute date/time (e.g. "2024-03-01 15:00")')
     .option('--after <minutes>', 'Minutes from now')
     .option('--profile <profile>', 'Use specific workspace profile')
-    .hook(
-      'preAction',
-      createValidationHook([optionValidators.reminderTiming])
-    )
+    .hook('preAction', createValidationHook([optionValidators.reminderTiming]))
     .action(
       wrapCommand(async (options: ReminderAddOptions) => {
         const profile = parseProfile(options.profile);

@@ -144,6 +144,56 @@ export function createValidationHook(
  */
 export const optionValidators = {
   /**
+   * Validates send target: must specify exactly one of --channel, --user, or --email
+   */
+  sendTarget: (options: Record<string, unknown>): string | null => {
+    const hasChannel = !!options.channel;
+    const hasUser = !!options.user;
+    const hasEmail = !!options.email;
+
+    if (!hasChannel && !hasUser && !hasEmail) {
+      return 'You must specify one of: --channel, --user, or --email';
+    }
+    if (hasChannel && (hasUser || hasEmail)) {
+      return 'Cannot use --channel with --user or --email';
+    }
+    if (hasUser && hasEmail) {
+      return 'Cannot use --user and --email together';
+    }
+    return null;
+  },
+
+  /**
+   * Validates required channel option
+   */
+  requiredChannel: (options: Record<string, unknown>): string | null => {
+    if (!options.channel) {
+      return '--channel is required';
+    }
+    return null;
+  },
+
+  /**
+   * Validates required user option
+   */
+  requiredUser: (options: Record<string, unknown>): string | null => {
+    if (!options.user) {
+      return '--user is required';
+    }
+    return null;
+  },
+
+  /**
+   * Validates required message option
+   */
+  requiredMessage: (options: Record<string, unknown>): string | null => {
+    if (!options.message) {
+      return '--message is required';
+    }
+    return null;
+  },
+
+  /**
    * Validates message/file options for send command
    */
   messageOrFile: (options: Record<string, unknown>): string | null => {
@@ -296,6 +346,36 @@ export const optionValidators = {
         return 'Invalid date format. Use YYYY-MM-DD HH:MM:SS';
       }
     }
+    return null;
+  },
+
+  /**
+   * Validates reminder timing options
+   */
+  reminderTiming: (options: Record<string, unknown>): string | null => {
+    const at = options.at as string | undefined;
+    const after = options.after as string | undefined;
+
+    if (!at && !after) {
+      return 'You must specify either --at or --after';
+    }
+
+    if (at && after) {
+      return 'Cannot use both --at and --after';
+    }
+
+    if (after) {
+      const trimmedAfter = after.trim();
+      if (!/^\d+$/.test(trimmedAfter)) {
+        return '--after must be a positive integer (minutes)';
+      }
+
+      const minutes = Number.parseInt(trimmedAfter, 10);
+      if (!Number.isSafeInteger(minutes) || minutes <= 0) {
+        return '--after must be a positive integer (minutes)';
+      }
+    }
+
     return null;
   },
 

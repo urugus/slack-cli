@@ -358,11 +358,172 @@ describe('send command', () => {
       ).rejects.toThrow(`Error: ${ERROR_MESSAGES.INVALID_SCHEDULE_AFTER}`);
     });
 
-    it('should fail when no channel is provided', async () => {
+    it('should fail when no target is provided', async () => {
       const sendCommand = setupSendCommand();
       sendCommand.exitOverride();
 
-      await expect(sendCommand.parseAsync(['-m', 'Hello'], { from: 'user' })).rejects.toThrow();
+      await expect(sendCommand.parseAsync(['-m', 'Hello'], { from: 'user' })).rejects.toThrow(
+        'You must specify one of: --channel, --user, or --email'
+      );
+    });
+
+    it('should fail when both --channel and --user are provided', async () => {
+      const sendCommand = setupSendCommand();
+      sendCommand.exitOverride();
+
+      await expect(
+        sendCommand.parseAsync(['-c', 'general', '--user', 'john', '-m', 'Hello'], {
+          from: 'user',
+        })
+      ).rejects.toThrow('Cannot use --channel with --user or --email');
+    });
+
+    it('should fail when both --channel and --email are provided', async () => {
+      const sendCommand = setupSendCommand();
+      sendCommand.exitOverride();
+
+      await expect(
+        sendCommand.parseAsync(
+          ['-c', 'general', '--email', 'john@example.com', '-m', 'Hello'],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('Cannot use --channel with --user or --email');
+    });
+
+    it('should fail when both --user and --email are provided', async () => {
+      const sendCommand = setupSendCommand();
+      sendCommand.exitOverride();
+
+      await expect(
+        sendCommand.parseAsync(
+          ['--user', 'john', '--email', 'john@example.com', '-m', 'Hello'],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('Cannot use --user and --email together');
+    });
+  });
+
+  describe('DM via --user', () => {
+    it('should send DM by resolving username to DM channel', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.resolveUserIdByName).mockResolvedValue('U1234567890');
+      vi.mocked(mockSlackClient.openDmChannel).mockResolvedValue('D9876543210');
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '--user',
+        'john',
+        '-m',
+        'Hello via DM!',
+      ]);
+
+      expect(mockSlackClient.resolveUserIdByName).toHaveBeenCalledWith('john');
+      expect(mockSlackClient.openDmChannel).toHaveBeenCalledWith('U1234567890');
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
+        'D9876543210',
+        'Hello via DM!',
+        undefined
+      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('DM sent to @john')
+      );
+    });
+
+    it('should handle user not found error', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.resolveUserIdByName).mockRejectedValue(
+        new Error("User 'unknown' not found")
+      );
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '--user',
+        'unknown',
+        '-m',
+        'Hello',
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        '✗ Error:',
+        "User 'unknown' not found"
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('DM via --email', () => {
+    it('should send DM by resolving email to DM channel', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.lookupUserByEmail).mockResolvedValue({
+        id: 'U1234567890',
+        name: 'john',
+      });
+      vi.mocked(mockSlackClient.openDmChannel).mockResolvedValue('D9876543210');
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '--email',
+        'john@example.com',
+        '-m',
+        'Hello via email DM!',
+      ]);
+
+      expect(mockSlackClient.lookupUserByEmail).toHaveBeenCalledWith('john@example.com');
+      expect(mockSlackClient.openDmChannel).toHaveBeenCalledWith('U1234567890');
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
+        'D9876543210',
+        'Hello via email DM!',
+        undefined
+      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('DM sent to john@example.com')
+      );
+    });
+
+    it('should handle email not found error', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.lookupUserByEmail).mockRejectedValue(
+        new Error('users_not_found')
+      );
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '--email',
+        'unknown@example.com',
+        '-m',
+        'Hello',
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith('✗ Error:', 'users_not_found');
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
 

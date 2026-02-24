@@ -8,11 +8,12 @@ export interface HistoryFormatterOptions {
   channelName: string;
   messages: SlackMessage[];
   users: Map<string, string>;
+  permalinks?: Map<string, string>;
 }
 
 class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
   format(options: HistoryFormatterOptions): void {
-    const { channelName, messages, users } = options;
+    const { channelName, messages, users, permalinks } = options;
 
     console.log(chalk.bold(`\nMessage History for #${channelName}:`));
 
@@ -29,6 +30,9 @@ class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
       console.log(`${chalk.gray(`[${timestamp}]`)} ${chalk.cyan(username)}`);
       const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
       console.log(text);
+      if (permalinks?.has(message.ts)) {
+        console.log(chalk.blue(permalinks.get(message.ts)!));
+      }
       console.log('');
     });
 
@@ -38,7 +42,7 @@ class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
 
 class SimpleHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
   format(options: HistoryFormatterOptions): void {
-    const { messages, users } = options;
+    const { messages, users, permalinks } = options;
 
     if (messages.length === 0) {
       console.log('No messages found');
@@ -49,14 +53,16 @@ class SimpleHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> 
       const timestamp = formatTimestampFixed(message.ts);
       const username = resolveUsername(message, users);
       const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
-      console.log(`[${timestamp}] ${username}: ${text}`);
+      const link = permalinks?.get(message.ts);
+      const linkSuffix = link ? ` ${link}` : '';
+      console.log(`[${timestamp}] ${username}: ${text}${linkSuffix}`);
     });
   }
 }
 
 class JsonHistoryFormatter extends JsonFormatter<HistoryFormatterOptions> {
   protected transform(options: HistoryFormatterOptions) {
-    const { channelName, messages, users } = options;
+    const { channelName, messages, users, permalinks } = options;
 
     return {
       channel: channelName,
@@ -67,6 +73,7 @@ class JsonHistoryFormatter extends JsonFormatter<HistoryFormatterOptions> {
         text: message.text || '(no text)',
         ...(message.thread_ts !== undefined && { thread_ts: message.thread_ts }),
         ...(message.reply_count !== undefined && { reply_count: message.reply_count }),
+        ...(permalinks?.has(message.ts) && { permalink: permalinks.get(message.ts) }),
       })),
       total: messages.length,
     };

@@ -1,0 +1,78 @@
+name: Claude Implementation
+
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: claude-implement-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update labels to in-progress
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue edit ${{ github.event.issue.number }} \
+            --remove-label "approved" --add-label "in-progress"
+
+      - name: Implement Feature
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Issue #${{ github.event.issue.number }} の実装を行ってください。
+
+            まず `gh issue view ${{ github.event.issue.number }} --comments` で
+            Issue と全コメントを読み、要件を完全に把握してください。
+
+            CLAUDE.md の TDD サイクルに厳密に従うこと:
+            1. テストを先に書く
+            2. テストが失敗することを確認
+            3. テストが通る最小の実装を行う
+            4. npm test / npm run lint / npm run format:check / npm run build を実行
+            5. package.json のバージョンをバンプ
+            6. コミット & PR 作成
+
+            PR 作成時:
+            - ボディに "Closes #${{ github.event.issue.number }}" を含める
+            - 日本語で記述する
+
+            PR 作成後:
+            - gh issue edit で "in-progress" を削除し "implemented" を付与
+
+            問題が発生した場合は Issue にコメントし、壊れたコードの PR は作成しないこと。
+
+      - name: Handle failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "実装ワークフローが失敗しました。[ログ](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})を確認してください。"
+          gh issue edit ${{ github.event.issue.number }} \
+            --remove-label "in-progress" --add-label "needs-refinement"

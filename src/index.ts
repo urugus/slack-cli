@@ -14,6 +14,7 @@ import { setupReactionCommand } from './commands/reaction';
 import { setupPinCommand } from './commands/pin';
 import { setupUsersCommand } from './commands/users';
 import { setupChannelCommand } from './commands/channel';
+import { setupMembersCommand } from './commands/members';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -39,5 +40,6 @@ program.addCommand(setupReactionCommand());
 program.addCommand(setupPinCommand());
 program.addCommand(setupUsersCommand());
 program.addCommand(setupChannelCommand());
+program.addCommand(setupMembersCommand());
 
 program.parse();

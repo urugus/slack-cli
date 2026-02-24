@@ -3,7 +3,11 @@ import {
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
-import { ChannelOperations } from './slack-operations/channel-operations';
+import {
+  ChannelOperations,
+  ChannelMembersOptions,
+  ChannelMembersResult,
+} from './slack-operations/channel-operations';
 import { MessageOperations } from './slack-operations/message-operations';
 import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
 import { ReactionOperations } from './slack-operations/reaction-operations';
@@ -23,6 +27,8 @@ export type {
   PinnedItem,
   SlackUser,
   UserPresence,
+  ChannelMembersOptions,
+  ChannelMembersResult,
 };
 
 export interface Channel {
@@ -265,6 +271,13 @@ export class SlackApiClient {
 
   async searchMessages(query: string, options?: SearchMessagesOptions): Promise<SearchResult> {
     return this.searchOps.searchMessages(query, options);
+  }
+
+  async getChannelMembers(
+    channelNameOrId: string,
+    options?: ChannelMembersOptions
+  ): Promise<ChannelMembersResult> {
+    return this.channelOps.getChannelMembers(channelNameOrId, options);
   }
 }
 

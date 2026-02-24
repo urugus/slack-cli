@@ -14,6 +14,7 @@ import { FileOperations, UploadFileOptions } from './slack-operations/file-opera
 import { ReactionOperations } from './slack-operations/reaction-operations';
 import { PinOperations, PinnedItem } from './slack-operations/pin-operations';
 import { UserOperations, SlackUser, UserPresence } from './slack-operations/user-operations';
+import { ReminderOperations, Reminder } from './slack-operations/reminder-operations';
 import {
   SearchOperations,
   SearchResult,
@@ -30,6 +31,7 @@ export type {
   UserPresence,
   ChannelMembersOptions,
   ChannelMembersResult,
+  Reminder,
 };
 
 export interface Channel {
@@ -134,6 +136,7 @@ export class SlackApiClient {
   private pinOps: PinOperations;
   private userOps: UserOperations;
   private searchOps: SearchOperations;
+  private reminderOps: ReminderOperations;
 
   constructor(token: string) {
     this.channelOps = new ChannelOperations(token);
@@ -143,6 +146,7 @@ export class SlackApiClient {
     this.pinOps = new PinOperations(token);
     this.userOps = new UserOperations(token);
     this.searchOps = new SearchOperations(token);
+    this.reminderOps = new ReminderOperations(token);
   }
 
   async sendMessage(
@@ -296,6 +300,22 @@ export class SlackApiClient {
     options?: ChannelMembersOptions
   ): Promise<ChannelMembersResult> {
     return this.channelOps.getChannelMembers(channelNameOrId, options);
+  }
+
+  async addReminder(text: string, time: number): Promise<Reminder> {
+    return this.reminderOps.addReminder(text, time);
+  }
+
+  async listReminders(): Promise<Reminder[]> {
+    return this.reminderOps.listReminders();
+  }
+
+  async deleteReminder(reminderId: string): Promise<void> {
+    return this.reminderOps.deleteReminder(reminderId);
+  }
+
+  async completeReminder(reminderId: string): Promise<void> {
+    return this.reminderOps.completeReminder(reminderId);
   }
 }
 

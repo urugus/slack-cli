@@ -350,6 +350,36 @@ export const optionValidators = {
   },
 
   /**
+   * Validates reminder timing options
+   */
+  reminderTiming: (options: Record<string, unknown>): string | null => {
+    const at = options.at as string | undefined;
+    const after = options.after as string | undefined;
+
+    if (!at && !after) {
+      return 'You must specify either --at or --after';
+    }
+
+    if (at && after) {
+      return 'Cannot use both --at and --after';
+    }
+
+    if (after) {
+      const trimmedAfter = after.trim();
+      if (!/^\d+$/.test(trimmedAfter)) {
+        return '--after must be a positive integer (minutes)';
+      }
+
+      const minutes = Number.parseInt(trimmedAfter, 10);
+      if (!Number.isSafeInteger(minutes) || minutes <= 0) {
+        return '--after must be a positive integer (minutes)';
+      }
+    }
+
+    return null;
+  },
+
+  /**
    * Validates format option
    */
   format: (options: Record<string, unknown>): string | null => {

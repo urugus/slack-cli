@@ -188,3 +188,25 @@ export interface SearchOptions {
   format?: 'table' | 'simple' | 'json';
   profile?: string;
 }
+
+export interface ReminderAddOptions {
+  text: string;
+  at?: string;
+  after?: string;
+  profile?: string;
+}
+
+export interface ReminderListOptions {
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface ReminderDeleteOptions {
+  id: string;
+  profile?: string;
+}
+
+export interface ReminderCompleteOptions {
+  id: string;
+  profile?: string;
+}

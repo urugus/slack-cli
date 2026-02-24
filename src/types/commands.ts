@@ -169,6 +169,16 @@ export interface SendEphemeralOptions {
   profile?: string;
 }
 
+export interface JoinOptions {
+  channel: string;
+  profile?: string;
+}
+
+export interface LeaveOptions {
+  channel: string;
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

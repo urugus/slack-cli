@@ -16,6 +16,8 @@ import { setupUsersCommand } from './commands/users';
 import { setupChannelCommand } from './commands/channel';
 import { setupMembersCommand } from './commands/members';
 import { setupSendEphemeralCommand } from './commands/send-ephemeral';
+import { setupJoinCommand } from './commands/join';
+import { setupLeaveCommand } from './commands/leave';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -43,5 +45,7 @@ program.addCommand(setupUsersCommand());
 program.addCommand(setupChannelCommand());
 program.addCommand(setupMembersCommand());
 program.addCommand(setupSendEphemeralCommand());
+program.addCommand(setupJoinCommand());
+program.addCommand(setupLeaveCommand());
 
 program.parse();

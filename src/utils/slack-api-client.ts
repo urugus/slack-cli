@@ -283,6 +283,14 @@ export class SlackApiClient {
     return this.searchOps.searchMessages(query, options);
   }
 
+  async joinChannel(channelNameOrId: string): Promise<void> {
+    return this.channelOps.joinChannel(channelNameOrId);
+  }
+
+  async leaveChannel(channelNameOrId: string): Promise<void> {
+    return this.channelOps.leaveChannel(channelNameOrId);
+  }
+
   async getChannelMembers(
     channelNameOrId: string,
     options?: ChannelMembersOptions

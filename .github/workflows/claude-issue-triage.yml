@@ -1,11 +1,11 @@
-name: Claude Issue Triage
+name: Claude Issue Validation
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited, reopened]
 
 jobs:
-  triage:
+  validate-issue:
     if: >
       !contains(github.event.issue.title, '[dependabot]') &&
       github.event.issue.user.login != 'dependabot[bot]'
@@ -20,36 +20,34 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Analyze and Refine Issue
+      - name: Ensure approved label exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create "approved" --color "0e8a16" --description "Issue is valid and ready for implementation" || true
+
+      - name: Validate Issue
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
           prompt: |
-            新しい Issue を分析し、要件を整理してください。
+            新しい Issue の妥当性を判定してください。
 
             Issue #${{ github.event.issue.number }}
             タイトル: ${{ github.event.issue.title }}
             内容: ${{ github.event.issue.body }}
 
             以下を実行してください:
-            1. CLAUDE.md を読み、プロジェクトの開発方針を把握する
-            2. コードベースを調査し、影響範囲を特定する
-            3. 要件の明確さを判断する
+            1. CLAUDE.md を読み、プロジェクト方針に照らして Issue の妥当性を評価する
+            2. 要件の明確さ、実装可能性、スコープの適切さを判定する
+            3. 判定結果を Issue に日本語でコメントする（必須）
 
-            【要件が明確な場合】（実装対象・期待動作・スコープが十分に特定できる場合）
-            - Issue にコメントを投稿する:
-              - 要件の理解内容
-              - 影響するファイル・モジュール
-              - TDD での実装アプローチ案
-              - 「要件が明確なため、実装を開始します」と記載
-            - "approved" ラベルを付与する（これにより自動的に実装が開始される）
+            コメントには必ず以下を含めること:
+            - 判定結果（OK / NG）
+            - 判定理由（2-4点）
+            - 必要なら不足情報や修正提案
 
-            【要件に不明点がある場合】
-            - Issue にコメントを投稿する:
-              - 要件の理解内容
-              - 影響するファイル・モジュール
-              - 不明点・確認事項のリスト
-              - TDD での実装アプローチ案
-            - "needs-refinement" ラベルを付与する
-
-            コメントは日本語で書くこと。
+            追加ルール:
+            - 判定が OK の場合のみ "approved" ラベルを付与する
+            - 判定が NG の場合はラベルを追加しない

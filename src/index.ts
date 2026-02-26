@@ -18,6 +18,7 @@ import { setupMembersCommand } from './commands/members';
 import { setupSendEphemeralCommand } from './commands/send-ephemeral';
 import { setupJoinCommand } from './commands/join';
 import { setupLeaveCommand } from './commands/leave';
+import { setupInviteCommand } from './commands/invite';
 import { setupReminderCommand } from './commands/reminder';
 import { setupBookmarkCommand } from './commands/bookmark';
 import { readFileSync } from 'fs';
@@ -49,6 +50,7 @@ program.addCommand(setupMembersCommand());
 program.addCommand(setupSendEphemeralCommand());
 program.addCommand(setupJoinCommand());
 program.addCommand(setupLeaveCommand());
+program.addCommand(setupInviteCommand());
 program.addCommand(setupReminderCommand());
 program.addCommand(setupBookmarkCommand());
 

@@ -179,6 +179,13 @@ export interface LeaveOptions {
   profile?: string;
 }
 
+export interface InviteOptions {
+  channel: string;
+  users: string;
+  force?: boolean;
+  profile?: string;
+}
+
 export interface SearchOptions {
   query: string;
   sort?: 'score' | 'timestamp';

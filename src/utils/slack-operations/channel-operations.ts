@@ -266,6 +266,26 @@ export class ChannelOperations extends BaseSlackClient {
     });
   }
 
+  async inviteToChannel(
+    channelNameOrId: string,
+    userIds: string[],
+    force?: boolean
+  ): Promise<void> {
+    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
+      this.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      })
+    );
+
+    await this.client.conversations.invite({
+      channel: channelId,
+      users: userIds.join(','),
+      ...(force && { force }),
+    });
+  }
+
   async getChannelMembers(
     channelNameOrId: string,
     options: ChannelMembersOptions = {}

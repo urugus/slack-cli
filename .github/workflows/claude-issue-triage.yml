@@ -8,7 +8,9 @@ jobs:
   validate-issue:
     if: >
       !contains(github.event.issue.title, '[dependabot]') &&
-      github.event.issue.user.login != 'dependabot[bot]'
+      github.event.issue.user.login != 'dependabot[bot]' &&
+      !contains(join(github.event.issue.labels.*.name, ','), 'in-progress') &&
+      !contains(join(github.event.issue.labels.*.name, ','), 'implemented')
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -50,4 +52,4 @@ jobs:
 
             追加ルール:
             - 判定が OK の場合のみ "approved" ラベルを付与する
-            - 判定が NG の場合はラベルを追加しない
+            - 判定が NG の場合は "approved" ラベルが付いていれば削除する

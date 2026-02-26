@@ -9,7 +9,7 @@ jobs:
     if: >
       !contains(github.event.issue.title, '[dependabot]') &&
       github.event.issue.user.login != 'dependabot[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       issues: write

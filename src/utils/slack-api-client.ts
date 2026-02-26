@@ -300,6 +300,14 @@ export class SlackApiClient {
     return this.channelOps.leaveChannel(channelNameOrId);
   }
 
+  async inviteToChannel(
+    channelNameOrId: string,
+    userIds: string[],
+    force?: boolean
+  ): Promise<void> {
+    return this.channelOps.inviteToChannel(channelNameOrId, userIds, force);
+  }
+
   async getChannelMembers(
     channelNameOrId: string,
     options?: ChannelMembersOptions

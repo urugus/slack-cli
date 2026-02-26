@@ -6,10 +6,12 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
     
     - name: Use Node.js
       uses: actions/setup-node@v6
@@ -42,8 +44,20 @@ jobs:
 
     - name: Check version bump
       run: |
-        PR_VERSION=$(node -p "require('./package.json').version")
         git fetch origin main
+        CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+        if echo "$CHANGED_FILES" | grep -qv '^.github/workflows/'; then
+          REQUIRE_VERSION_BUMP=true
+        else
+          REQUIRE_VERSION_BUMP=false
+        fi
+
+        if [ "$REQUIRE_VERSION_BUMP" = "false" ]; then
+          echo "Workflow-only changes detected. Skipping version bump check."
+          exit 0
+        fi
+
+        PR_VERSION=$(node -p "require('./package.json').version")
         BASE_VERSION=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version")
         if [ "$PR_VERSION" = "$BASE_VERSION" ]; then
           echo "::error::Version in package.json ($PR_VERSION) has not been bumped. Each PR must include a version update."

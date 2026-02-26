@@ -11,7 +11,7 @@ concurrency:
 jobs:
   implement:
     if: github.event.label.name == 'approved'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: write
       pull-requests: write

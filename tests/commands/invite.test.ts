@@ -133,6 +133,30 @@ describe('invite command', () => {
         true
       );
     });
+
+    it('should ignore empty user IDs in comma-separated input', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.inviteToChannel).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'invite',
+        '-c',
+        'general',
+        '-u',
+        'U12345, ,U67890,,',
+      ]);
+
+      expect(mockSlackClient.inviteToChannel).toHaveBeenCalledWith(
+        'general',
+        ['U12345', 'U67890'],
+        undefined
+      );
+    });
   });
 
   describe('error handling', () => {
@@ -230,6 +254,30 @@ describe('invite command', () => {
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
         expect.any(String)
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('should fail when all user IDs are empty', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'invite',
+        '-c',
+        'general',
+        '-u',
+        ' , , ',
+      ]);
+
+      expect(mockSlackClient.inviteToChannel).not.toHaveBeenCalled();
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.stringContaining('At least one valid user ID is required')
       );
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });

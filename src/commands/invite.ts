@@ -17,7 +17,14 @@ export function setupInviteCommand(): Command {
         const profile = parseProfile(options.profile);
         const client = await createSlackClient(profile);
 
-        const userIds = options.users.split(',').map((id) => id.trim());
+        const userIds = options.users
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0);
+        if (userIds.length === 0) {
+          throw new Error('At least one valid user ID is required');
+        }
+
         await client.inviteToChannel(options.channel, userIds, options.force);
         console.log(chalk.green(`✓ Invited user(s) to channel #${options.channel}`));
       })

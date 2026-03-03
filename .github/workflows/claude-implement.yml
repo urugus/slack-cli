@@ -44,7 +44,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: '--allowedTools Read,Write,Edit,Glob,Grep,Bash,WebFetch,WebSearch'
+          claude_args: '--allowedTools Read,Write,Edit,Glob,Grep,Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(gh:*),Bash(mkdir:*),Bash(ls:*),WebFetch,WebSearch'
           prompt: |
             Issue #${{ github.event.issue.number }} の実装を行ってください。
 

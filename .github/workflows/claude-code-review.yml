@@ -41,4 +41,4 @@ jobs:
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
           allowed_bots: 'dependabot[bot]'
-          claude_args: '--allowedTools Read,Glob,Grep,Bash,WebFetch,WebSearch'
+          claude_args: '--allowedTools Read,Glob,Grep,Bash(gh:*),Bash(git:*)'

@@ -22,6 +22,7 @@ import {
   SearchMatch,
 } from './slack-operations/search-operations';
 import { StarOperations, StarredItem, StarListResult } from './slack-operations/star-operations';
+import { CanvasOperations, CanvasSection, CanvasFile } from './slack-operations/canvas-operations';
 
 export type {
   SearchResult,
@@ -35,6 +36,8 @@ export type {
   Reminder,
   StarredItem,
   StarListResult,
+  CanvasSection,
+  CanvasFile,
 };
 
 export interface Channel {
@@ -141,6 +144,7 @@ export class SlackApiClient {
   private searchOps: SearchOperations;
   private reminderOps: ReminderOperations;
   private starOps: StarOperations;
+  private canvasOps: CanvasOperations;
 
   constructor(token: string) {
     this.channelOps = new ChannelOperations(token);
@@ -152,6 +156,7 @@ export class SlackApiClient {
     this.searchOps = new SearchOperations(token);
     this.reminderOps = new ReminderOperations(token);
     this.starOps = new StarOperations(token);
+    this.canvasOps = new CanvasOperations(token);
   }
 
   async sendMessage(
@@ -341,6 +346,14 @@ export class SlackApiClient {
 
   async removeStar(channel: string, timestamp: string): Promise<void> {
     return this.starOps.removeStar(channel, timestamp);
+  }
+
+  async readCanvas(canvasId: string): Promise<CanvasSection[]> {
+    return this.canvasOps.readCanvas(canvasId);
+  }
+
+  async listCanvases(channel: string): Promise<CanvasFile[]> {
+    return this.canvasOps.listCanvases(channel);
   }
 }
 

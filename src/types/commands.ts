@@ -235,3 +235,15 @@ export interface BookmarkRemoveOptions {
   ts: string;
   profile?: string;
 }
+
+export interface CanvasReadOptions {
+  id: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export interface CanvasListOptions {
+  channel: string;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}

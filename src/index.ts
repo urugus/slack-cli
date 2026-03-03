@@ -21,6 +21,7 @@ import { setupLeaveCommand } from './commands/leave';
 import { setupInviteCommand } from './commands/invite';
 import { setupReminderCommand } from './commands/reminder';
 import { setupBookmarkCommand } from './commands/bookmark';
+import { setupCanvasCommand } from './commands/canvas';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -53,5 +54,6 @@ program.addCommand(setupLeaveCommand());
 program.addCommand(setupInviteCommand());
 program.addCommand(setupReminderCommand());
 program.addCommand(setupBookmarkCommand());
+program.addCommand(setupCanvasCommand());
 
 program.parse();

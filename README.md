@@ -311,6 +311,28 @@ slack-cli scheduled list --format simple
 slack-cli scheduled cancel -c general --id Q1298393284
 ```
 
+### Canvases
+
+```bash
+# Get sections of a Canvas
+slack-cli canvas read -i F01234567890
+
+# Output in different formats
+slack-cli canvas read -i F01234567890 --format json
+slack-cli canvas read -i F01234567890 --format simple
+
+# List canvases linked to a channel
+slack-cli canvas list -c general
+
+# Output in different formats
+slack-cli canvas list -c general --format json
+slack-cli canvas list -c general --format simple
+
+# Use specific profile
+slack-cli canvas read -i F01234567890 --profile work
+slack-cli canvas list -c general --profile work
+```
+
 ### Other Commands
 
 ```bash
@@ -486,6 +508,24 @@ Subcommands: `list`, `cancel`
 | --channel | -c    | Channel name or ID (required)           |
 | --id      |       | Scheduled message ID (required)         |
 
+### canvas command
+
+Subcommands: `read`, `list`
+
+#### canvas read
+
+| Option   | Short | Description                                         |
+| -------- | ----- | --------------------------------------------------- |
+| --id     | -i    | Canvas ID (required)                                |
+| --format |       | Output format: table, simple, json (default: table) |
+
+#### canvas list
+
+| Option    | Short | Description                                         |
+| --------- | ----- | --------------------------------------------------- |
+| --channel | -c    | Channel name or ID (required)                       |
+| --format  |       | Output format: table, simple, json (default: table) |
+
 ## Required Permissions
 
 Your Slack API token needs the following scopes:
@@ -506,6 +546,8 @@ Your Slack API token needs the following scopes:
 - `pins:read` - List pinned items in a channel
 - `pins:write` - Pin and unpin messages
 - `files:write` - Upload files and snippets
+- `files:read` - List canvases linked to a channel
+- `canvases:read` - Read Canvas sections
 
 ## Advanced Features
 

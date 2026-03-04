@@ -5,7 +5,17 @@ import { createSlackClient } from '../utils/client-factory';
 import { CanvasReadOptions, CanvasListOptions } from '../types/commands';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
-import { CanvasSection, CanvasFile } from '../utils/slack-api-client';
+import { CanvasSection, CanvasFile, CanvasSectionElement } from '../utils/slack-api-client';
+
+function extractText(elements: CanvasSectionElement[]): string {
+  return elements
+    .map((el) => {
+      if (el.text) return el.text;
+      if (el.elements) return extractText(el.elements);
+      return '';
+    })
+    .join('');
+}
 
 function formatSections(sections: CanvasSection[], format: string): void {
   if (format === 'json') {
@@ -15,14 +25,18 @@ function formatSections(sections: CanvasSection[], format: string): void {
 
   if (format === 'simple') {
     sections.forEach((section) => {
-      console.log(section.id || '(no id)');
+      const text = section.elements ? extractText(section.elements) : '';
+      console.log(`${section.id || '(no id)'}\t${text || '(no content)'}`);
     });
     return;
   }
 
   // table format (default)
   sections.forEach((section) => {
-    console.log(chalk.cyan(`ID: ${section.id || '(no id)'}`));
+    const text = section.elements ? extractText(section.elements) : '';
+    console.log(
+      chalk.cyan(`ID: ${section.id || '(no id)'}`) + `  Content: ${text || '(no content)'}`
+    );
   });
 }
 

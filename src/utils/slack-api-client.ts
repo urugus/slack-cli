@@ -22,7 +22,12 @@ import {
   SearchMatch,
 } from './slack-operations/search-operations';
 import { StarOperations, StarredItem, StarListResult } from './slack-operations/star-operations';
-import { CanvasOperations, CanvasSection, CanvasFile } from './slack-operations/canvas-operations';
+import {
+  CanvasOperations,
+  CanvasSection,
+  CanvasSectionElement,
+  CanvasFile,
+} from './slack-operations/canvas-operations';
 
 export type {
   SearchResult,
@@ -37,6 +42,7 @@ export type {
   StarredItem,
   StarListResult,
   CanvasSection,
+  CanvasSectionElement,
   CanvasFile,
 };
 

@@ -65,7 +65,15 @@ describe('canvas command', () => {
         updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.readCanvas).mockResolvedValue([
-        { id: 'section1' },
+        {
+          id: 'section1',
+          elements: [
+            {
+              type: 'rich_text',
+              elements: [{ type: 'rich_text_section', elements: [{ type: 'text', text: 'Hello World' }] }],
+            },
+          ],
+        },
       ]);
 
       await program.parseAsync([
@@ -83,6 +91,71 @@ describe('canvas command', () => {
       const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
       expect(output).toHaveLength(1);
       expect(output[0].id).toBe('section1');
+      expect(output[0].elements).toBeDefined();
+    });
+
+    it('should display section text content in table format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.readCanvas).mockResolvedValue([
+        {
+          id: 'section1',
+          elements: [
+            {
+              type: 'rich_text',
+              elements: [{ type: 'rich_text_section', elements: [{ type: 'text', text: 'Hello World' }] }],
+            },
+          ],
+        },
+      ]);
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'read',
+        '-i',
+        'F0AJ4852CQN',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalled();
+      const output = mockConsole.logSpy.mock.calls[0][0];
+      expect(output).toContain('Hello World');
+    });
+
+    it('should display section text content in simple format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.readCanvas).mockResolvedValue([
+        {
+          id: 'section1',
+          elements: [
+            {
+              type: 'rich_text',
+              elements: [{ type: 'rich_text_section', elements: [{ type: 'text', text: 'Section Content' }] }],
+            },
+          ],
+        },
+      ]);
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'read',
+        '-i',
+        'F0AJ4852CQN',
+        '--format',
+        'simple',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalled();
+      const output = mockConsole.logSpy.mock.calls[0][0];
+      expect(output).toContain('Section Content');
     });
 
     it('should show message when no sections found', async () => {

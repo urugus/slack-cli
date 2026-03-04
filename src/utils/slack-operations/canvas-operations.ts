@@ -3,8 +3,15 @@ import { channelResolver } from '../channel-resolver';
 import { ChannelOperations } from './channel-operations';
 import { DEFAULTS } from '../constants';
 
+export interface CanvasSectionElement {
+  type?: string;
+  text?: string;
+  elements?: CanvasSectionElement[];
+}
+
 export interface CanvasSection {
   id?: string;
+  elements?: CanvasSectionElement[];
 }
 
 export interface CanvasFile {

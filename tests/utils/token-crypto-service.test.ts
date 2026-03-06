@@ -1,4 +1,7 @@
 import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ConfigurationError, ValidationError } from '../../src/utils/errors';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
@@ -89,6 +92,52 @@ describe('TokenCryptoService', () => {
       expect(service.isEncrypted(legacyEncryptedToken)).toBe(true);
       expect(service.isCurrentFormat(legacyEncryptedToken)).toBe(false);
       expect(service.decrypt(legacyEncryptedToken)).toBe(token);
+    });
+
+    it('should migrate a legacy key file to the new default path', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slack-cli-key-migration-'));
+      const newKeyFilePath = path.join(tempDir, 'secrets', 'master.key');
+      const legacyKeyFilePath = path.join(tempDir, 'config', 'master.key');
+
+      delete process.env.SLACK_CLI_MASTER_KEY;
+
+      const legacyKeyHex = crypto.randomBytes(32).toString('hex');
+      fs.mkdirSync(path.dirname(legacyKeyFilePath), { recursive: true });
+      fs.writeFileSync(legacyKeyFilePath, `${legacyKeyHex}\n`, { encoding: 'utf-8', mode: 0o600 });
+
+      const migratedService = new TokenCryptoService({
+        keyFilePath: newKeyFilePath,
+        legacyKeyFilePath,
+      });
+
+      const encrypted = migratedService.encrypt('migrated-token');
+
+      expect(fs.readFileSync(newKeyFilePath, 'utf-8').trim()).toBe(legacyKeyHex);
+      expect(fs.readFileSync(legacyKeyFilePath, 'utf-8').trim()).toBe(legacyKeyHex);
+      expect(migratedService.decrypt(encrypted)).toBe('migrated-token');
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it('should create a new key in the new default path when no legacy key exists', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slack-cli-key-create-'));
+      const newKeyFilePath = path.join(tempDir, 'secrets', 'master.key');
+      const legacyKeyFilePath = path.join(tempDir, 'config', 'master.key');
+
+      delete process.env.SLACK_CLI_MASTER_KEY;
+
+      const fileKeyService = new TokenCryptoService({
+        keyFilePath: newKeyFilePath,
+        legacyKeyFilePath,
+      });
+
+      const encrypted = fileKeyService.encrypt('fresh-token');
+
+      expect(fs.existsSync(newKeyFilePath)).toBe(true);
+      expect(fs.existsSync(legacyKeyFilePath)).toBe(false);
+      expect(fileKeyService.decrypt(encrypted)).toBe('fresh-token');
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
   });
 

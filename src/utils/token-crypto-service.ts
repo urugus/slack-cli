@@ -8,6 +8,7 @@ import { ConfigurationError, ValidationError } from './errors';
 export interface TokenCryptoServiceOptions {
   masterKey?: string;
   keyFilePath?: string;
+  legacyKeyFilePath?: string;
 }
 
 export class TokenCryptoService {
@@ -22,16 +23,22 @@ export class TokenCryptoService {
   private readonly masterKeySalt = 'slack-cli-master-key-salt-v2';
   private readonly masterKeyIterations = 100000;
   private readonly keyFilePath?: string;
+  private readonly legacyKeyFilePath?: string;
   private readonly injectedMasterKey?: string;
   private cachedMasterKey: Buffer | null = null;
 
   constructor(options: TokenCryptoServiceOptions = {}) {
     this.injectedMasterKey = options.masterKey;
     this.keyFilePath = options.keyFilePath;
+    this.legacyKeyFilePath = options.legacyKeyFilePath;
   }
 
   private getKeyFilePath(): string {
-    return this.keyFilePath || path.join(os.homedir(), '.slack-cli', 'master.key');
+    return this.keyFilePath || path.join(os.homedir(), '.slack-cli-secrets', 'master.key');
+  }
+
+  private getLegacyKeyFilePath(): string {
+    return this.legacyKeyFilePath || path.join(os.homedir(), '.slack-cli', 'master.key');
   }
 
   private deriveLegacyKey(): Buffer {
@@ -58,30 +65,53 @@ export class TokenCryptoService {
     return Buffer.from(keyHex, 'hex');
   }
 
-  private readKeyFromFile(): Buffer {
-    const keyData = fs.readFileSync(this.getKeyFilePath(), 'utf-8');
+  private readKeyFromFile(filePath: string): Buffer {
+    const keyData = fs.readFileSync(filePath, 'utf-8');
     return this.parseFileKey(keyData);
+  }
+
+  private writeKeyFile(keyFilePath: string, keyHex: string): Buffer {
+    const keyDir = path.dirname(keyFilePath);
+    fs.mkdirSync(keyDir, { recursive: true, mode: FILE_PERMISSIONS.CONFIG_DIR });
+    const keyBuffer = Buffer.from(keyHex, 'hex');
+
+    fs.writeFileSync(keyFilePath, `${keyHex}\n`, {
+      encoding: 'utf-8',
+      mode: FILE_PERMISSIONS.CONFIG_FILE,
+      flag: 'wx',
+    });
+
+    return keyBuffer;
   }
 
   private createKeyFile(): Buffer {
     const keyFilePath = this.getKeyFilePath();
-    const configDir = path.dirname(keyFilePath);
-    fs.mkdirSync(configDir, { recursive: true, mode: FILE_PERMISSIONS.CONFIG_DIR });
-
     const keyHex = crypto.randomBytes(this.keyLength).toString('hex');
     try {
-      fs.writeFileSync(keyFilePath, `${keyHex}\n`, {
-        encoding: 'utf-8',
-        mode: FILE_PERMISSIONS.CONFIG_FILE,
-        flag: 'wx',
-      });
-      return Buffer.from(keyHex, 'hex');
+      return this.writeKeyFile(keyFilePath, keyHex);
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'EEXIST') {
-        return this.readKeyFromFile();
+        return this.readKeyFromFile(keyFilePath);
       }
       throw new ConfigurationError('Failed to initialize token encryption key');
     }
+  }
+
+  private migrateLegacyKeyFile(): Buffer {
+    const legacyKeyFilePath = this.getLegacyKeyFilePath();
+    const keyFilePath = this.getKeyFilePath();
+    const legacyKey = this.readKeyFromFile(legacyKeyFilePath);
+    const legacyKeyHex = legacyKey.toString('hex');
+
+    try {
+      this.writeKeyFile(keyFilePath, legacyKeyHex);
+    } catch (error: unknown) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'EEXIST') {
+        throw new ConfigurationError('Failed to migrate token encryption key');
+      }
+    }
+
+    return this.readKeyFromFile(keyFilePath);
   }
 
   private getMasterKey(): Buffer {
@@ -101,10 +131,25 @@ export class TokenCryptoService {
     }
 
     try {
-      this.cachedMasterKey = this.readKeyFromFile();
+      this.cachedMasterKey = this.readKeyFromFile(this.getKeyFilePath());
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-        this.cachedMasterKey = this.createKeyFile();
+        try {
+          this.cachedMasterKey = this.migrateLegacyKeyFile();
+        } catch (legacyError: unknown) {
+          if (
+            legacyError &&
+            typeof legacyError === 'object' &&
+            'code' in legacyError &&
+            legacyError.code === 'ENOENT'
+          ) {
+            this.cachedMasterKey = this.createKeyFile();
+          } else if (legacyError instanceof ConfigurationError) {
+            throw legacyError;
+          } else {
+            throw new ConfigurationError('Failed to migrate token encryption key');
+          }
+        }
       } else if (error instanceof ConfigurationError) {
         throw error;
       } else {

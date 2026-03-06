@@ -11,6 +11,7 @@ describe('profile config command', () => {
   let program: any;
   let mockConfigManager: ProfileConfigManager;
   let mockConsole: any;
+  const originalEnvToken = process.env.SLACK_CLI_TOKEN;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,6 +27,11 @@ describe('profile config command', () => {
   });
 
   afterEach(() => {
+    if (originalEnvToken === undefined) {
+      delete process.env.SLACK_CLI_TOKEN;
+    } else {
+      process.env.SLACK_CLI_TOKEN = originalEnvToken;
+    }
     restoreMocks();
   });
 
@@ -47,6 +53,17 @@ describe('profile config command', () => {
 
       expect(mockConfigManager.setToken).toHaveBeenCalledWith('test-token-123', undefined);
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Token saved successfully for profile "default"'));
+    });
+
+    it('should use token from SLACK_CLI_TOKEN when no token option is provided', async () => {
+      process.env.SLACK_CLI_TOKEN = 'token-from-env';
+      vi.mocked(mockConfigManager.setToken).mockResolvedValue(undefined);
+      vi.mocked(mockConfigManager.getCurrentProfile).mockResolvedValue('default');
+
+      await program.parseAsync(['node', 'slack-cli', 'config', 'set']);
+
+      expect(mockConfigManager.setToken).toHaveBeenCalledWith('token-from-env', undefined);
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.TOKEN_SAVED('default')));
     });
   });
 

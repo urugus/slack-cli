@@ -44,18 +44,20 @@ export class ProfileConfigManager {
       return null;
     }
 
-    // Re-encrypt plaintext tokens and persist to disk
-    if (!this.cryptoService.isEncrypted(config.token)) {
+    const decryptedToken = this.decryptToken(config.token);
+
+    // Re-encrypt legacy or plaintext tokens and persist to disk.
+    if (!this.cryptoService.isCurrentFormat(config.token)) {
       store.profiles[profileName] = {
         ...config,
-        token: this.cryptoService.encrypt(config.token),
+        token: this.cryptoService.encrypt(decryptedToken),
       };
       await this.saveConfigStore(store);
     }
 
     return {
       ...config,
-      token: this.decryptToken(config.token),
+      token: decryptedToken,
     };
   }
 
@@ -154,9 +156,10 @@ export class ProfileConfigManager {
 
   private async migrateOldConfig(oldData: unknown): Promise<ConfigStore> {
     const data = oldData as { token: string; updatedAt: string };
-    const encryptedToken = this.cryptoService.isEncrypted(data.token)
-      ? data.token
-      : this.cryptoService.encrypt(data.token);
+    const plainToken = this.cryptoService.isEncrypted(data.token)
+      ? this.cryptoService.decrypt(data.token)
+      : data.token;
+    const encryptedToken = this.cryptoService.encrypt(plainToken);
 
     const migratedConfig: Config = {
       token: encryptedToken,
@@ -175,9 +178,22 @@ export class ProfileConfigManager {
 
   private async saveConfigStore(store: ConfigStore): Promise<void> {
     const configDir = path.dirname(this.configPath);
-    await fs.mkdir(configDir, { recursive: true });
+    await fs.mkdir(configDir, { recursive: true, mode: FILE_PERMISSIONS.CONFIG_DIR });
 
-    await fs.writeFile(this.configPath, JSON.stringify(store, null, 2));
-    await fs.chmod(this.configPath, FILE_PERMISSIONS.CONFIG_FILE);
+    const tempPath = `${this.configPath}.${process.pid}.${Date.now()}.tmp`;
+    const payload = JSON.stringify(store, null, 2);
+
+    await fs.writeFile(tempPath, payload, {
+      encoding: 'utf-8',
+      mode: FILE_PERMISSIONS.CONFIG_FILE,
+      flag: 'wx',
+    });
+
+    try {
+      await fs.rename(tempPath, this.configPath);
+    } catch (error) {
+      await fs.unlink(tempPath).catch(() => undefined);
+      throw error;
+    }
   }
 }

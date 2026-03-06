@@ -1,12 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
 import { ConfigurationError, ValidationError } from '../../src/utils/errors';
 
 describe('TokenCryptoService', () => {
   let service: TokenCryptoService;
+  const originalMasterKey = process.env.SLACK_CLI_MASTER_KEY;
 
   beforeEach(() => {
+    process.env.SLACK_CLI_MASTER_KEY = 'unit-test-master-key';
     service = new TokenCryptoService();
+  });
+
+  afterEach(() => {
+    if (originalMasterKey === undefined) {
+      delete process.env.SLACK_CLI_MASTER_KEY;
+    } else {
+      process.env.SLACK_CLI_MASTER_KEY = originalMasterKey;
+    }
   });
 
   describe('encrypt and decrypt', () => {
@@ -97,21 +107,23 @@ describe('TokenCryptoService', () => {
     });
 
     it('should throw ValidationError for invalid IV length', () => {
-      // Valid hex but too short for IV (needs 32 hex chars = 16 bytes)
+      // Invalid v2 format: IV is too short.
       try {
-        service.decrypt('aabb:ccdd');
+        service.decrypt('v2:aabb:ccdd:eeff');
         expect.unreachable('should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(ValidationError);
-        expect((error as ValidationError).message).toBe('Invalid IV length');
+        expect((error as ValidationError).message).toBe('Invalid encrypted data format');
       }
     });
 
     it('should throw ConfigurationError for crypto decryption failure', () => {
-      // Valid format (32 hex chars IV + encrypted data) but invalid encrypted content
-      const fakeIv = 'a'.repeat(32);
+      // Valid v2 structure but invalid auth tag/ciphertext combination.
+      const fakeIv = 'a'.repeat(24);
+      const fakeCipher = '00';
+      const fakeTag = 'b'.repeat(32);
       try {
-        service.decrypt(`${fakeIv}:invalidencrypteddata`);
+        service.decrypt(`v2:${fakeIv}:${fakeCipher}:${fakeTag}`);
         expect.unreachable('should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(ConfigurationError);

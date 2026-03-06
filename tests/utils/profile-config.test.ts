@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -11,13 +11,24 @@ vi.mock('os');
 
 describe('ProfileConfigManager', () => {
   let configManager: ProfileConfigManager;
+  let cryptoService: TokenCryptoService;
   const mockConfigPath = '/home/user/.slack-cli/config.json';
-  const cryptoService = new TokenCryptoService();
+  const originalMasterKey = process.env.SLACK_CLI_MASTER_KEY;
 
   beforeEach(() => {
     vi.resetAllMocks();
+    process.env.SLACK_CLI_MASTER_KEY = 'unit-test-master-key';
     vi.mocked(os.homedir).mockReturnValue('/home/user');
+    cryptoService = new TokenCryptoService();
     configManager = new ProfileConfigManager();
+  });
+
+  afterEach(() => {
+    if (originalMasterKey === undefined) {
+      delete process.env.SLACK_CLI_MASTER_KEY;
+    } else {
+      process.env.SLACK_CLI_MASTER_KEY = originalMasterKey;
+    }
   });
 
   describe('setToken', () => {
@@ -30,8 +41,13 @@ describe('ProfileConfigManager', () => {
       await configManager.setToken('test-token');
 
       expect(fs.writeFile).toHaveBeenCalledWith(
-        mockConfigPath,
+        expect.stringMatching(/^\/home\/user\/\.slack-cli\/config\.json\.\d+\.\d+\.tmp$/),
         expect.stringContaining('"default"'),
+        expect.objectContaining({ mode: 0o600, flag: 'wx' }),
+      );
+      expect(fs.rename).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/home\/user\/\.slack-cli\/config\.json\.\d+\.\d+\.tmp$/),
+        mockConfigPath,
       );
     });
 

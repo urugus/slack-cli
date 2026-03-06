@@ -1,5 +1,6 @@
 import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { ChannelInfo } from '../channel-formatter';
+import { sanitizeTerminalText } from '../terminal-sanitizer';
 
 export interface ChannelsListFormatterOptions {
   channels: ChannelInfo[];
@@ -13,12 +14,14 @@ class ChannelsTableFormatter extends AbstractFormatter<ChannelsListFormatterOpti
 
     // Print channel rows
     channels.forEach((channel) => {
-      const name = channel.name.padEnd(17);
+      const safeName = sanitizeTerminalText(channel.name);
+      const safePurpose = sanitizeTerminalText(channel.purpose);
+      const name = safeName.padEnd(17);
       const type = channel.type.padEnd(9);
       const members = channel.members.toString().padEnd(8);
       const created = channel.created.padEnd(12);
       const purpose =
-        channel.purpose.length > 30 ? channel.purpose.substring(0, 27) + '...' : channel.purpose;
+        safePurpose.length > 30 ? safePurpose.substring(0, 27) + '...' : safePurpose;
 
       console.log(`${name} ${type} ${members} ${created} ${purpose}`);
     });
@@ -27,7 +30,7 @@ class ChannelsTableFormatter extends AbstractFormatter<ChannelsListFormatterOpti
 
 class ChannelsSimpleFormatter extends AbstractFormatter<ChannelsListFormatterOptions> {
   format({ channels }: ChannelsListFormatterOptions): void {
-    channels.forEach((channel) => console.log(channel.name));
+    channels.forEach((channel) => console.log(sanitizeTerminalText(channel.name)));
   }
 }
 

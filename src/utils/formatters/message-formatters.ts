@@ -4,6 +4,7 @@ import { formatSlackTimestamp } from '../date-utils';
 import { formatMessageWithMentions } from '../format-utils';
 import { formatChannelName } from '../channel-formatter';
 import { Channel, Message } from '../slack-api-client';
+import { sanitizeTerminalText } from '../terminal-sanitizer';
 
 export interface MessageFormatterOptions {
   channel: Channel;
@@ -24,7 +25,9 @@ class TableMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
       console.log('');
       messages.forEach((message) => {
         const timestamp = formatSlackTimestamp(message.ts);
-        const author = message.user ? users.get(message.user) || message.user : 'unknown';
+        const author = sanitizeTerminalText(
+          message.user ? users.get(message.user) || message.user : 'unknown'
+        );
         console.log(`${chalk.gray(timestamp)} ${chalk.cyan(author)}`);
         const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
         console.log(text);
@@ -44,7 +47,9 @@ class SimpleMessageFormatter extends AbstractFormatter<MessageFormatterOptions> 
     if (!countOnly && messages.length > 0) {
       messages.forEach((message) => {
         const timestamp = formatSlackTimestamp(message.ts);
-        const author = message.user ? users.get(message.user) || message.user : 'unknown';
+        const author = sanitizeTerminalText(
+          message.user ? users.get(message.user) || message.user : 'unknown'
+        );
         const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
         console.log(`[${timestamp}] ${author}: ${text}`);
       });

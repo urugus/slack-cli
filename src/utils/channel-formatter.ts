@@ -1,5 +1,6 @@
 import { Channel } from './slack-api-client';
 import { formatUnixTimestamp } from './date-utils';
+import { sanitizeTerminalText } from './terminal-sanitizer';
 
 export interface ChannelInfo {
   id: string;
@@ -19,17 +20,18 @@ export function mapChannelToInfo(channel: Channel): ChannelInfo {
 
   return {
     id: channel.id,
-    name: channel.name || 'unnamed',
+    name: sanitizeTerminalText(channel.name || 'unnamed'),
     type,
     members: channel.num_members || 0,
     created: formatUnixTimestamp(channel.created),
-    purpose: channel.purpose?.value || '',
+    purpose: sanitizeTerminalText(channel.purpose?.value || ''),
   };
 }
 
 export function formatChannelName(channelName?: string): string {
   if (!channelName) return '#unknown';
-  return channelName.startsWith('#') ? channelName : `#${channelName}`;
+  const sanitizedChannelName = sanitizeTerminalText(channelName);
+  return sanitizedChannelName.startsWith('#') ? sanitizedChannelName : `#${sanitizedChannelName}`;
 }
 
 export function getChannelTypes(type: string): string {

@@ -13,8 +13,17 @@ npm install -g @urugus/slack-cli
 You need to configure your Slack API token on first use:
 
 ```bash
-slack-cli config set --token YOUR_SLACK_API_TOKEN
+# Interactive secure prompt (recommended)
+slack-cli config set
+
+# Non-interactive (CI/scripts)
+printf '%s\n' "$SLACK_API_TOKEN" | slack-cli config set --token-stdin
 ```
+
+Token storage security:
+- Tokens are encrypted with AES-256-GCM before being written to disk.
+- A local master key is created at `~/.slack-cli/master.key` with owner-only permissions.
+- For ephemeral environments, you can supply `SLACK_CLI_MASTER_KEY` to override the local key.
 
 ## Usage
 
@@ -22,8 +31,8 @@ slack-cli config set --token YOUR_SLACK_API_TOKEN
 
 ```bash
 # Set tokens for different workspaces
-slack-cli config set --profile work --token xoxb-work-token
-slack-cli config set --profile personal --token xoxb-personal-token
+printf '%s\n' "$WORK_SLACK_TOKEN" | slack-cli config set --profile work --token-stdin
+printf '%s\n' "$PERSONAL_SLACK_TOKEN" | slack-cli config set --profile personal --token-stdin
 
 # Show all profiles
 slack-cli config profiles
@@ -346,7 +355,7 @@ slack-cli --version
 slack-cli config get
 
 # Update token for default profile
-slack-cli config set --token NEW_TOKEN
+printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 ```
 
 ## Options

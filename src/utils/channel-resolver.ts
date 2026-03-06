@@ -1,5 +1,6 @@
 import { Channel } from './slack-api-client';
 import { ApiError } from './errors';
+import { sanitizeTerminalText } from './terminal-sanitizer';
 
 export type GetChannelsFunction = () => Promise<Channel[]>;
 
@@ -43,14 +44,16 @@ export class ChannelResolver {
    */
   resolveChannelError(channelName: string, channels: Channel[]): ApiError {
     const similarChannels = this.getSimilarChannels(channelName, channels);
+    const sanitizedChannelName = sanitizeTerminalText(channelName);
 
     if (similarChannels.length > 0) {
+      const sanitizedSuggestions = similarChannels.map((name) => sanitizeTerminalText(name));
       return new ApiError(
-        `Channel '${channelName}' not found. Did you mean one of these? ${similarChannels.join(', ')}`
+        `Channel '${sanitizedChannelName}' not found. Did you mean one of these? ${sanitizedSuggestions.join(', ')}`
       );
     } else {
       return new ApiError(
-        `Channel '${channelName}' not found. Make sure you are a member of this channel.`
+        `Channel '${sanitizedChannelName}' not found. Make sure you are a member of this channel.`
       );
     }
   }

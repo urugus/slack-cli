@@ -55,7 +55,7 @@ class ReminderSimpleFormatter extends AbstractFormatter<ReminderFormatterOptions
       const time = formatTime(reminder.time);
       const status = getStatus(reminder.complete_ts);
       console.log(
-        `${sanitizeTerminalText(reminder.id)}\t${sanitizeTerminalText(reminder.text)}\t${time}\t${status}`
+        `${sanitizeTerminalText(reminder.id || '')}\t${sanitizeTerminalText(reminder.text || '')}\t${time}\t${status}`
       );
     });
   }

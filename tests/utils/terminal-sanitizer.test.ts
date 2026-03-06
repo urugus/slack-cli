@@ -7,9 +7,9 @@ describe('terminal-sanitizer', () => {
     expect(sanitizeTerminalText(input)).toBe('[31mhello[0m');
   });
 
-  it('keeps tab and newline for readability', () => {
+  it('keeps tab and newline for readability while removing carriage returns', () => {
     const input = 'line1\nline2\tvalue\r\n';
-    expect(sanitizeTerminalText(input)).toBe(input);
+    expect(sanitizeTerminalText(input)).toBe('line1\nline2\tvalue\n');
   });
 
   it('sanitizes nested arrays and objects recursively', () => {
@@ -24,5 +24,11 @@ describe('terminal-sanitizer', () => {
       items: [{ text: '[31mwarning[0m' }, 'safe'],
       count: 2,
     });
+  });
+
+  it('preserves non-plain objects', () => {
+    const date = new Date('2026-03-06T00:00:00.000Z');
+
+    expect(sanitizeTerminalData({ createdAt: date })).toEqual({ createdAt: date });
   });
 });

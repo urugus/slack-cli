@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { ChannelDetail } from '../slack-api-client';
+import { sanitizeTerminalText } from '../terminal-sanitizer';
 
 export interface ChannelInfoFormatterOptions {
   channel: ChannelDetail;
@@ -9,11 +10,14 @@ export interface ChannelInfoFormatterOptions {
 class TableChannelInfoFormatter extends AbstractFormatter<ChannelInfoFormatterOptions> {
   format(options: ChannelInfoFormatterOptions): void {
     const { channel } = options;
+    const name = sanitizeTerminalText(channel.name);
+    const topic = sanitizeTerminalText(channel.topic?.value || '(not set)');
+    const purpose = sanitizeTerminalText(channel.purpose?.value || '(not set)');
 
-    console.log(chalk.bold(`\nChannel Info: #${channel.name}`));
+    console.log(chalk.bold(`\nChannel Info: #${name}`));
     console.log('');
     console.log(`  ${chalk.gray('ID:')}       ${channel.id}`);
-    console.log(`  ${chalk.gray('Name:')}     ${channel.name}`);
+    console.log(`  ${chalk.gray('Name:')}     ${name}`);
     console.log(`  ${chalk.gray('Private:')}  ${channel.is_private ? 'Yes' : 'No'}`);
     console.log(`  ${chalk.gray('Archived:')} ${channel.is_archived ? 'Yes' : 'No'}`);
     if (channel.num_members !== undefined) {
@@ -23,8 +27,8 @@ class TableChannelInfoFormatter extends AbstractFormatter<ChannelInfoFormatterOp
       `  ${chalk.gray('Created:')}  ${new Date(channel.created * 1000).toLocaleDateString()}`
     );
     console.log('');
-    console.log(`  ${chalk.gray('Topic:')}    ${channel.topic?.value || '(not set)'}`);
-    console.log(`  ${chalk.gray('Purpose:')}  ${channel.purpose?.value || '(not set)'}`);
+    console.log(`  ${chalk.gray('Topic:')}    ${topic}`);
+    console.log(`  ${chalk.gray('Purpose:')}  ${purpose}`);
     console.log('');
   }
 }
@@ -32,10 +36,13 @@ class TableChannelInfoFormatter extends AbstractFormatter<ChannelInfoFormatterOp
 class SimpleChannelInfoFormatter extends AbstractFormatter<ChannelInfoFormatterOptions> {
   format(options: ChannelInfoFormatterOptions): void {
     const { channel } = options;
+    const name = sanitizeTerminalText(channel.name);
+    const topic = sanitizeTerminalText(channel.topic?.value || '(not set)');
+    const purpose = sanitizeTerminalText(channel.purpose?.value || '(not set)');
 
-    console.log(`${channel.name} (${channel.id})`);
-    console.log(`Topic: ${channel.topic?.value || '(not set)'}`);
-    console.log(`Purpose: ${channel.purpose?.value || '(not set)'}`);
+    console.log(`${name} (${channel.id})`);
+    console.log(`Topic: ${topic}`);
+    console.log(`Purpose: ${purpose}`);
     if (channel.num_members !== undefined) {
       console.log(`Members: ${channel.num_members}`);
     }

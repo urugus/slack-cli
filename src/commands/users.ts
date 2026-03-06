@@ -10,13 +10,14 @@ import {
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
 import { SlackUser, UserPresence } from '../utils/slack-api-client';
+import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
 
 function renderUserTable(users: SlackUser[]) {
   const rows = users.map((user) => ({
-    id: user.id || '',
-    name: user.name || '',
-    real_name: user.real_name || '',
-    email: user.profile?.email || '',
+    id: sanitizeTerminalText(user.id || ''),
+    name: sanitizeTerminalText(user.name || ''),
+    real_name: sanitizeTerminalText(user.real_name || ''),
+    email: sanitizeTerminalText(user.profile?.email || ''),
     is_bot: user.is_bot ? 'Yes' : 'No',
     deleted: user.deleted ? 'Yes' : 'No',
   }));
@@ -26,21 +27,31 @@ function renderUserTable(users: SlackUser[]) {
 
 function renderUserSimple(users: SlackUser[]) {
   for (const user of users) {
-    const email = user.profile?.email ? ` <${user.profile.email}>` : '';
-    console.log(`${user.id || ''}\t${user.name || ''}\t${user.real_name || ''}${email}`);
+    const email = user.profile?.email ? ` <${sanitizeTerminalText(user.profile.email)}>` : '';
+    console.log(
+      `${sanitizeTerminalText(user.id || '')}\t${sanitizeTerminalText(
+        user.name || ''
+      )}\t${sanitizeTerminalText(user.real_name || '')}${email}`
+    );
   }
 }
 
 function renderUserInfo(user: SlackUser) {
-  console.log(`ID:           ${user.id || ''}`);
-  console.log(`Name:         ${user.name || ''}`);
-  console.log(`Real Name:    ${user.real_name || ''}`);
-  console.log(`Display Name: ${user.profile?.display_name || ''}`);
-  console.log(`Email:        ${user.profile?.email || ''}`);
-  console.log(`Title:        ${user.profile?.title || ''}`);
-  console.log(`Timezone:     ${user.tz || ''} (${user.tz_label || ''})`);
+  console.log(`ID:           ${sanitizeTerminalText(user.id || '')}`);
+  console.log(`Name:         ${sanitizeTerminalText(user.name || '')}`);
+  console.log(`Real Name:    ${sanitizeTerminalText(user.real_name || '')}`);
+  console.log(`Display Name: ${sanitizeTerminalText(user.profile?.display_name || '')}`);
+  console.log(`Email:        ${sanitizeTerminalText(user.profile?.email || '')}`);
+  console.log(`Title:        ${sanitizeTerminalText(user.profile?.title || '')}`);
   console.log(
-    `Status:       ${user.profile?.status_emoji || ''} ${user.profile?.status_text || ''}`
+    `Timezone:     ${sanitizeTerminalText(user.tz || '')} (${sanitizeTerminalText(
+      user.tz_label || ''
+    )})`
+  );
+  console.log(
+    `Status:       ${sanitizeTerminalText(user.profile?.status_emoji || '')} ${sanitizeTerminalText(
+      user.profile?.status_text || ''
+    )}`
   );
   console.log(`Admin:        ${user.is_admin ? 'Yes' : 'No'}`);
   console.log(`Bot:          ${user.is_bot ? 'Yes' : 'No'}`);
@@ -58,7 +69,7 @@ function renderPresenceTable(userId: string, presence: UserPresence) {
 }
 
 function renderPresenceSimple(userId: string, presence: UserPresence) {
-  console.log(`${userId}\t${presence.presence}`);
+  console.log(`${sanitizeTerminalText(userId)}\t${sanitizeTerminalText(presence.presence)}`);
 }
 
 export function setupUsersCommand(): Command {

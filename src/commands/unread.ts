@@ -8,6 +8,7 @@ import { createChannelFormatter } from '../utils/formatters/channel-formatters';
 import { createMessageFormatter } from '../utils/formatters/message-formatters';
 import { DEFAULTS } from '../utils/constants';
 import { parseLimit, parseFormat, parseBoolean } from '../utils/option-parsers';
+import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
 
 async function fetchChannelUnreadData(client: SlackApiClient, channelName: string) {
   return await client.getChannelUnread(channelName);
@@ -30,7 +31,9 @@ function formatChannelUnreadOutput(
 
 async function markChannelAsRead(client: SlackApiClient, channel: Channel): Promise<void> {
   await client.markAsRead(channel.id);
-  console.log(chalk.green(`✓ Marked messages in #${channel.name} as read`));
+  console.log(
+    chalk.green(`✓ Marked messages in #${sanitizeTerminalText(channel.name || '')} as read`)
+  );
 }
 
 async function handleSpecificChannelUnread(

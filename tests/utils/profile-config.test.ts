@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as crypto from 'crypto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -11,13 +12,24 @@ vi.mock('os');
 
 describe('ProfileConfigManager', () => {
   let configManager: ProfileConfigManager;
+  let cryptoService: TokenCryptoService;
   const mockConfigPath = '/home/user/.slack-cli/config.json';
-  const cryptoService = new TokenCryptoService();
+  const originalMasterKey = process.env.SLACK_CLI_MASTER_KEY;
 
   beforeEach(() => {
     vi.resetAllMocks();
+    process.env.SLACK_CLI_MASTER_KEY = 'unit-test-master-key';
     vi.mocked(os.homedir).mockReturnValue('/home/user');
+    cryptoService = new TokenCryptoService();
     configManager = new ProfileConfigManager();
+  });
+
+  afterEach(() => {
+    if (originalMasterKey === undefined) {
+      delete process.env.SLACK_CLI_MASTER_KEY;
+    } else {
+      process.env.SLACK_CLI_MASTER_KEY = originalMasterKey;
+    }
   });
 
   describe('setToken', () => {
@@ -30,8 +42,13 @@ describe('ProfileConfigManager', () => {
       await configManager.setToken('test-token');
 
       expect(fs.writeFile).toHaveBeenCalledWith(
-        mockConfigPath,
+        expect.stringMatching(/^\/home\/user\/\.slack-cli\/config\.json\.\d+\.\d+\.tmp$/),
         expect.stringContaining('"default"'),
+        expect.objectContaining({ mode: 0o600, flag: 'wx' }),
+      );
+      expect(fs.rename).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/home\/user\/\.slack-cli\/config\.json\.\d+\.\d+\.tmp$/),
+        mockConfigPath,
       );
     });
 
@@ -200,6 +217,42 @@ describe('ProfileConfigManager', () => {
       expect(storedToken).not.toBe('xoxb-legacy-plaintext-token');
       expect(cryptoService.isEncrypted(storedToken)).toBe(true);
       expect(cryptoService.decrypt(storedToken)).toBe('xoxb-legacy-plaintext-token');
+    });
+
+    it('should re-encrypt legacy encrypted token and persist current format on read', async () => {
+      const plainToken = 'legacy-cbc-token';
+      const fixedSalt = 'slack-cli-salt-v1';
+      const legacyKey = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv('aes-256-cbc', legacyKey, iv);
+      let encrypted = cipher.update(plainToken, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      const legacyEncryptedToken = `${iv.toString('hex')}:${encrypted}`;
+
+      const mockStore = {
+        profiles: {
+          default: {
+            token: legacyEncryptedToken,
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        },
+        defaultProfile: 'default',
+      };
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(mockStore));
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue();
+
+      const config = await configManager.getConfig();
+
+      expect(config).not.toBeNull();
+      expect(config!.token).toBe(plainToken);
+      expect(fs.writeFile).toHaveBeenCalled();
+
+      const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+      const savedData = JSON.parse(writeCall[1] as string);
+      const storedToken = savedData.profiles.default.token;
+      expect(cryptoService.isCurrentFormat(storedToken)).toBe(true);
+      expect(cryptoService.decrypt(storedToken)).toBe(plainToken);
     });
 
     it('should not re-write store when token is already encrypted', async () => {

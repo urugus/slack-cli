@@ -4,6 +4,7 @@ import { ProfileConfigManager } from '../../src/utils/profile-config';
 import type { Config, Profile } from '../../src/types/config';
 import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
 import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '../../src/utils/constants';
+import { Readable } from 'stream';
 
 vi.mock('../../src/utils/profile-config');
 
@@ -11,6 +12,7 @@ describe('profile config command', () => {
   let program: any;
   let mockConfigManager: ProfileConfigManager;
   let mockConsole: any;
+  const originalEnvToken = process.env.SLACK_CLI_TOKEN;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,6 +28,11 @@ describe('profile config command', () => {
   });
 
   afterEach(() => {
+    if (originalEnvToken === undefined) {
+      delete process.env.SLACK_CLI_TOKEN;
+    } else {
+      process.env.SLACK_CLI_TOKEN = originalEnvToken;
+    }
     restoreMocks();
   });
 
@@ -47,6 +54,45 @@ describe('profile config command', () => {
 
       expect(mockConfigManager.setToken).toHaveBeenCalledWith('test-token-123', undefined);
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Token saved successfully for profile "default"'));
+    });
+
+    it('should use token from SLACK_CLI_TOKEN when no token option is provided', async () => {
+      process.env.SLACK_CLI_TOKEN = 'token-from-env';
+      vi.mocked(mockConfigManager.setToken).mockResolvedValue(undefined);
+      vi.mocked(mockConfigManager.getCurrentProfile).mockResolvedValue('default');
+
+      await program.parseAsync(['node', 'slack-cli', 'config', 'set']);
+
+      expect(mockConfigManager.setToken).toHaveBeenCalledWith('token-from-env', undefined);
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(SUCCESS_MESSAGES.TOKEN_SAVED('default'))
+      );
+    });
+
+    it('should read token from stdin when --token-stdin is provided', async () => {
+      const stdinSpy = vi
+        .spyOn(process, 'stdin', 'get')
+        .mockReturnValue(Readable.from(['token-from-stdin\n']) as any);
+
+      vi.mocked(mockConfigManager.setToken).mockResolvedValue(undefined);
+      vi.mocked(mockConfigManager.getCurrentProfile).mockResolvedValue('default');
+
+      await program.parseAsync(['node', 'slack-cli', 'config', 'set', '--token-stdin']);
+
+      expect(mockConfigManager.setToken).toHaveBeenCalledWith('token-from-stdin', undefined);
+      stdinSpy.mockRestore();
+    });
+
+    it('should show error when interactive prompt is unavailable', async () => {
+      delete process.env.SLACK_CLI_TOKEN;
+
+      await program.parseAsync(['node', 'slack-cli', 'config', 'set']);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.stringContaining('No token provided.')
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
 

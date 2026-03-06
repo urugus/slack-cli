@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { SearchMatch } from '../slack-api-client';
 import { formatTimestampFixed } from '../date-utils';
+import { sanitizeTerminalText } from '../terminal-sanitizer';
 
 export interface SearchFormatterOptions {
   query: string;
@@ -28,14 +29,17 @@ class TableSearchFormatter extends AbstractFormatter<SearchFormatterOptions> {
 
     console.log('');
     matches.forEach((match) => {
-      const channel = match.channel.name ? `#${match.channel.name}` : match.channel.id || 'unknown';
-      const username = match.username || match.user || 'Unknown';
+      const channel = match.channel.name
+        ? `#${sanitizeTerminalText(match.channel.name)}`
+        : sanitizeTerminalText(match.channel.id || 'unknown');
+      const username = sanitizeTerminalText(match.username || match.user || 'Unknown');
       const timestamp = match.ts ? formatTimestampFixed(match.ts) : '';
+      const text = sanitizeTerminalText(match.text || '(no text)');
 
       console.log(`${chalk.gray(`[${timestamp}]`)} ${chalk.blue(channel)} ${chalk.cyan(username)}`);
-      console.log(match.text || '(no text)');
+      console.log(text);
       if (match.permalink) {
-        console.log(chalk.gray(match.permalink));
+        console.log(chalk.gray(sanitizeTerminalText(match.permalink)));
       }
       console.log('');
     });
@@ -54,10 +58,12 @@ class SimpleSearchFormatter extends AbstractFormatter<SearchFormatterOptions> {
     }
 
     matches.forEach((match) => {
-      const channel = match.channel.name ? `#${match.channel.name}` : match.channel.id || 'unknown';
-      const username = match.username || match.user || 'Unknown';
+      const channel = match.channel.name
+        ? `#${sanitizeTerminalText(match.channel.name)}`
+        : sanitizeTerminalText(match.channel.id || 'unknown');
+      const username = sanitizeTerminalText(match.username || match.user || 'Unknown');
       const timestamp = match.ts ? formatTimestampFixed(match.ts) : '';
-      const text = match.text || '(no text)';
+      const text = sanitizeTerminalText(match.text || '(no text)');
       console.log(`[${channel}] ${username} (${timestamp}): ${text}`);
     });
 

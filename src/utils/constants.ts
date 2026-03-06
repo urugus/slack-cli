@@ -45,6 +45,7 @@ export const SUCCESS_MESSAGES = {
 
 // File and system constants
 export const FILE_PERMISSIONS = {
+  CONFIG_DIR: 0o700, // Read/write/execute for owner only
   CONFIG_FILE: 0o600, // Read/write for owner only
 };
 

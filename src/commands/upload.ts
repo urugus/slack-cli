@@ -1,12 +1,12 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
+import { Command } from 'commander';
+import * as fs from 'fs/promises';
 import { UploadOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
+import { FileError } from '../utils/errors';
 import { parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
-import { FileError } from '../utils/errors';
-import * as fs from 'fs/promises';
 
 export function setupUploadCommand(): Command {
   const uploadCommand = new Command('upload')

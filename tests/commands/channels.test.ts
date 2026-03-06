@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupChannelsCommand } from '../../src/commands/channels';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
-import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
 import { ERROR_MESSAGES } from '../../src/utils/constants';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -16,7 +16,7 @@ describe('channels command', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
@@ -26,7 +26,7 @@ describe('channels command', () => {
     vi.mocked(SlackApiClient).mockImplementation(function () {
       return mockSlackClient;
     } as any);
-    
+
     mockConsole = setupMockConsole();
     program = createTestProgram();
     program.addCommand(setupChannelsCommand());
@@ -44,7 +44,7 @@ describe('channels command', () => {
       is_private: false,
       num_members: 250,
       created: 1579075200,
-      purpose: { value: 'Company announcements' }
+      purpose: { value: 'Company announcements' },
     },
     {
       id: 'C0987654321',
@@ -53,15 +53,15 @@ describe('channels command', () => {
       is_private: false,
       num_members: 145,
       created: 1579075200,
-      purpose: { value: 'Random discussions' }
-    }
+      purpose: { value: 'Random discussions' },
+    },
   ];
 
   describe('basic functionality', () => {
     it('should list public channels by default', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -70,7 +70,7 @@ describe('channels command', () => {
       expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
         types: 'public_channel',
         exclude_archived: true,
-        limit: 100
+        limit: 100,
       });
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('general'));
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('random'));
@@ -82,7 +82,10 @@ describe('channels command', () => {
 
       await program.parseAsync(['node', 'slack-cli', 'channels']);
 
-      expect(mockConsole.errorSpy).toHaveBeenCalledWith('✗ Error:', ERROR_MESSAGES.NO_CONFIG('default'));
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        '✗ Error:',
+        ERROR_MESSAGES.NO_CONFIG('default')
+      );
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
@@ -91,7 +94,7 @@ describe('channels command', () => {
     it('should list private channels when type is private', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -100,14 +103,14 @@ describe('channels command', () => {
       expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
         types: 'private_channel',
         exclude_archived: true,
-        limit: 100
+        limit: 100,
       });
     });
 
     it('should list all channel types when type is all', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -116,14 +119,14 @@ describe('channels command', () => {
       expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
         types: 'public_channel,private_channel,mpim,im',
         exclude_archived: true,
-        limit: 100
+        limit: 100,
       });
     });
 
     it('should list direct messages when type is im', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -132,7 +135,7 @@ describe('channels command', () => {
       expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
         types: 'im',
         exclude_archived: true,
-        limit: 100
+        limit: 100,
       });
     });
   });
@@ -141,7 +144,7 @@ describe('channels command', () => {
     it('should output in table format by default', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -155,7 +158,7 @@ describe('channels command', () => {
     it('should output in simple format when specified', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -168,7 +171,7 @@ describe('channels command', () => {
     it('should output in JSON format when specified', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -182,7 +185,7 @@ describe('channels command', () => {
     it('should include archived channels when flag is set', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -191,14 +194,14 @@ describe('channels command', () => {
       expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
         types: 'public_channel',
         exclude_archived: false,
-        limit: 100
+        limit: 100,
       });
     });
 
     it('should respect custom limit', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -207,14 +210,14 @@ describe('channels command', () => {
       expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
         types: 'public_channel',
         exclude_archived: true,
-        limit: 50
+        limit: 50,
       });
     });
 
     it('should use specified profile', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'work-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
 
@@ -229,7 +232,7 @@ describe('channels command', () => {
     it('should handle API errors gracefully', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockRejectedValue(new Error('API Error'));
 
@@ -242,7 +245,7 @@ describe('channels command', () => {
     it('should show message when no channels found', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       vi.mocked(mockSlackClient.listChannels).mockResolvedValue([]);
 

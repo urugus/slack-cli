@@ -59,7 +59,7 @@ jobs:
             修正手順:
             1. レビューコメントの内容を理解する
             2. 指摘事項に対応するコードを修正する
-            3. npm test / npm run lint / npm run format:check / npm run build を実行
+            3. npm test / npm run check / npm run build を実行
             4. すべてパスしたらコミット & プッシュ
             5. 対応したレビューコメントにリプライで修正内容を報告する
 

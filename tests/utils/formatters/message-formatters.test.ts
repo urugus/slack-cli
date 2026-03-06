@@ -1,12 +1,15 @@
-import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
-import { createMessageFormatter, MessageFormatterOptions } from '../../../src/utils/formatters/message-formatters';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createMessageFormatter,
+  MessageFormatterOptions,
+} from '../../../src/utils/formatters/message-formatters';
 import { Channel, Message } from '../../../src/utils/slack-api-client';
 
 describe('MessageFormatters', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -31,7 +34,9 @@ describe('MessageFormatters', () => {
     ...overrides,
   });
 
-  const createOptions = (overrides: Partial<MessageFormatterOptions> = {}): MessageFormatterOptions => ({
+  const createOptions = (
+    overrides: Partial<MessageFormatterOptions> = {}
+  ): MessageFormatterOptions => ({
     channel: createChannel(),
     messages: [createMessage()],
     users: new Map([['U123', 'testuser']]),
@@ -57,7 +62,10 @@ describe('MessageFormatters', () => {
       ];
       const options = createOptions({
         messages,
-        users: new Map([['U123', 'user1'], ['U456', 'user2']]),
+        users: new Map([
+          ['U123', 'user1'],
+          ['U456', 'user2'],
+        ]),
       });
 
       const formatter = createMessageFormatter('table');

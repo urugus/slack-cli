@@ -1,8 +1,8 @@
 import chalk from 'chalk';
-import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { formatTimestampFixed } from '../date-utils';
 import { formatMessageWithMentions, resolveUsername } from '../format-utils';
 import { Message as SlackMessage } from '../slack-api-client';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface HistoryFormatterOptions {
   channelName: string;

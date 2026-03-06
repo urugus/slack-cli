@@ -1,11 +1,11 @@
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
 import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
 import { DEFAULT_PROFILE_NAME, ERROR_MESSAGES, FILE_PERMISSIONS } from './constants';
-import { maskToken } from './token-utils';
-import { TokenCryptoService } from './token-crypto-service';
 import { ConfigurationError } from './errors';
+import { TokenCryptoService } from './token-crypto-service';
+import { maskToken } from './token-utils';
 
 export class ProfileConfigManager {
   private configPath: string;

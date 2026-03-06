@@ -1,13 +1,13 @@
 import { Command } from 'commander';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
 import {
   ChannelInfoOptions,
-  ChannelSetTopicOptions,
   ChannelSetPurposeOptions,
+  ChannelSetTopicOptions,
 } from '../types/commands';
-import { parseFormat, parseProfile } from '../utils/option-parsers';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
 import { createChannelInfoFormatter } from '../utils/formatters/channel-info-formatters';
+import { parseFormat, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 export function setupChannelCommand(): Command {

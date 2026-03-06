@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as crypto from 'crypto';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConfigurationError } from '../../src/utils/errors';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
-import { ConfigurationError } from '../../src/utils/errors';
 
 vi.mock('fs/promises');
 vi.mock('os');
@@ -44,11 +44,11 @@ describe('ProfileConfigManager', () => {
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringMatching(/^\/home\/user\/\.slack-cli\/config\.json\.\d+\.\d+\.tmp$/),
         expect.stringContaining('"default"'),
-        expect.objectContaining({ mode: 0o600, flag: 'wx' }),
+        expect.objectContaining({ mode: 0o600, flag: 'wx' })
       );
       expect(fs.rename).toHaveBeenCalledWith(
         expect.stringMatching(/^\/home\/user\/\.slack-cli\/config\.json\.\d+\.\d+\.tmp$/),
-        mockConfigPath,
+        mockConfigPath
       );
     });
 
@@ -358,7 +358,7 @@ describe('ProfileConfigManager', () => {
       vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(mockStore));
 
       await expect(configManager.useProfile('nonexistent')).rejects.toThrow(
-        'Profile "nonexistent" does not exist',
+        'Profile "nonexistent" does not exist'
       );
     });
 

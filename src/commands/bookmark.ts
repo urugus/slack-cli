@@ -1,11 +1,11 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
+import { Command } from 'commander';
 import { BookmarkAddOptions, BookmarkListOptions, BookmarkRemoveOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
+import { createBookmarkFormatter } from '../utils/formatters/bookmark-formatters';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
-import { createBookmarkFormatter } from '../utils/formatters/bookmark-formatters';
 
 export function setupBookmarkCommand(): Command {
   const bookmarkCommand = new Command('bookmark').description('Manage saved items (あとで読む)');

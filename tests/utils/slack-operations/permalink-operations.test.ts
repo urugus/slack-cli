@@ -1,4 +1,4 @@
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MessageOperations } from '../../../src/utils/slack-operations/message-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -90,12 +90,8 @@ describe('MessageOperations - getPermalink', () => {
       ]);
 
       expect(result.size).toBe(2);
-      expect(result.get('1111111111.111111')).toBe(
-        'https://team.slack.com/archives/C123456/p1111'
-      );
-      expect(result.get('2222222222.222222')).toBe(
-        'https://team.slack.com/archives/C123456/p2222'
-      );
+      expect(result.get('1111111111.111111')).toBe('https://team.slack.com/archives/C123456/p1111');
+      expect(result.get('2222222222.222222')).toBe('https://team.slack.com/archives/C123456/p2222');
     });
 
     it('should skip failed permalink retrievals gracefully', async () => {
@@ -113,9 +109,7 @@ describe('MessageOperations - getPermalink', () => {
       ]);
 
       expect(result.size).toBe(1);
-      expect(result.get('1111111111.111111')).toBe(
-        'https://team.slack.com/archives/C123456/p1111'
-      );
+      expect(result.get('1111111111.111111')).toBe('https://team.slack.com/archives/C123456/p1111');
       expect(result.has('2222222222.222222')).toBe(false);
     });
 

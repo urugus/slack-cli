@@ -1,11 +1,11 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
-import { wrapCommand } from '../utils/command-wrapper';
+import { Command } from 'commander';
+import { CanvasListOptions, CanvasReadOptions } from '../types/commands';
 import { createSlackClient } from '../utils/client-factory';
-import { CanvasReadOptions, CanvasListOptions } from '../types/commands';
+import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
+import { CanvasFile, CanvasSection, CanvasSectionElement } from '../utils/slack-api-client';
 import { createValidationHook, optionValidators } from '../utils/validators';
-import { CanvasSection, CanvasFile, CanvasSectionElement } from '../utils/slack-api-client';
 
 function extractText(elements: CanvasSectionElement[]): string {
   return elements

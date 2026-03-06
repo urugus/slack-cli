@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupLeaveCommand } from '../../src/commands/leave';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -107,9 +107,7 @@ describe('leave command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.leaveChannel).mockRejectedValue(
-        new Error('cant_leave_general')
-      );
+      vi.mocked(mockSlackClient.leaveChannel).mockRejectedValue(new Error('cant_leave_general'));
 
       await program.parseAsync(['node', 'slack-cli', 'leave', '-c', 'general']);
 

@@ -1,4 +1,4 @@
-import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface BookmarkItem {
   type: string;

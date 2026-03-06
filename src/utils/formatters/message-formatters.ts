@@ -1,10 +1,10 @@
 import chalk from 'chalk';
-import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
+import { formatChannelName } from '../channel-formatter';
 import { formatSlackTimestamp } from '../date-utils';
 import { formatMessageWithMentions } from '../format-utils';
-import { formatChannelName } from '../channel-formatter';
 import { Channel, Message } from '../slack-api-client';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface MessageFormatterOptions {
   channel: Channel;

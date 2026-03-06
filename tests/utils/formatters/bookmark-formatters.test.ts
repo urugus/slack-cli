@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createBookmarkFormatter,
   BookmarkFormatterOptions,
+  createBookmarkFormatter,
 } from '../../../src/utils/formatters/bookmark-formatters';
 
 describe('bookmark formatters', () => {
   let logSpy: any;
 
   beforeEach(() => {
-    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
 
   afterEach(() => {

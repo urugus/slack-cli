@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupSendCommand } from '../../src/commands/send';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
-import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../src/utils/constants';
 import * as fs from 'fs/promises';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setupSendCommand } from '../../src/commands/send';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../src/utils/constants';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -49,9 +49,21 @@ describe('send command', () => {
         ts: '1234567890.123456',
       });
 
-      await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-m', 'Hello, World!']);
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '-c',
+        'general',
+        '-m',
+        'Hello, World!',
+      ]);
 
-      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', 'Hello, World!', undefined);
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
+        'general',
+        'Hello, World!',
+        undefined
+      );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general'))
       );
@@ -387,10 +399,9 @@ describe('send command', () => {
       sendCommand.exitOverride();
 
       await expect(
-        sendCommand.parseAsync(
-          ['-c', 'general', '--email', 'john@example.com', '-m', 'Hello'],
-          { from: 'user' }
-        )
+        sendCommand.parseAsync(['-c', 'general', '--email', 'john@example.com', '-m', 'Hello'], {
+          from: 'user',
+        })
       ).rejects.toThrow('Cannot use --channel with --user or --email');
     });
 
@@ -399,10 +410,9 @@ describe('send command', () => {
       sendCommand.exitOverride();
 
       await expect(
-        sendCommand.parseAsync(
-          ['--user', 'john', '--email', 'john@example.com', '-m', 'Hello'],
-          { from: 'user' }
-        )
+        sendCommand.parseAsync(['--user', 'john', '--email', 'john@example.com', '-m', 'Hello'], {
+          from: 'user',
+        })
       ).rejects.toThrow('Cannot use --user and --email together');
     });
   });
@@ -437,9 +447,7 @@ describe('send command', () => {
         'Hello via DM!',
         undefined
       );
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('DM sent to @john')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('DM sent to @john'));
     });
 
     it('should handle user not found error', async () => {
@@ -451,20 +459,9 @@ describe('send command', () => {
         new Error("User 'unknown' not found")
       );
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'send',
-        '--user',
-        'unknown',
-        '-m',
-        'Hello',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'send', '--user', 'unknown', '-m', 'Hello']);
 
-      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
-        '✗ Error:',
-        "User 'unknown' not found"
-      );
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith('✗ Error:', "User 'unknown' not found");
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
@@ -512,9 +509,7 @@ describe('send command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.lookupUserByEmail).mockRejectedValue(
-        new Error('users_not_found')
-      );
+      vi.mocked(mockSlackClient.lookupUserByEmail).mockRejectedValue(new Error('users_not_found'));
 
       await program.parseAsync([
         'node',
@@ -567,7 +562,15 @@ describe('send command', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-f', 'nonexistent.txt']);
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '-c',
+        'general',
+        '-f',
+        'nonexistent.txt',
+      ]);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),

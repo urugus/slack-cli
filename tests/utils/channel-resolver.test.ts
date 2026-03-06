@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelResolver } from '../../src/utils/channel-resolver';
-import { Channel } from '../../src/utils/slack-api-client';
 import { ApiError } from '../../src/utils/errors';
+import { Channel } from '../../src/utils/slack-api-client';
 
 describe('ChannelResolver', () => {
   let resolver: ChannelResolver;

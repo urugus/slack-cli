@@ -1,4 +1,4 @@
-import { WebClient, LogLevel } from '@slack/web-api';
+import { LogLevel, WebClient } from '@slack/web-api';
 import pLimit from 'p-limit';
 import { RATE_LIMIT } from '../constants';
 

@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelOperations } from '../../../src/utils/slack-operations/channel-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -138,12 +138,8 @@ describe('ChannelOperations - getChannelMembers', () => {
   });
 
   it('should propagate API errors', async () => {
-    mockClient.conversations.members.mockRejectedValue(
-      new Error('channel_not_found')
-    );
+    mockClient.conversations.members.mockRejectedValue(new Error('channel_not_found'));
 
-    await expect(
-      channelOps.getChannelMembers('C1234567890')
-    ).rejects.toThrow('channel_not_found');
+    await expect(channelOps.getChannelMembers('C1234567890')).rejects.toThrow('channel_not_found');
   });
 });

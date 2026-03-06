@@ -1,11 +1,11 @@
 import { Command } from 'commander';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
-import { ERROR_MESSAGES } from '../utils/constants';
 import { ChannelsOptions } from '../types/commands';
-import { mapChannelToInfo, getChannelTypes } from '../utils/channel-formatter';
+import { getChannelTypes, mapChannelToInfo } from '../utils/channel-formatter';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
+import { ERROR_MESSAGES } from '../utils/constants';
 import { createChannelsListFormatter } from '../utils/formatters/channels-list-formatters';
-import { parseFormat, parseLimit, parseBoolean } from '../utils/option-parsers';
+import { parseBoolean, parseFormat, parseLimit } from '../utils/option-parsers';
 
 export function setupChannelsCommand(): Command {
   const channelsCommand = new Command('channels');

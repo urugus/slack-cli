@@ -1,11 +1,11 @@
 import { Command } from 'commander';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
 import { SearchOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
 import { API_LIMITS } from '../utils/constants';
-import { parseCount, parseProfile, parseFormat } from '../utils/option-parsers';
-import { createValidationHook, optionValidators } from '../utils/validators';
 import { createSearchFormatter } from '../utils/formatters/search-formatters';
+import { parseCount, parseFormat, parseProfile } from '../utils/option-parsers';
+import { createValidationHook, optionValidators } from '../utils/validators';
 
 export function setupSearchCommand(): Command {
   const searchCommand = new Command('search')

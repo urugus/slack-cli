@@ -1,5 +1,5 @@
-import { SlackApiClient } from './slack-api-client';
 import { getConfigOrThrow } from './config-helper';
+import { SlackApiClient } from './slack-api-client';
 
 /**
  * Creates a SlackApiClient instance with configuration from the specified profile

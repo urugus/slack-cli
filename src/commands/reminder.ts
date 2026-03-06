@@ -1,17 +1,17 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
+import { Command } from 'commander';
 import {
   ReminderAddOptions,
-  ReminderListOptions,
-  ReminderDeleteOptions,
   ReminderCompleteOptions,
+  ReminderDeleteOptions,
+  ReminderListOptions,
 } from '../types/commands';
-import { parseFormat, parseProfile } from '../utils/option-parsers';
-import { createValidationHook, optionValidators } from '../utils/validators';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
 import { createReminderFormatter } from '../utils/formatters/reminder-formatters';
+import { parseFormat, parseProfile } from '../utils/option-parsers';
 import { resolvePostAt } from '../utils/schedule-utils';
+import { createValidationHook, optionValidators } from '../utils/validators';
 
 export function setupReminderCommand(): Command {
   const reminderCommand = new Command('reminder').description(

@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import * as readline from 'readline';
 import { Writable } from 'stream';
-import { ProfileConfigManager } from '../utils/profile-config';
 import { getProfileName } from '../utils/command-wrapper';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
+import { ProfileConfigManager } from '../utils/profile-config';
 
 interface SetTokenOptions {
   token?: string;

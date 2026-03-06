@@ -1,6 +1,6 @@
-import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { ChannelInfo } from '../channel-formatter';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface ChannelsListFormatterOptions {
   channels: ChannelInfo[];

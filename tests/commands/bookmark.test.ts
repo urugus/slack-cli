@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupBookmarkCommand } from '../../src/commands/bookmark';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -54,13 +54,8 @@ describe('bookmark command', () => {
         '1234567890.123456',
       ]);
 
-      expect(mockSlackClient.addStar).toHaveBeenCalledWith(
-        'C1234567890',
-        '1234567890.123456'
-      );
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Saved')
-      );
+      expect(mockSlackClient.addStar).toHaveBeenCalledWith('C1234567890', '1234567890.123456');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Saved'));
     });
 
     it('should use specified profile', async () => {
@@ -92,9 +87,7 @@ describe('bookmark command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.addStar).mockRejectedValue(
-        new Error('channel_not_found')
-      );
+      vi.mocked(mockSlackClient.addStar).mockRejectedValue(new Error('channel_not_found'));
 
       await program.parseAsync([
         'node',
@@ -160,14 +153,7 @@ describe('bookmark command', () => {
         ],
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'bookmark',
-        'list',
-        '--format',
-        'json',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'bookmark', 'list', '--format', 'json']);
 
       expect(mockConsole.logSpy).toHaveBeenCalled();
       const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
@@ -194,14 +180,7 @@ describe('bookmark command', () => {
         ],
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'bookmark',
-        'list',
-        '--format',
-        'simple',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'bookmark', 'list', '--format', 'simple']);
 
       expect(mockConsole.logSpy).toHaveBeenCalled();
       const output = mockConsole.logSpy.mock.calls[0][0];
@@ -218,14 +197,7 @@ describe('bookmark command', () => {
         items: [],
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'bookmark',
-        'list',
-        '--limit',
-        '50',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'bookmark', 'list', '--limit', '50']);
 
       expect(mockSlackClient.listStars).toHaveBeenCalledWith(50);
     });
@@ -264,13 +236,8 @@ describe('bookmark command', () => {
         '1234567890.123456',
       ]);
 
-      expect(mockSlackClient.removeStar).toHaveBeenCalledWith(
-        'C1234567890',
-        '1234567890.123456'
-      );
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Removed')
-      );
+      expect(mockSlackClient.removeStar).toHaveBeenCalledWith('C1234567890', '1234567890.123456');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Removed'));
     });
 
     it('should handle API error on remove', async () => {
@@ -278,9 +245,7 @@ describe('bookmark command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.removeStar).mockRejectedValue(
-        new Error('not_starred')
-      );
+      vi.mocked(mockSlackClient.removeStar).mockRejectedValue(new Error('not_starred'));
 
       await program.parseAsync([
         'node',
@@ -305,12 +270,7 @@ describe('bookmark command', () => {
     it('should handle missing configuration', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'bookmark',
-        'list',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'bookmark', 'list']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),

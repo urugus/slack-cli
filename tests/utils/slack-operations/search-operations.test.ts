@@ -1,4 +1,4 @@
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchOperations } from '../../../src/utils/slack-operations/search-operations';
 
 vi.mock('@slack/web-api', () => ({

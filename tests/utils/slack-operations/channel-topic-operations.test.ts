@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelOperations } from '../../../src/utils/slack-operations/channel-operations';
 
 vi.mock('@slack/web-api', () => ({

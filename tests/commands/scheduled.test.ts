@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupScheduledCommand } from '../../src/commands/scheduled';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -45,7 +45,7 @@ describe('scheduled command', () => {
     } as any);
 
     mockConsole = setupMockConsole();
-    tableSpy = vi.spyOn(console, 'table').mockImplementation(() => {});
+    tableSpy = vi.spyOn(console, 'table').mockImplementation(() => undefined);
 
     program = createTestProgram();
     program.addCommand(setupScheduledCommand());
@@ -155,10 +155,7 @@ describe('scheduled command', () => {
         'Q1298393284',
       ]);
 
-      expect(mockSlackClient.cancelScheduledMessage).toHaveBeenCalledWith(
-        'general',
-        'Q1298393284'
-      );
+      expect(mockSlackClient.cancelScheduledMessage).toHaveBeenCalledWith('general', 'Q1298393284');
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining('Scheduled message Q1298393284 cancelled')
       );

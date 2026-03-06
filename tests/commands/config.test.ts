@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupConfigCommand } from '../../src/commands/config';
-import { ProfileConfigManager } from '../../src/utils/profile-config';
-import type { Config, Profile } from '../../src/types/config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
-import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '../../src/utils/constants';
 import { Readable } from 'stream';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setupConfigCommand } from '../../src/commands/config';
+import type { Config, Profile } from '../../src/types/config';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../src/utils/constants';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/profile-config');
 
@@ -16,12 +16,12 @@ describe('profile config command', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
     } as any);
-    
+
     mockConsole = setupMockConsole();
     program = createTestProgram();
     program.addCommand(setupConfigCommand());
@@ -40,10 +40,21 @@ describe('profile config command', () => {
     it('should set token for specified profile', async () => {
       vi.mocked(mockConfigManager.setToken).mockResolvedValue(undefined);
 
-      await program.parseAsync(['node', 'slack-cli', 'config', 'set', '--token', 'test-token-123', '--profile', 'work']);
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'config',
+        'set',
+        '--token',
+        'test-token-123',
+        '--profile',
+        'work',
+      ]);
 
       expect(mockConfigManager.setToken).toHaveBeenCalledWith('test-token-123', 'work');
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining(SUCCESS_MESSAGES.TOKEN_SAVED('work')));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(SUCCESS_MESSAGES.TOKEN_SAVED('work'))
+      );
     });
 
     it('should set token for default profile when no profile specified', async () => {
@@ -53,7 +64,9 @@ describe('profile config command', () => {
       await program.parseAsync(['node', 'slack-cli', 'config', 'set', '--token', 'test-token-123']);
 
       expect(mockConfigManager.setToken).toHaveBeenCalledWith('test-token-123', undefined);
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Token saved successfully for profile "default"'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Token saved successfully for profile "default"')
+      );
     });
 
     it('should use token from SLACK_CLI_TOKEN when no token option is provided', async () => {
@@ -100,7 +113,7 @@ describe('profile config command', () => {
     it('should display config for specified profile', async () => {
       const mockConfig: Config = {
         token: 'test-token-1234567890-abcdefghijklmnop',
-        updatedAt: '2025-06-21T10:00:00.000Z'
+        updatedAt: '2025-06-21T10:00:00.000Z',
       };
 
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(mockConfig);
@@ -109,7 +122,9 @@ describe('profile config command', () => {
       await program.parseAsync(['node', 'slack-cli', 'config', 'get', '--profile', 'work']);
 
       expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Configuration for profile "work":'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Configuration for profile "work":')
+      );
     });
   });
 
@@ -120,16 +135,16 @@ describe('profile config command', () => {
           name: 'default',
           config: {
             token: 'default-token',
-            updatedAt: '2025-06-21T10:00:00.000Z'
-          }
+            updatedAt: '2025-06-21T10:00:00.000Z',
+          },
         },
         {
           name: 'work',
           config: {
             token: 'work-token',
-            updatedAt: '2025-06-21T11:00:00.000Z'
-          }
-        }
+            updatedAt: '2025-06-21T11:00:00.000Z',
+          },
+        },
       ];
 
       vi.mocked(mockConfigManager.listProfiles).mockResolvedValue(mockProfiles);
@@ -138,7 +153,9 @@ describe('profile config command', () => {
       await program.parseAsync(['node', 'slack-cli', 'config', 'profiles']);
 
       expect(mockConfigManager.listProfiles).toHaveBeenCalled();
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Available profiles:'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Available profiles:')
+      );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('default'));
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('* work')); // current profile marked
     });
@@ -159,15 +176,22 @@ describe('profile config command', () => {
       await program.parseAsync(['node', 'slack-cli', 'config', 'use', 'work']);
 
       expect(mockConfigManager.useProfile).toHaveBeenCalledWith('work');
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Switched to profile "work"'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Switched to profile "work"')
+      );
     });
 
     it('should show error when profile does not exist', async () => {
-      vi.mocked(mockConfigManager.useProfile).mockRejectedValue(new Error('Profile "nonexistent" does not exist'));
+      vi.mocked(mockConfigManager.useProfile).mockRejectedValue(
+        new Error('Profile "nonexistent" does not exist')
+      );
 
       await program.parseAsync(['node', 'slack-cli', 'config', 'use', 'nonexistent']);
 
-      expect(mockConsole.errorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'), expect.any(String));
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.any(String)
+      );
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
@@ -179,7 +203,9 @@ describe('profile config command', () => {
       await program.parseAsync(['node', 'slack-cli', 'config', 'current']);
 
       expect(mockConfigManager.getCurrentProfile).toHaveBeenCalled();
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Current profile: work'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Current profile: work')
+      );
     });
   });
 
@@ -190,7 +216,9 @@ describe('profile config command', () => {
       await program.parseAsync(['node', 'slack-cli', 'config', 'clear', '--profile', 'work']);
 
       expect(mockConfigManager.clearConfig).toHaveBeenCalledWith('work');
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Profile "work" cleared successfully'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Profile "work" cleared successfully')
+      );
     });
 
     it('should clear current profile when no profile specified', async () => {
@@ -200,7 +228,9 @@ describe('profile config command', () => {
       await program.parseAsync(['node', 'slack-cli', 'config', 'clear']);
 
       expect(mockConfigManager.clearConfig).toHaveBeenCalledWith(undefined);
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Profile "default" cleared successfully'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Profile "default" cleared successfully')
+      );
     });
   });
 });

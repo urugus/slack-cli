@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupSendEphemeralCommand } from '../../src/commands/send-ephemeral';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
-import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
 import { ERROR_MESSAGES } from '../../src/utils/constants';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');

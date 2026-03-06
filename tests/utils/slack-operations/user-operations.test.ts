@@ -1,4 +1,4 @@
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserOperations } from '../../../src/utils/slack-operations/user-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -73,9 +73,7 @@ describe('UserOperations', () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          members: [
-            { id: 'U456', name: 'bob', real_name: 'Bob', is_bot: false, deleted: false },
-          ],
+          members: [{ id: 'U456', name: 'bob', real_name: 'Bob', is_bot: false, deleted: false }],
           response_metadata: { next_cursor: '' },
         });
 

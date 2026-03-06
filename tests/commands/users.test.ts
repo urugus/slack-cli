@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupUsersCommand } from '../../src/commands/users';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -133,14 +133,7 @@ describe('users command', () => {
       });
       vi.mocked(mockSlackClient.listUsers).mockResolvedValue([]);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'users',
-        'list',
-        '--profile',
-        'work',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'users', 'list', '--profile', 'work']);
 
       expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
       expect(SlackApiClient).toHaveBeenCalledWith('work-token');
@@ -285,9 +278,7 @@ describe('users command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.lookupUserByEmail).mockRejectedValue(
-        new Error('users_not_found')
-      );
+      vi.mocked(mockSlackClient.lookupUserByEmail).mockRejectedValue(new Error('users_not_found'));
 
       await program.parseAsync([
         'node',
@@ -316,14 +307,7 @@ describe('users command', () => {
         presence: 'active',
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'users',
-        'presence',
-        '--id',
-        'U123',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'users', 'presence', '--id', 'U123']);
 
       expect(mockSlackClient.getUserPresence).toHaveBeenCalledWith('U123');
       expect(mockConsole.logSpy).toHaveBeenCalled();
@@ -339,14 +323,7 @@ describe('users command', () => {
         presence: 'away',
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'users',
-        'presence',
-        '--name',
-        '@alice',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'users', 'presence', '--name', '@alice']);
 
       expect(mockSlackClient.resolveUserIdByName).toHaveBeenCalledWith('@alice');
       expect(mockSlackClient.getUserPresence).toHaveBeenCalledWith('U123');
@@ -407,14 +384,7 @@ describe('users command', () => {
         presence: 'away',
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'users',
-        'presence',
-        '--id',
-        'U123',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'users', 'presence', '--id', 'U123']);
 
       expect(mockConsole.logSpy).toHaveBeenCalled();
     });
@@ -424,18 +394,9 @@ describe('users command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.getUserPresence).mockRejectedValue(
-        new Error('user_not_found')
-      );
+      vi.mocked(mockSlackClient.getUserPresence).mockRejectedValue(new Error('user_not_found'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'users',
-        'presence',
-        '--id',
-        'UINVALID',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'users', 'presence', '--id', 'UINVALID']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),

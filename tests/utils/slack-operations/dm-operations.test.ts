@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserOperations } from '../../../src/utils/slack-operations/user-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -82,9 +82,7 @@ describe('UserOperations - DM', () => {
 
     it('should resolve user ID by name without @ prefix', async () => {
       mockClient.users.list.mockResolvedValue({
-        members: [
-          { id: 'U111', name: 'john', profile: { display_name: 'John Doe' } },
-        ],
+        members: [{ id: 'U111', name: 'john', profile: { display_name: 'John Doe' } }],
         response_metadata: {},
       });
 
@@ -95,9 +93,7 @@ describe('UserOperations - DM', () => {
 
     it('should throw when user is not found', async () => {
       mockClient.users.list.mockResolvedValue({
-        members: [
-          { id: 'U111', name: 'john', profile: { display_name: 'John Doe' } },
-        ],
+        members: [{ id: 'U111', name: 'john', profile: { display_name: 'John Doe' } }],
         response_metadata: {},
       });
 
@@ -108,9 +104,7 @@ describe('UserOperations - DM', () => {
 
     it('should match username case-insensitively', async () => {
       mockClient.users.list.mockResolvedValue({
-        members: [
-          { id: 'U111', name: 'john.doe', profile: { display_name: 'John Doe' } },
-        ],
+        members: [{ id: 'U111', name: 'john.doe', profile: { display_name: 'John Doe' } }],
         response_metadata: {},
       });
 
@@ -121,9 +115,7 @@ describe('UserOperations - DM', () => {
 
     it('should not match by display_name to avoid misdelivery', async () => {
       mockClient.users.list.mockResolvedValue({
-        members: [
-          { id: 'U111', name: 'john.doe', profile: { display_name: 'John Doe' } },
-        ],
+        members: [{ id: 'U111', name: 'john.doe', profile: { display_name: 'John Doe' } }],
         response_metadata: {},
       });
 

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { extractUserIdsFromMentions, extractAllUserIds } from '../../src/utils/mention-utils';
+import { describe, expect, it } from 'vitest';
+import { extractAllUserIds, extractUserIdsFromMentions } from '../../src/utils/mention-utils';
 
 describe('mention-utils', () => {
   describe('extractUserIdsFromMentions', () => {
@@ -50,10 +50,7 @@ describe('mention-utils', () => {
     });
 
     it('should extract user IDs from mentions only', () => {
-      const messages = [
-        { text: 'Hello <@U333333333>' },
-        { text: 'Hi <@U444444444>' },
-      ];
+      const messages = [{ text: 'Hello <@U333333333>' }, { text: 'Hi <@U444444444>' }];
       const userIds = extractAllUserIds(messages);
       expect(userIds).toEqual(['U333333333', 'U444444444']);
     });
@@ -83,11 +80,7 @@ describe('mention-utils', () => {
     });
 
     it('should handle messages without user or text', () => {
-      const messages = [
-        { user: 'U111111111' },
-        { text: 'No user here' },
-        {},
-      ];
+      const messages = [{ user: 'U111111111' }, { text: 'No user here' }, {}];
       const userIds = extractAllUserIds(messages);
       expect(userIds).toEqual(['U111111111']);
     });

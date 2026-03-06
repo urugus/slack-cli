@@ -1,17 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
-import {
-  validateRequired,
-  validateMutuallyExclusive,
-  validateFormat,
-  validateRange,
-  validateDateFormat,
-  formatValidators,
-  createValidationHook,
-  optionValidators,
-  createOptionParser,
-} from '../../src/utils/validators';
 import { Command } from 'commander';
+import { describe, expect, it, vi } from 'vitest';
 import { ValidationError } from '../../src/utils/errors';
+import {
+  createOptionParser,
+  createValidationHook,
+  formatValidators,
+  optionValidators,
+  validateDateFormat,
+  validateFormat,
+  validateMutuallyExclusive,
+  validateRange,
+  validateRequired,
+} from '../../src/utils/validators';
 
 describe('validators', () => {
   describe('validateRequired', () => {
@@ -116,8 +116,12 @@ describe('validators', () => {
 
       it('should reject invalid timestamp format', () => {
         expect(formatValidators.threadTimestamp('123')).toBe('Invalid thread timestamp format');
-        expect(formatValidators.threadTimestamp('1234567890')).toBe('Invalid thread timestamp format');
-        expect(formatValidators.threadTimestamp('1234567890.12')).toBe('Invalid thread timestamp format');
+        expect(formatValidators.threadTimestamp('1234567890')).toBe(
+          'Invalid thread timestamp format'
+        );
+        expect(formatValidators.threadTimestamp('1234567890.12')).toBe(
+          'Invalid thread timestamp format'
+        );
       });
     });
 
@@ -269,7 +273,9 @@ describe('validators', () => {
 
       it('should validate date format when provided', () => {
         expect(optionValidators.sinceDate({ since: '2024-01-01' })).toBeNull();
-        expect(optionValidators.sinceDate({ since: 'invalid' })).toBe('Invalid date format. Use YYYY-MM-DD HH:MM:SS');
+        expect(optionValidators.sinceDate({ since: 'invalid' })).toBe(
+          'Invalid date format. Use YYYY-MM-DD HH:MM:SS'
+        );
       });
     });
   });

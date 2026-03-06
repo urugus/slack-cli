@@ -1,13 +1,13 @@
-import { Command } from 'commander';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
-import { SlackApiClient, ChannelUnreadResult, Channel } from '../utils/slack-api-client';
-import { UnreadOptions } from '../types/commands';
 import chalk from 'chalk';
+import { Command } from 'commander';
+import { UnreadOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
+import { DEFAULTS } from '../utils/constants';
 import { createChannelFormatter } from '../utils/formatters/channel-formatters';
 import { createMessageFormatter } from '../utils/formatters/message-formatters';
-import { DEFAULTS } from '../utils/constants';
-import { parseLimit, parseFormat, parseBoolean } from '../utils/option-parsers';
+import { parseBoolean, parseFormat, parseLimit } from '../utils/option-parsers';
+import { Channel, ChannelUnreadResult, SlackApiClient } from '../utils/slack-api-client';
 import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
 
 async function fetchChannelUnreadData(client: SlackApiClient, channelName: string) {

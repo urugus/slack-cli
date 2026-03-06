@@ -1,8 +1,8 @@
 import chalk from 'chalk';
-import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
-import { Channel } from '../slack-api-client';
 import { formatChannelName } from '../channel-formatter';
 import { formatSlackTimestamp } from '../date-utils';
+import { Channel } from '../slack-api-client';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface ChannelFormatterOptions {
   channels: Channel[];

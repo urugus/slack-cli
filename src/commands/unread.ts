@@ -31,7 +31,9 @@ function formatChannelUnreadOutput(
 
 async function markChannelAsRead(client: SlackApiClient, channel: Channel): Promise<void> {
   await client.markAsRead(channel.id);
-  console.log(chalk.green(`✓ Marked messages in #${sanitizeTerminalText(channel.name || '')} as read`));
+  console.log(
+    chalk.green(`✓ Marked messages in #${sanitizeTerminalText(channel.name || '')} as read`)
+  );
 }
 
 async function handleSpecificChannelUnread(

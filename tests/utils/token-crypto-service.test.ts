@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as crypto from 'crypto';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
 import { ConfigurationError, ValidationError } from '../../src/utils/errors';
 
@@ -71,6 +72,23 @@ describe('TokenCryptoService', () => {
       const decrypted = service.decrypt(encrypted);
 
       expect(decrypted).toBe(longToken);
+    });
+
+    it('should decrypt legacy AES-256-CBC encrypted token', () => {
+      const token = 'legacy-token-value';
+      const fixedSalt = 'slack-cli-salt-v1';
+      const key = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+
+      let encrypted = cipher.update(token, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+
+      const legacyEncryptedToken = `${iv.toString('hex')}:${encrypted}`;
+
+      expect(service.isEncrypted(legacyEncryptedToken)).toBe(true);
+      expect(service.isCurrentFormat(legacyEncryptedToken)).toBe(false);
+      expect(service.decrypt(legacyEncryptedToken)).toBe(token);
     });
   });
 

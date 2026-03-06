@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import * as readline from 'readline';
+import { Writable } from 'stream';
 import { ProfileConfigManager } from '../utils/profile-config';
 import { getProfileName } from '../utils/command-wrapper';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
@@ -26,29 +27,33 @@ async function promptTokenInteractively(): Promise<string> {
   }
 
   return await new Promise<string>((resolve, reject) => {
+    let isMuted = false;
+    const maskedOutput = new Writable({
+      write(chunk, encoding, callback) {
+        if (!isMuted) {
+          if (typeof chunk === 'string') {
+            process.stdout.write(chunk, encoding);
+          } else {
+            process.stdout.write(chunk);
+          }
+        }
+        callback();
+      },
+    }) as Writable & { isTTY?: boolean };
+    maskedOutput.isTTY = true;
+
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout,
+      output: maskedOutput,
       terminal: true,
-    }) as readline.Interface & {
-      stdoutMuted?: boolean;
-      _writeToOutput?: (stringToWrite: string) => void;
-    };
-
-    rl.stdoutMuted = false;
-    rl._writeToOutput = function _writeToOutput(stringToWrite: string): void {
-      if (rl.stdoutMuted) {
-        return;
-      }
-      process.stdout.write(stringToWrite);
-    };
+    });
 
     rl.question('Slack API token: ', (answer) => {
       rl.close();
       process.stdout.write('\n');
       resolve(answer.trim());
     });
-    rl.stdoutMuted = true;
+    isMuted = true;
 
     rl.on('SIGINT', () => {
       rl.close();

@@ -20,8 +20,7 @@ class ChannelsTableFormatter extends AbstractFormatter<ChannelsListFormatterOpti
       const type = channel.type.padEnd(9);
       const members = channel.members.toString().padEnd(8);
       const created = channel.created.padEnd(12);
-      const purpose =
-        safePurpose.length > 30 ? safePurpose.substring(0, 27) + '...' : safePurpose;
+      const purpose = safePurpose.length > 30 ? safePurpose.substring(0, 27) + '...' : safePurpose;
 
       console.log(`${name} ${type} ${members} ${created} ${purpose}`);
     });

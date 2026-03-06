@@ -19,6 +19,8 @@ export class TokenCryptoService {
   private readonly authTagLength = 16;
   private readonly separator = ':';
   private readonly version = 'v2';
+  private readonly masterKeySalt = 'slack-cli-master-key-salt-v2';
+  private readonly masterKeyIterations = 100000;
   private readonly keyFilePath?: string;
   private readonly injectedMasterKey?: string;
   private cachedMasterKey: Buffer | null = null;
@@ -39,7 +41,13 @@ export class TokenCryptoService {
   }
 
   private deriveMasterKey(secret: string): Buffer {
-    return crypto.createHash('sha256').update(secret, 'utf8').digest();
+    return crypto.pbkdf2Sync(
+      secret,
+      this.masterKeySalt,
+      this.masterKeyIterations,
+      this.keyLength,
+      'sha256'
+    );
   }
 
   private parseFileKey(fileContents: string): Buffer {

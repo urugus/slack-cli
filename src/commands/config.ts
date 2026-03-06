@@ -15,7 +15,10 @@ export function setupConfigCommand(): Command {
   config
     .command('set')
     .description('Set API token')
-    .option('--token <token>', 'Slack API token (deprecated: may leak via shell history/process list)')
+    .option(
+      '--token <token>',
+      'Slack API token (deprecated: may leak via shell history/process list)'
+    )
     .option('--token-stdin', 'Read Slack API token from stdin')
     .option('--profile <profile>', 'Profile name (default: "default")')
     .action(wrapCommand(handleSetToken));

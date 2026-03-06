@@ -1,7 +1,7 @@
 import chalk from 'chalk';
-import { AbstractFormatter, JsonFormatter, createFormatterFactory } from './base-formatter';
 import { ChannelDetail } from '../slack-api-client';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface ChannelInfoFormatterOptions {
   channel: ChannelDetail;

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupSearchCommand } from '../../src/commands/search';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -67,9 +67,7 @@ describe('search command', () => {
         count: 20,
         page: 1,
       });
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('deploy error')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('deploy error'));
     });
 
     it('should pass sort options', async () => {
@@ -154,15 +152,7 @@ describe('search command', () => {
         pageCount: 0,
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'search',
-        '-q',
-        'test',
-        '--profile',
-        'work',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'search', '-q', 'test', '--profile', 'work']);
 
       expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
       expect(SlackApiClient).toHaveBeenCalledWith('work-token');
@@ -193,15 +183,7 @@ describe('search command', () => {
         pageCount: 1,
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'search',
-        '-q',
-        'test',
-        '--format',
-        'json',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'search', '-q', 'test', '--format', 'json']);
 
       const jsonCall = mockConsole.logSpy.mock.calls.find((call: any[]) => {
         try {
@@ -241,15 +223,7 @@ describe('search command', () => {
         pageCount: 1,
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'search',
-        '-q',
-        'test',
-        '--format',
-        'simple',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'search', '-q', 'test', '--format', 'simple']);
 
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringMatching(/\[#general\].*john\.doe.*test message/)
@@ -272,9 +246,7 @@ describe('search command', () => {
 
       await program.parseAsync(['node', 'slack-cli', 'search', '-q', 'nonexistent']);
 
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('No messages found')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('No messages found'));
     });
   });
 

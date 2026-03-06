@@ -1,5 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createSearchFormatter, SearchFormatterOptions } from '../../../src/utils/formatters/search-formatters';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createSearchFormatter,
+  SearchFormatterOptions,
+} from '../../../src/utils/formatters/search-formatters';
 import { SearchMatch } from '../../../src/utils/slack-api-client';
 
 describe('SearchFormatters', () => {
@@ -34,7 +37,7 @@ describe('SearchFormatters', () => {
   });
 
   beforeEach(() => {
-    mockConsole = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockConsole = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
 
   describe('table formatter', () => {
@@ -42,24 +45,16 @@ describe('SearchFormatters', () => {
       const formatter = createSearchFormatter('table');
       formatter.format(createOptions());
 
-      expect(mockConsole).toHaveBeenCalledWith(
-        expect.stringContaining('deploy error')
-      );
-      expect(mockConsole).toHaveBeenCalledWith(
-        expect.stringContaining('2')
-      );
+      expect(mockConsole).toHaveBeenCalledWith(expect.stringContaining('deploy error'));
+      expect(mockConsole).toHaveBeenCalledWith(expect.stringContaining('2'));
     });
 
     it('should display channel name and username for each match', () => {
       const formatter = createSearchFormatter('table');
       formatter.format(createOptions());
 
-      expect(mockConsole).toHaveBeenCalledWith(
-        expect.stringContaining('general')
-      );
-      expect(mockConsole).toHaveBeenCalledWith(
-        expect.stringContaining('john.doe')
-      );
+      expect(mockConsole).toHaveBeenCalledWith(expect.stringContaining('general'));
+      expect(mockConsole).toHaveBeenCalledWith(expect.stringContaining('john.doe'));
     });
 
     it('should display message text', () => {
@@ -75,18 +70,14 @@ describe('SearchFormatters', () => {
       const formatter = createSearchFormatter('table');
       formatter.format(createOptions({ matches: [], totalCount: 0 }));
 
-      expect(mockConsole).toHaveBeenCalledWith(
-        expect.stringContaining('No messages found')
-      );
+      expect(mockConsole).toHaveBeenCalledWith(expect.stringContaining('No messages found'));
     });
 
     it('should show page info when multiple pages exist', () => {
       const formatter = createSearchFormatter('table');
       formatter.format(createOptions({ totalCount: 50, page: 2, pageCount: 3 }));
 
-      expect(mockConsole).toHaveBeenCalledWith(
-        expect.stringContaining('Page 2/3')
-      );
+      expect(mockConsole).toHaveBeenCalledWith(expect.stringContaining('Page 2/3'));
     });
   });
 
@@ -104,9 +95,7 @@ describe('SearchFormatters', () => {
       const formatter = createSearchFormatter('simple');
       formatter.format(createOptions({ matches: [], totalCount: 0 }));
 
-      expect(mockConsole).toHaveBeenCalledWith(
-        expect.stringContaining('No messages found')
-      );
+      expect(mockConsole).toHaveBeenCalledWith(expect.stringContaining('No messages found'));
     });
   });
 

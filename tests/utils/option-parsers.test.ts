@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  parseFormat,
-  parseLimit,
+  OPTION_DEFAULTS,
   parseBoolean,
   parseCount,
-  parseProfile,
+  parseFormat,
+  parseLimit,
   parseListOptions,
-  OPTION_DEFAULTS,
+  parseProfile,
 } from '../../src/utils/option-parsers';
 
 describe('option-parsers', () => {
@@ -130,11 +130,14 @@ describe('option-parsers', () => {
     });
 
     it('should use custom defaults', () => {
-      const result = parseListOptions({}, {
-        format: 'compact',
-        limit: 200,
-        countOnly: true,
-      });
+      const result = parseListOptions(
+        {},
+        {
+          format: 'compact',
+          limit: 200,
+          countOnly: true,
+        }
+      );
       expect(result).toEqual({
         format: 'compact',
         limit: 200,

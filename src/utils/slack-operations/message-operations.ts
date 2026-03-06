@@ -1,24 +1,24 @@
 import {
-  ChatPostMessageResponse,
-  ChatPostMessageArguments,
-  ChatPostEphemeralResponse,
   ChatPostEphemeralArguments,
+  ChatPostEphemeralResponse,
+  ChatPostMessageArguments,
+  ChatPostMessageResponse,
   ChatScheduleMessageArguments,
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
-import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
+import { extractAllUserIds } from '../mention-utils';
 import {
-  Message,
+  ChannelUnreadResult,
   HistoryOptions,
   HistoryResult,
-  ChannelUnreadResult,
+  Message,
   ScheduledMessage,
 } from '../slack-api-client';
+import { BaseSlackClient } from './base-client';
 import { ChannelOperations } from './channel-operations';
-import { extractAllUserIds } from '../mention-utils';
 
 export class MessageOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
@@ -249,7 +249,7 @@ export class MessageOperations extends BaseSlackClient {
           if (userInfo.user?.name) {
             users.set(userId, userInfo.user.name);
           }
-        } catch (error) {
+        } catch (_error) {
           // If we can't get user info, we'll use the ID
           users.set(userId, userId);
         }

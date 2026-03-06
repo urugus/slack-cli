@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupChannelCommand } from '../../src/commands/channel';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -256,9 +256,7 @@ describe('channel command', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      vi.mocked(mockSlackClient.setPurpose).mockRejectedValue(
-        new Error('channel_not_found')
-      );
+      vi.mocked(mockSlackClient.setPurpose).mockRejectedValue(new Error('channel_not_found'));
 
       await program.parseAsync([
         'node',

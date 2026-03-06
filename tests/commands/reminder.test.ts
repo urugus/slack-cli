@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupReminderCommand } from '../../src/commands/reminder';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -65,9 +65,7 @@ describe('reminder command', () => {
         'PRレビューする',
         expect.any(Number)
       );
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Reminder created')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Reminder created'));
     });
 
     it('should add a reminder with --after option (minutes)', async () => {
@@ -95,13 +93,8 @@ describe('reminder command', () => {
         '30',
       ]);
 
-      expect(mockSlackClient.addReminder).toHaveBeenCalledWith(
-        'デプロイ確認',
-        expect.any(Number)
-      );
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Reminder created')
-      );
+      expect(mockSlackClient.addReminder).toHaveBeenCalledWith('デプロイ確認', expect.any(Number));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Reminder created'));
     });
 
     it('should use specified profile', async () => {
@@ -141,14 +134,7 @@ describe('reminder command', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'add',
-        '--text',
-        'test',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'add', '--text', 'test']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -165,10 +151,9 @@ describe('reminder command', () => {
       addCommand.exitOverride();
 
       await expect(
-        addCommand.parseAsync(
-          ['--text', 'test', '--at', '2024-03-01 15:00', '--after', '30'],
-          { from: 'user' }
-        )
+        addCommand.parseAsync(['--text', 'test', '--at', '2024-03-01 15:00', '--after', '30'], {
+          from: 'user',
+        })
       ).rejects.toThrow();
     });
   });
@@ -211,14 +196,7 @@ describe('reminder command', () => {
       ];
       vi.mocked(mockSlackClient.listReminders).mockResolvedValue(reminders);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'list',
-        '--format',
-        'json',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'list', '--format', 'json']);
 
       expect(mockConsole.logSpy).toHaveBeenCalled();
       const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
@@ -241,14 +219,7 @@ describe('reminder command', () => {
         },
       ]);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'list',
-        '--format',
-        'simple',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'list', '--format', 'simple']);
 
       expect(mockConsole.logSpy).toHaveBeenCalled();
       const output = mockConsole.logSpy.mock.calls[0][0];
@@ -277,19 +248,10 @@ describe('reminder command', () => {
       });
       vi.mocked(mockSlackClient.deleteReminder).mockResolvedValue();
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'delete',
-        '--id',
-        'Rm01ABCDEF',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'delete', '--id', 'Rm01ABCDEF']);
 
       expect(mockSlackClient.deleteReminder).toHaveBeenCalledWith('Rm01ABCDEF');
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Reminder deleted')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Reminder deleted'));
     });
   });
 
@@ -301,14 +263,7 @@ describe('reminder command', () => {
       });
       vi.mocked(mockSlackClient.completeReminder).mockResolvedValue();
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'complete',
-        '--id',
-        'Rm01ABCDEF',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'complete', '--id', 'Rm01ABCDEF']);
 
       expect(mockSlackClient.completeReminder).toHaveBeenCalledWith('Rm01ABCDEF');
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
@@ -321,12 +276,7 @@ describe('reminder command', () => {
     it('should handle missing configuration', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'list',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'list']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -367,14 +317,7 @@ describe('reminder command', () => {
       });
       vi.mocked(mockSlackClient.deleteReminder).mockRejectedValue(new Error('not_found'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'delete',
-        '--id',
-        'Rm01ABCDEF',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'delete', '--id', 'Rm01ABCDEF']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -390,14 +333,7 @@ describe('reminder command', () => {
       });
       vi.mocked(mockSlackClient.completeReminder).mockRejectedValue(new Error('not_found'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'reminder',
-        'complete',
-        '--id',
-        'Rm01ABCDEF',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'reminder', 'complete', '--id', 'Rm01ABCDEF']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),

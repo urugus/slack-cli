@@ -1,9 +1,9 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
+import { Command } from 'commander';
+import { SendEphemeralOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { SUCCESS_MESSAGES } from '../utils/constants';
-import { createSlackClient } from '../utils/client-factory';
-import { SendEphemeralOptions } from '../types/commands';
 import { parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
 

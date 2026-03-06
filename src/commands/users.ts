@@ -1,16 +1,16 @@
 import { Command } from 'commander';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
 import {
-  UsersListOptions,
   UsersInfoOptions,
+  UsersListOptions,
   UsersLookupOptions,
   UsersPresenceOptions,
 } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
-import { createValidationHook, optionValidators } from '../utils/validators';
 import { SlackUser, UserPresence } from '../utils/slack-api-client';
 import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
+import { createValidationHook, optionValidators } from '../utils/validators';
 
 function renderUserTable(users: SlackUser[]) {
   const rows = users.map((user) => ({

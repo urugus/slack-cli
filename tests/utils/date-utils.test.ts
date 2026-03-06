@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { formatUnixTimestamp, formatSlackTimestamp, formatTimestampFixed } from '../../src/utils/date-utils';
+import { describe, expect, it } from 'vitest';
+import {
+  formatSlackTimestamp,
+  formatTimestampFixed,
+  formatUnixTimestamp,
+} from '../../src/utils/date-utils';
 
 describe('date-utils', () => {
   describe('formatUnixTimestamp', () => {

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupMembersCommand } from '../../src/commands/members';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -53,13 +53,7 @@ describe('members command', () => {
         return users[userId];
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'members',
-        '-c',
-        'C1234567890',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'members', '-c', 'C1234567890']);
 
       expect(mockSlackClient.getChannelMembers).toHaveBeenCalledWith('C1234567890', {
         limit: 100,
@@ -92,9 +86,7 @@ describe('members command', () => {
         'json',
       ]);
 
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('"id": "U01ABCDEF"')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('"id": "U01ABCDEF"'));
     });
 
     it('should list channel members in simple format', async () => {
@@ -122,9 +114,7 @@ describe('members command', () => {
         'simple',
       ]);
 
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('U01ABCDEF')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('U01ABCDEF'));
     });
 
     it('should show message when no members found', async () => {
@@ -137,13 +127,7 @@ describe('members command', () => {
         nextCursor: '',
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'members',
-        '-c',
-        'C1234567890',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'members', '-c', 'C1234567890']);
 
       expect(mockConsole.logSpy).toHaveBeenCalledWith('No members found');
     });
@@ -215,13 +199,7 @@ describe('members command', () => {
         new Error('channel_not_found')
       );
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'members',
-        '-c',
-        'CINVALID',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'members', '-c', 'CINVALID']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -233,13 +211,7 @@ describe('members command', () => {
     it('should handle missing configuration', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'members',
-        '-c',
-        'C1234567890',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'members', '-c', 'C1234567890']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -265,13 +237,7 @@ describe('members command', () => {
         })
         .mockRejectedValueOnce(new Error('user_not_found'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'members',
-        '-c',
-        'C1234567890',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'members', '-c', 'C1234567890']);
 
       // Should still succeed - failed user lookups show ID only
       expect(mockConsole.logSpy).toHaveBeenCalled();

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupHistoryCommand } from '../../src/commands/history';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
-import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
 import { ERROR_MESSAGES } from '../../src/utils/constants';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -533,9 +533,7 @@ describe('history command', () => {
         const output = JSON.parse(logCall[0]);
 
         // Message with thread should include thread_ts and reply_count
-        const threadMessage = output.messages.find(
-          (m: any) => m.text === 'Thread parent message'
-        );
+        const threadMessage = output.messages.find((m: any) => m.text === 'Thread parent message');
         expect(threadMessage.ts).toBe('1609459200.000100');
         expect(threadMessage.thread_ts).toBe('1609459200.000100');
         expect(threadMessage.reply_count).toBe(3);
@@ -721,23 +719,12 @@ describe('history command', () => {
         users: new Map([['U123456', 'john.doe']]),
       });
       vi.mocked(mockSlackClient.getPermalinks).mockResolvedValue(
-        new Map([
-          ['1609459200.000100', 'https://team.slack.com/archives/C123/p1609459200000100'],
-        ])
+        new Map([['1609459200.000100', 'https://team.slack.com/archives/C123/p1609459200000100']])
       );
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'history',
-        '-c',
-        'general',
-        '--with-link',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'general', '--with-link']);
 
-      expect(mockSlackClient.getPermalinks).toHaveBeenCalledWith('general', [
-        '1609459200.000100',
-      ]);
+      expect(mockSlackClient.getPermalinks).toHaveBeenCalledWith('general', ['1609459200.000100']);
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining('https://team.slack.com/archives/C123/p1609459200000100')
       );
@@ -763,9 +750,7 @@ describe('history command', () => {
         users: new Map([['U123456', 'john.doe']]),
       });
       vi.mocked(mockSlackClient.getPermalinks).mockResolvedValue(
-        new Map([
-          ['1609459200.000100', 'https://team.slack.com/archives/C123/p1609459200000100'],
-        ])
+        new Map([['1609459200.000100', 'https://team.slack.com/archives/C123/p1609459200000100']])
       );
 
       await program.parseAsync([
@@ -835,18 +820,9 @@ describe('history command', () => {
         users: new Map([['U123456', 'john.doe']]),
       });
 
-      vi.mocked(mockSlackClient.getPermalinks).mockRejectedValue(
-        new Error('channel_not_found')
-      );
+      vi.mocked(mockSlackClient.getPermalinks).mockRejectedValue(new Error('channel_not_found'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'history',
-        '-c',
-        'general',
-        '--with-link',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'general', '--with-link']);
 
       // Should still display messages without permalinks
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Hello'));

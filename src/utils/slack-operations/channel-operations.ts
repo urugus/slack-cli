@@ -1,8 +1,8 @@
-import { BaseSlackClient } from './base-client';
+import { WebClient } from '@slack/web-api';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
 import { Channel, ChannelDetail, ListChannelsOptions, Message } from '../slack-api-client';
-import { WebClient } from '@slack/web-api';
+import { BaseSlackClient } from './base-client';
 
 export interface ChannelMembersOptions {
   limit?: number;

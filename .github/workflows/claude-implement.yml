@@ -78,7 +78,7 @@ jobs:
             1. テストを先に書く
             2. テストが失敗することを確認
             3. テストが通る最小の実装を行う
-            4. npm test / npm run lint / npm run format:check / npm run build を実行
+            4. npm test / npm run check / npm run build を実行
             5. package.json のバージョンをバンプ
             6. コミット & PR 作成
 

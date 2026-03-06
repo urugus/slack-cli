@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupCanvasCommand } from '../../src/commands/canvas';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -46,14 +46,7 @@ describe('canvas command', () => {
         { id: 'section2' },
       ]);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'read',
-        '-i',
-        'F0AJ4852CQN',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'read', '-i', 'F0AJ4852CQN']);
 
       expect(mockSlackClient.readCanvas).toHaveBeenCalledWith('F0AJ4852CQN');
       expect(mockConsole.logSpy).toHaveBeenCalled();
@@ -70,7 +63,9 @@ describe('canvas command', () => {
           elements: [
             {
               type: 'rich_text',
-              elements: [{ type: 'rich_text_section', elements: [{ type: 'text', text: 'Hello World' }] }],
+              elements: [
+                { type: 'rich_text_section', elements: [{ type: 'text', text: 'Hello World' }] },
+              ],
             },
           ],
         },
@@ -105,20 +100,15 @@ describe('canvas command', () => {
           elements: [
             {
               type: 'rich_text',
-              elements: [{ type: 'rich_text_section', elements: [{ type: 'text', text: 'Hello World' }] }],
+              elements: [
+                { type: 'rich_text_section', elements: [{ type: 'text', text: 'Hello World' }] },
+              ],
             },
           ],
         },
       ]);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'read',
-        '-i',
-        'F0AJ4852CQN',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'read', '-i', 'F0AJ4852CQN']);
 
       expect(mockConsole.logSpy).toHaveBeenCalled();
       const output = mockConsole.logSpy.mock.calls[0][0];
@@ -136,7 +126,12 @@ describe('canvas command', () => {
           elements: [
             {
               type: 'rich_text',
-              elements: [{ type: 'rich_text_section', elements: [{ type: 'text', text: 'Section Content' }] }],
+              elements: [
+                {
+                  type: 'rich_text_section',
+                  elements: [{ type: 'text', text: 'Section Content' }],
+                },
+              ],
             },
           ],
         },
@@ -165,14 +160,7 @@ describe('canvas command', () => {
       });
       vi.mocked(mockSlackClient.readCanvas).mockResolvedValue([]);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'read',
-        '-i',
-        'F0AJ4852CQN',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'read', '-i', 'F0AJ4852CQN']);
 
       expect(mockConsole.logSpy).toHaveBeenCalledWith('No sections found in canvas');
     });
@@ -204,18 +192,9 @@ describe('canvas command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.readCanvas).mockRejectedValue(
-        new Error('canvas_not_found')
-      );
+      vi.mocked(mockSlackClient.readCanvas).mockRejectedValue(new Error('canvas_not_found'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'read',
-        '-i',
-        'invalid-id',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'read', '-i', 'invalid-id']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -227,14 +206,7 @@ describe('canvas command', () => {
     it('should handle missing configuration', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'read',
-        '-i',
-        'F0AJ4852CQN',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'read', '-i', 'F0AJ4852CQN']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -259,14 +231,7 @@ describe('canvas command', () => {
         },
       ]);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'list',
-        '-c',
-        'general',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'list', '-c', 'general']);
 
       expect(mockSlackClient.listCanvases).toHaveBeenCalledWith('general');
       expect(mockConsole.logSpy).toHaveBeenCalled();
@@ -310,14 +275,7 @@ describe('canvas command', () => {
       });
       vi.mocked(mockSlackClient.listCanvases).mockResolvedValue([]);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'list',
-        '-c',
-        'general',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'list', '-c', 'general']);
 
       expect(mockConsole.logSpy).toHaveBeenCalledWith('No canvases found in channel');
     });
@@ -349,18 +307,9 @@ describe('canvas command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.listCanvases).mockRejectedValue(
-        new Error('channel_not_found')
-      );
+      vi.mocked(mockSlackClient.listCanvases).mockRejectedValue(new Error('channel_not_found'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'list',
-        '-c',
-        'nonexistent',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'list', '-c', 'nonexistent']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -372,14 +321,7 @@ describe('canvas command', () => {
     it('should handle missing configuration', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'canvas',
-        'list',
-        '-c',
-        'general',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'canvas', 'list', '-c', 'general']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),

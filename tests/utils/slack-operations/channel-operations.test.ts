@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelOperations } from '../../../src/utils/slack-operations/channel-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -78,9 +78,7 @@ describe('ChannelOperations', () => {
           response_metadata: { next_cursor: 'cursor_page2' },
         })
         .mockResolvedValueOnce({
-          channels: [
-            { id: 'C003', name: 'channel-3' },
-          ],
+          channels: [{ id: 'C003', name: 'channel-3' }],
           response_metadata: { next_cursor: '' },
         });
 
@@ -167,9 +165,7 @@ describe('ChannelOperations', () => {
     it('should use users.conversations instead of conversations.list', async () => {
       // Mock users.conversations response (used by fetchUserChannels)
       mockClient.users.conversations.mockResolvedValue({
-        channels: [
-          { id: 'C123', name: 'general' },
-        ],
+        channels: [{ id: 'C123', name: 'general' }],
         response_metadata: { next_cursor: '' },
       });
 
@@ -223,10 +219,7 @@ describe('ChannelOperations', () => {
         })
         // Second call for C123 - get unread messages
         .mockResolvedValueOnce({
-          messages: [
-            { ts: '1234567890.000200' },
-            { ts: '1234567890.000150' },
-          ],
+          messages: [{ ts: '1234567890.000200' }, { ts: '1234567890.000150' }],
         })
         // Third call for C456 - check latest message
         .mockResolvedValueOnce({

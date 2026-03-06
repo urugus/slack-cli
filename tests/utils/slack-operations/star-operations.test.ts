@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StarOperations } from '../../../src/utils/slack-operations/star-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -41,9 +41,9 @@ describe('StarOperations', () => {
     it('should throw when add fails', async () => {
       mockClient.stars.add.mockRejectedValue(new Error('channel_not_found'));
 
-      await expect(
-        starOps.addStar('C1234567890', '1234567890.123456')
-      ).rejects.toThrow('channel_not_found');
+      await expect(starOps.addStar('C1234567890', '1234567890.123456')).rejects.toThrow(
+        'channel_not_found'
+      );
     });
   });
 
@@ -140,9 +140,9 @@ describe('StarOperations', () => {
     it('should throw when remove fails', async () => {
       mockClient.stars.remove.mockRejectedValue(new Error('not_starred'));
 
-      await expect(
-        starOps.removeStar('C1234567890', '1234567890.123456')
-      ).rejects.toThrow('not_starred');
+      await expect(starOps.removeStar('C1234567890', '1234567890.123456')).rejects.toThrow(
+        'not_starred'
+      );
     });
   });
 });

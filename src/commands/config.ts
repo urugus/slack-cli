@@ -1,12 +1,12 @@
 import { Command } from 'commander';
 import { wrapCommand } from '../utils/command-wrapper';
 import {
-  handleSetToken,
+  handleClearConfig,
   handleGetConfig,
   handleListProfiles,
-  handleUseProfile,
+  handleSetToken,
   handleShowCurrentProfile,
-  handleClearConfig,
+  handleUseProfile,
 } from './config-subcommands';
 
 export function setupConfigCommand(): Command {

@@ -1,14 +1,12 @@
 {
   "name": "@urugus/slack-cli",
-  "version": "0.20.2",
+  "version": "0.20.3",
   "description": "A command-line tool for sending messages to Slack",
   "main": "dist/index.js",
   "bin": {
     "slack-cli": "dist/index.js"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
@@ -16,18 +14,15 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "lint": "eslint src/**/*.ts",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "format:check": "biome check .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
     "prepublishOnly": "npm run build"
   },
-  "keywords": [
-    "slack",
-    "cli",
-    "command-line",
-    "messaging",
-    "api"
-  ],
+  "keywords": ["slack", "cli", "command-line", "messaging", "api"],
   "author": "urugus",
   "publishConfig": {
     "access": "public"
@@ -40,16 +35,11 @@
     "p-limit": "^7.3.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.6",
     "@types/node": "^25.3.0",
-    "@typescript-eslint/eslint-plugin": "^8.56.0",
-    "@typescript-eslint/parser": "^8.56.0",
     "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9.30.0",
-    "eslint-config-prettier": "^10.1.5",
-    "prettier": "^3.1.1",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2",
-    "typescript-eslint": "^8.56.0",
     "vitest": "^4.0.18"
   },
   "engines": {

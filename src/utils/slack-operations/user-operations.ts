@@ -1,5 +1,5 @@
-import { BaseSlackClient } from './base-client';
 import { ApiError } from '../errors';
+import { BaseSlackClient } from './base-client';
 
 export interface UserPresence {
   presence: string;

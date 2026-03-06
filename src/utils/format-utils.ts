@@ -1,5 +1,5 @@
-import { USER_MENTION_PATTERN } from './slack-patterns';
 import { Message } from './slack-api-client';
+import { USER_MENTION_PATTERN } from './slack-patterns';
 import { sanitizeTerminalText } from './terminal-sanitizer';
 
 export function formatMessageWithMentions(message: string, users: Map<string, string>): string {

@@ -1,6 +1,6 @@
-import { ProfileConfigManager } from './profile-config';
-import { ConfigurationError } from './errors';
 import { ERROR_MESSAGES } from './constants';
+import { ConfigurationError } from './errors';
+import { ProfileConfigManager } from './profile-config';
 
 /**
  * Helper function to get configuration with proper error handling

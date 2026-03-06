@@ -1,8 +1,8 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
+import { Command } from 'commander';
 import { JoinOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
 import { parseProfile } from '../utils/option-parsers';
 
 export function setupJoinCommand(): Command {

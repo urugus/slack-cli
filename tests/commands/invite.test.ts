@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupInviteCommand } from '../../src/commands/invite';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -43,17 +43,13 @@ describe('invite command', () => {
       });
       vi.mocked(mockSlackClient.inviteToChannel).mockResolvedValue();
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'invite',
-        '-c',
-        'general',
-        '-u',
-        'U12345',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'invite', '-c', 'general', '-u', 'U12345']);
 
-      expect(mockSlackClient.inviteToChannel).toHaveBeenCalledWith('general', ['U12345'], undefined);
+      expect(mockSlackClient.inviteToChannel).toHaveBeenCalledWith(
+        'general',
+        ['U12345'],
+        undefined
+      );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining('Invited user(s) to channel #general')
       );
@@ -76,11 +72,11 @@ describe('invite command', () => {
         'U12345,U67890,U11111',
       ]);
 
-      expect(mockSlackClient.inviteToChannel).toHaveBeenCalledWith('general', [
-        'U12345',
-        'U67890',
-        'U11111',
-      ], undefined);
+      expect(mockSlackClient.inviteToChannel).toHaveBeenCalledWith(
+        'general',
+        ['U12345', 'U67890', 'U11111'],
+        undefined
+      );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining('Invited user(s) to channel #general')
       );
@@ -163,15 +159,7 @@ describe('invite command', () => {
     it('should handle missing configuration', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'invite',
-        '-c',
-        'general',
-        '-u',
-        'U12345',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'invite', '-c', 'general', '-u', 'U12345']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -185,9 +173,7 @@ describe('invite command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.inviteToChannel).mockRejectedValue(
-        new Error('channel_not_found')
-      );
+      vi.mocked(mockSlackClient.inviteToChannel).mockRejectedValue(new Error('channel_not_found'));
 
       await program.parseAsync([
         'node',
@@ -211,19 +197,9 @@ describe('invite command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.inviteToChannel).mockRejectedValue(
-        new Error('already_in_channel')
-      );
+      vi.mocked(mockSlackClient.inviteToChannel).mockRejectedValue(new Error('already_in_channel'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'invite',
-        '-c',
-        'general',
-        '-u',
-        'U12345',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'invite', '-c', 'general', '-u', 'U12345']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -237,19 +213,9 @@ describe('invite command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.inviteToChannel).mockRejectedValue(
-        new Error('cant_invite_self')
-      );
+      vi.mocked(mockSlackClient.inviteToChannel).mockRejectedValue(new Error('cant_invite_self'));
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'invite',
-        '-c',
-        'general',
-        '-u',
-        'U12345',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'invite', '-c', 'general', '-u', 'U12345']);
 
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error:'),
@@ -264,15 +230,7 @@ describe('invite command', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'invite',
-        '-c',
-        'general',
-        '-u',
-        ' , , ',
-      ]);
+      await program.parseAsync(['node', 'slack-cli', 'invite', '-c', 'general', '-u', ' , , ']);
 
       expect(mockSlackClient.inviteToChannel).not.toHaveBeenCalled();
       expect(mockConsole.errorSpy).toHaveBeenCalledWith(

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { LogLevel, WebClient } from '@slack/web-api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SlackApiClient } from '../../src/utils/slack-api-client';
-import { WebClient, LogLevel } from '@slack/web-api';
 
 vi.mock('@slack/web-api');
 

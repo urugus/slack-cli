@@ -1,10 +1,10 @@
 import { Command } from 'commander';
-import { wrapCommand } from '../utils/command-wrapper';
-import { createSlackClient } from '../utils/client-factory';
 import { MembersOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
+import { wrapCommand } from '../utils/command-wrapper';
+import { createMembersFormatter, MemberInfo } from '../utils/formatters/members-formatters';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
 import { createValidationHook, optionValidators } from '../utils/validators';
-import { createMembersFormatter, MemberInfo } from '../utils/formatters/members-formatters';
 
 export function setupMembersCommand(): Command {
   const membersCommand = new Command('members');

@@ -1,11 +1,11 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
-import { wrapCommand } from '../utils/command-wrapper';
+import { Command } from 'commander';
+import { PinListOptions, PinOptions } from '../types/commands';
 import { createSlackClient } from '../utils/client-factory';
-import { PinOptions, PinListOptions } from '../types/commands';
+import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
-import { createValidationHook, optionValidators } from '../utils/validators';
 import { PinnedItem } from '../utils/slack-api-client';
+import { createValidationHook, optionValidators } from '../utils/validators';
 
 function formatCreated(created: number): string {
   return new Date(created * 1000).toISOString();

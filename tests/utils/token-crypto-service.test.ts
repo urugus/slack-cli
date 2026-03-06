@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as crypto from 'crypto';
-import { TokenCryptoService } from '../../src/utils/token-crypto-service';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ConfigurationError, ValidationError } from '../../src/utils/errors';
+import { TokenCryptoService } from '../../src/utils/token-crypto-service';
 
 describe('TokenCryptoService', () => {
   let service: TokenCryptoService;

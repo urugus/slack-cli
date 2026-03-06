@@ -2,8 +2,8 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { ConfigurationError, ValidationError } from './errors';
 import { FILE_PERMISSIONS } from './constants';
+import { ConfigurationError, ValidationError } from './errors';
 
 export interface TokenCryptoServiceOptions {
   masterKey?: string;

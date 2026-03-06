@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupUploadCommand } from '../../src/commands/upload';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
-import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
 import * as fs from 'fs/promises';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setupUploadCommand } from '../../src/commands/upload';
+import { ProfileConfigManager } from '../../src/utils/profile-config';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -167,9 +167,9 @@ describe('upload command', () => {
       const uploadCommand = setupUploadCommand();
       uploadCommand.exitOverride();
 
-      await expect(
-        uploadCommand.parseAsync(['-c', 'general'], { from: 'user' })
-      ).rejects.toThrow('You must specify either --file or --content');
+      await expect(uploadCommand.parseAsync(['-c', 'general'], { from: 'user' })).rejects.toThrow(
+        'You must specify either --file or --content'
+      );
     });
 
     it('should fail when both file and content are provided', async () => {
@@ -177,10 +177,9 @@ describe('upload command', () => {
       uploadCommand.exitOverride();
 
       await expect(
-        uploadCommand.parseAsync(
-          ['-c', 'general', '-f', 'file.txt', '--content', 'text'],
-          { from: 'user' }
-        )
+        uploadCommand.parseAsync(['-c', 'general', '-f', 'file.txt', '--content', 'text'], {
+          from: 'user',
+        })
       ).rejects.toThrow('Cannot use both --file and --content');
     });
 
@@ -189,10 +188,9 @@ describe('upload command', () => {
       uploadCommand.exitOverride();
 
       await expect(
-        uploadCommand.parseAsync(
-          ['-c', 'general', '-f', 'file.txt', '-t', 'invalid-ts'],
-          { from: 'user' }
-        )
+        uploadCommand.parseAsync(['-c', 'general', '-f', 'file.txt', '-t', 'invalid-ts'], {
+          from: 'user',
+        })
       ).rejects.toThrow('Invalid thread timestamp format');
     });
   });
@@ -248,9 +246,7 @@ describe('upload command', () => {
         updatedAt: new Date().toISOString(),
       });
       vi.mocked(fs.access).mockResolvedValue(undefined);
-      vi.mocked(mockSlackClient.uploadFile).mockRejectedValue(
-        new Error('not_allowed_token_type')
-      );
+      vi.mocked(mockSlackClient.uploadFile).mockRejectedValue(new Error('not_allowed_token_type'));
 
       await program.parseAsync([
         'node',

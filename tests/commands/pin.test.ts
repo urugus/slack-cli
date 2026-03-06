@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupPinCommand } from '../../src/commands/pin';
-import { SlackApiClient } from '../../src/utils/slack-api-client';
 import { ProfileConfigManager } from '../../src/utils/profile-config';
-import { setupMockConsole, createTestProgram, restoreMocks } from '../test-utils';
+import { SlackApiClient } from '../../src/utils/slack-api-client';
+import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils';
 
 vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
@@ -198,9 +198,7 @@ describe('pin command', () => {
         'simple',
       ]);
 
-      expect(mockConsole.logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Pinned message')
-      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Pinned message'));
     });
 
     it('should show message when no pins found', async () => {

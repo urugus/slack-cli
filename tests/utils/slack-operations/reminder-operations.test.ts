@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReminderOperations } from '../../../src/utils/slack-operations/reminder-operations';
 
 vi.mock('@slack/web-api', () => ({

@@ -1,6 +1,6 @@
-import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { MessageOperations } from '../../../src/utils/slack-operations/message-operations';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { channelResolver } from '../../../src/utils/channel-resolver';
+import { MessageOperations } from '../../../src/utils/slack-operations/message-operations';
 
 vi.mock('@slack/web-api', () => ({
   WebClient: vi.fn().mockImplementation(function () {

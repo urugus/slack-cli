@@ -1,15 +1,15 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
+import { Command } from 'commander';
+import * as fs from 'fs/promises';
+import { SendOptions } from '../types/commands';
+import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
-import { createSlackClient } from '../utils/client-factory';
-import { FileError } from '../utils/errors';
-import { SendOptions } from '../types/commands';
 import { extractErrorMessage } from '../utils/error-utils';
+import { FileError } from '../utils/errors';
 import { parseProfile } from '../utils/option-parsers';
-import { createValidationHook, optionValidators } from '../utils/validators';
 import { resolvePostAt } from '../utils/schedule-utils';
-import * as fs from 'fs/promises';
+import { createValidationHook, optionValidators } from '../utils/validators';
 
 export function setupSendCommand(): Command {
   const sendCommand = new Command('send')

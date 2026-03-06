@@ -1,7 +1,7 @@
-import { BaseSlackClient } from './base-client';
 import { channelResolver } from '../channel-resolver';
-import { ChannelOperations } from './channel-operations';
 import { DEFAULTS } from '../constants';
+import { BaseSlackClient } from './base-client';
+import { ChannelOperations } from './channel-operations';
 
 export class ReactionOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;

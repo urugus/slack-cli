@@ -1,33 +1,33 @@
 import {
-  ChatPostMessageResponse,
   ChatPostEphemeralResponse,
+  ChatPostMessageResponse,
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
 import {
-  ChannelOperations,
-  ChannelMembersOptions,
-  ChannelMembersResult,
-} from './slack-operations/channel-operations';
-import { MessageOperations } from './slack-operations/message-operations';
-import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
-import { ReactionOperations } from './slack-operations/reaction-operations';
-import { PinOperations, PinnedItem } from './slack-operations/pin-operations';
-import { UserOperations, SlackUser, UserPresence } from './slack-operations/user-operations';
-import { ReminderOperations, Reminder } from './slack-operations/reminder-operations';
-import {
-  SearchOperations,
-  SearchResult,
-  SearchMessagesOptions,
-  SearchMatch,
-} from './slack-operations/search-operations';
-import { StarOperations, StarredItem, StarListResult } from './slack-operations/star-operations';
-import {
+  CanvasFile,
   CanvasOperations,
   CanvasSection,
   CanvasSectionElement,
-  CanvasFile,
 } from './slack-operations/canvas-operations';
+import {
+  ChannelMembersOptions,
+  ChannelMembersResult,
+  ChannelOperations,
+} from './slack-operations/channel-operations';
+import { FileOperations, UploadFileOptions } from './slack-operations/file-operations';
+import { MessageOperations } from './slack-operations/message-operations';
+import { PinnedItem, PinOperations } from './slack-operations/pin-operations';
+import { ReactionOperations } from './slack-operations/reaction-operations';
+import { Reminder, ReminderOperations } from './slack-operations/reminder-operations';
+import {
+  SearchMatch,
+  SearchMessagesOptions,
+  SearchOperations,
+  SearchResult,
+} from './slack-operations/search-operations';
+import { StarListResult, StarOperations, StarredItem } from './slack-operations/star-operations';
+import { SlackUser, UserOperations, UserPresence } from './slack-operations/user-operations';
 
 export type {
   SearchResult,

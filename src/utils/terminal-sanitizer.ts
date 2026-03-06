@@ -25,3 +25,21 @@ export function sanitizeTerminalText(value: string): string {
 
   return sanitized;
 }
+
+export function sanitizeTerminalData<T>(value: T): T {
+  if (typeof value === 'string') {
+    return sanitizeTerminalText(value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeTerminalData(item)) as T;
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [key, sanitizeTerminalData(nestedValue)])
+    ) as T;
+  }
+
+  return value;
+}

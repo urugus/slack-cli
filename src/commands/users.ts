@@ -9,7 +9,7 @@ import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
 import { SlackUser, UserPresence } from '../utils/slack-api-client';
-import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
+import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 function renderUserTable(users: SlackUser[]) {
@@ -22,7 +22,7 @@ function renderUserTable(users: SlackUser[]) {
     deleted: user.deleted ? 'Yes' : 'No',
   }));
 
-  console.table(rows);
+  console.table(sanitizeTerminalData(rows));
 }
 
 function renderUserSimple(users: SlackUser[]) {
@@ -61,11 +61,11 @@ function renderUserInfo(user: SlackUser) {
 function renderPresenceTable(userId: string, presence: UserPresence) {
   const rows = [
     {
-      user: userId,
-      presence: presence.presence,
+      user: sanitizeTerminalText(userId),
+      presence: sanitizeTerminalText(presence.presence),
     },
   ];
-  console.table(rows);
+  console.table(sanitizeTerminalData(rows));
 }
 
 function renderPresenceSimple(userId: string, presence: UserPresence) {
@@ -98,7 +98,7 @@ export function setupUsersCommand(): Command {
         const format = parseFormat(options.format);
 
         if (format === 'json') {
-          console.log(JSON.stringify(users, null, 2));
+          console.log(JSON.stringify(sanitizeTerminalData(users), null, 2));
           return;
         }
 
@@ -126,7 +126,7 @@ export function setupUsersCommand(): Command {
         const format = parseFormat(options.format);
 
         if (format === 'json') {
-          console.log(JSON.stringify(user, null, 2));
+          console.log(JSON.stringify(sanitizeTerminalData(user), null, 2));
           return;
         }
 
@@ -149,7 +149,7 @@ export function setupUsersCommand(): Command {
         const format = parseFormat(options.format);
 
         if (format === 'json') {
-          console.log(JSON.stringify(user, null, 2));
+          console.log(JSON.stringify(sanitizeTerminalData(user), null, 2));
           return;
         }
 
@@ -188,7 +188,7 @@ export function setupUsersCommand(): Command {
         const format = parseFormat(options.format);
 
         if (format === 'json') {
-          console.log(JSON.stringify(presence, null, 2));
+          console.log(JSON.stringify(sanitizeTerminalData(presence), null, 2));
           return;
         }
 

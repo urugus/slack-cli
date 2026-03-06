@@ -4,6 +4,7 @@ import { ScheduledCancelOptions, ScheduledListOptions } from '../types/commands'
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
+import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 function formatPostAt(postAt: number): string {
@@ -14,13 +15,13 @@ function renderTable(
   messages: Array<{ id: string; channel_id: string; post_at: number; text?: string }>
 ) {
   const rows = messages.map((message) => ({
-    id: message.id,
-    channel: message.channel_id,
+    id: sanitizeTerminalText(message.id),
+    channel: sanitizeTerminalText(message.channel_id),
     post_at: formatPostAt(message.post_at),
-    text: message.text || '',
+    text: sanitizeTerminalText(message.text || ''),
   }));
 
-  console.table(rows);
+  console.table(sanitizeTerminalData(rows));
 }
 
 function renderSimple(
@@ -28,7 +29,7 @@ function renderSimple(
 ) {
   for (const message of messages) {
     console.log(
-      `${formatPostAt(message.post_at)} ${message.channel_id} ${message.id} ${message.text || ''}`
+      `${formatPostAt(message.post_at)} ${sanitizeTerminalText(message.channel_id)} ${sanitizeTerminalText(message.id)} ${sanitizeTerminalText(message.text || '')}`
     );
   }
 }
@@ -60,7 +61,7 @@ export function setupScheduledCommand(): Command {
         const format = parseFormat(options.format);
 
         if (format === 'json') {
-          console.log(JSON.stringify(messages, null, 2));
+          console.log(JSON.stringify(sanitizeTerminalData(messages), null, 2));
           return;
         }
 

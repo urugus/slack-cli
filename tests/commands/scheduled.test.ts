@@ -108,6 +108,27 @@ describe('scheduled command', () => {
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('"id": "Q123"'));
     });
 
+    it('should sanitize scheduled message content in json format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue([
+        {
+          id: 'Q123',
+          channel_id: 'C1234567890',
+          post_at: 1770855000,
+          date_created: 1770854400,
+          text: '\u001b]8;;https://example.com\u0007click\u001b]8;;\u0007',
+        },
+      ] as any);
+
+      await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list', '--format', 'json']);
+
+      const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
+      expect(output[0].text).toBe(']8;;https://example.comclick]8;;');
+    });
+
     it('should output simple format', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

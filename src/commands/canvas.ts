@@ -5,12 +5,13 @@ import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
 import { CanvasFile, CanvasSection, CanvasSectionElement } from '../utils/slack-api-client';
+import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 function extractText(elements: CanvasSectionElement[]): string {
   return elements
     .map((el) => {
-      if (el.text) return el.text;
+      if (el.text) return sanitizeTerminalText(el.text);
       if (el.elements) return extractText(el.elements);
       return '';
     })
@@ -19,14 +20,14 @@ function extractText(elements: CanvasSectionElement[]): string {
 
 function formatSections(sections: CanvasSection[], format: string): void {
   if (format === 'json') {
-    console.log(JSON.stringify(sections));
+    console.log(JSON.stringify(sanitizeTerminalData(sections)));
     return;
   }
 
   if (format === 'simple') {
     sections.forEach((section) => {
       const text = section.elements ? extractText(section.elements) : '';
-      console.log(`${section.id || '(no id)'}\t${text || '(no content)'}`);
+      console.log(`${sanitizeTerminalText(section.id || '(no id)')}\t${text || '(no content)'}`);
     });
     return;
   }
@@ -35,20 +36,23 @@ function formatSections(sections: CanvasSection[], format: string): void {
   sections.forEach((section) => {
     const text = section.elements ? extractText(section.elements) : '';
     console.log(
-      chalk.cyan(`ID: ${section.id || '(no id)'}`) + `  Content: ${text || '(no content)'}`
+      chalk.cyan(`ID: ${sanitizeTerminalText(section.id || '(no id)')}`) +
+        `  Content: ${text || '(no content)'}`
     );
   });
 }
 
 function formatCanvases(canvases: CanvasFile[], format: string): void {
   if (format === 'json') {
-    console.log(JSON.stringify(canvases));
+    console.log(JSON.stringify(sanitizeTerminalData(canvases)));
     return;
   }
 
   if (format === 'simple') {
     canvases.forEach((canvas) => {
-      console.log(`${canvas.id}\t${canvas.name || '(no name)'}`);
+      console.log(
+        `${sanitizeTerminalText(canvas.id || '(no id)')}\t${sanitizeTerminalText(canvas.name || '(no name)')}`
+      );
     });
     return;
   }
@@ -56,7 +60,8 @@ function formatCanvases(canvases: CanvasFile[], format: string): void {
   // table format (default)
   canvases.forEach((canvas) => {
     console.log(
-      chalk.cyan(`ID: ${canvas.id || '(no id)'}`) + `  Name: ${canvas.name || '(no name)'}`
+      chalk.cyan(`ID: ${sanitizeTerminalText(canvas.id || '(no id)')}`) +
+        `  Name: ${sanitizeTerminalText(canvas.name || '(no name)')}`
     );
   });
 }

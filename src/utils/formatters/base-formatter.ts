@@ -1,3 +1,5 @@
+import { sanitizeTerminalData } from '../terminal-sanitizer';
+
 export interface BaseFormatter<T> {
   format(data: T): void;
 }
@@ -10,7 +12,7 @@ export abstract class JsonFormatter<TInput, TOutput = unknown> extends AbstractF
   protected abstract transform(data: TInput): TOutput;
 
   format(data: TInput): void {
-    console.log(JSON.stringify(this.transform(data), null, 2));
+    console.log(JSON.stringify(sanitizeTerminalData(this.transform(data)), null, 2));
   }
 }
 

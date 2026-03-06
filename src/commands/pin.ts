@@ -5,6 +5,7 @@ import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
 import { PinnedItem } from '../utils/slack-api-client';
+import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 function formatCreated(created: number): string {
@@ -15,19 +16,19 @@ function renderTable(items: PinnedItem[]) {
   const rows = items.map((item) => ({
     type: item.type || 'unknown',
     created: item.created ? formatCreated(item.created) : '',
-    created_by: item.created_by || '',
-    ts: item.message?.ts || '',
-    text: item.message?.text || '',
+    created_by: sanitizeTerminalText(item.created_by || ''),
+    ts: sanitizeTerminalText(item.message?.ts || ''),
+    text: sanitizeTerminalText(item.message?.text || ''),
   }));
 
-  console.table(rows);
+  console.table(sanitizeTerminalData(rows));
 }
 
 function renderSimple(items: PinnedItem[]) {
   for (const item of items) {
     const created = item.created ? formatCreated(item.created) : '';
-    const text = item.message?.text || '';
-    const ts = item.message?.ts || '';
+    const text = sanitizeTerminalText(item.message?.text || '');
+    const ts = sanitizeTerminalText(item.message?.ts || '');
     console.log(`${created} ${ts} ${text}`);
   }
 }
@@ -89,7 +90,7 @@ export function setupPinCommand(): Command {
         const format = parseFormat(options.format);
 
         if (format === 'json') {
-          console.log(JSON.stringify(items, null, 2));
+          console.log(JSON.stringify(sanitizeTerminalData(items), null, 2));
           return;
         }
 

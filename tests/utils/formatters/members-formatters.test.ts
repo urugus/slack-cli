@@ -76,6 +76,16 @@ describe('members formatters', () => {
       );
       expect(logSpy).toHaveBeenCalledWith(expected);
     });
+
+    it('should sanitize control characters in JSON output', () => {
+      const formatter = createMembersFormatter('json');
+      formatter.format({
+        members: [{ id: 'U01', name: '\u001b[31malice\u001b[0m', realName: 'Alice\u0007' }],
+      });
+
+      const output = JSON.parse(logSpy.mock.calls[0][0]);
+      expect(output).toEqual([{ id: 'U01', name: '[31malice[0m', real_name: 'Alice' }]);
+    });
   });
 
   describe('factory', () => {

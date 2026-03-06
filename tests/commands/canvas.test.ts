@@ -89,6 +89,43 @@ describe('canvas command', () => {
       expect(output[0].elements).toBeDefined();
     });
 
+    it('should sanitize section content in json format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.readCanvas).mockResolvedValue([
+        {
+          id: 'section1',
+          elements: [
+            {
+              type: 'rich_text',
+              elements: [
+                {
+                  type: 'rich_text_section',
+                  elements: [{ type: 'text', text: '\u001b[31mHello\u001b[0m' }],
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'read',
+        '-i',
+        'F0AJ4852CQN',
+        '--format',
+        'json',
+      ]);
+
+      const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
+      expect(output[0].elements[0].elements[0].elements[0].text).toBe('[31mHello[0m');
+    });
+
     it('should display section text content in table format', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

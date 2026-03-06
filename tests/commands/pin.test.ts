@@ -169,6 +169,39 @@ describe('pin command', () => {
       expect(mockConsole.logSpy).toHaveBeenCalledWith(JSON.stringify(pins, null, 2));
     });
 
+    it('should sanitize pinned item content in json format', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listPins).mockResolvedValue([
+        {
+          type: 'message',
+          created: 1700000000,
+          created_by: 'U123',
+          message: {
+            text: '\u001b[31mPinned message\u001b[0m',
+            user: 'U123',
+            ts: '1234567890.123456',
+          },
+        },
+      ]);
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'pin',
+        'list',
+        '-c',
+        'general',
+        '--format',
+        'json',
+      ]);
+
+      const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
+      expect(output[0].message.text).toBe('[31mPinned message[0m');
+    });
+
     it('should output in simple format', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

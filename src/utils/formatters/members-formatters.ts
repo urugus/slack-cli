@@ -1,3 +1,4 @@
+import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface MemberInfo {
@@ -16,9 +17,9 @@ class MembersTableFormatter extends AbstractFormatter<MembersFormatterOptions> {
     console.log('\u2500'.repeat(60));
 
     members.forEach((member) => {
-      const id = (member.id || '').padEnd(17);
-      const name = (member.name || '').padEnd(17);
-      const realName = member.realName || '';
+      const id = sanitizeTerminalText(member.id || '').padEnd(17);
+      const name = sanitizeTerminalText(member.name || '').padEnd(17);
+      const realName = sanitizeTerminalText(member.realName || '');
 
       console.log(`${id} ${name} ${realName}`);
     });
@@ -28,7 +29,9 @@ class MembersTableFormatter extends AbstractFormatter<MembersFormatterOptions> {
 class MembersSimpleFormatter extends AbstractFormatter<MembersFormatterOptions> {
   format({ members }: MembersFormatterOptions): void {
     members.forEach((member) => {
-      console.log(`${member.id || ''}\t${member.name || ''}\t${member.realName || ''}`);
+      console.log(
+        `${sanitizeTerminalText(member.id || '')}\t${sanitizeTerminalText(member.name || '')}\t${sanitizeTerminalText(member.realName || '')}`
+      );
     });
   }
 }

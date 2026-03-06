@@ -1,6 +1,6 @@
 /**
  * Remove control characters to avoid terminal escape injection.
- * Keeps newline, carriage return, and tab for readability.
+ * Keeps newline and tab for readability.
  */
 export function sanitizeTerminalText(value: string): string {
   if (!value) {
@@ -11,7 +11,7 @@ export function sanitizeTerminalText(value: string): string {
 
   for (const char of value) {
     const code = char.charCodeAt(0);
-    const isAllowedWhitespace = code === 0x09 || code === 0x0a || code === 0x0d;
+    const isAllowedWhitespace = code === 0x09 || code === 0x0a;
     const isAsciiControl = code < 0x20;
     const isDelete = code === 0x7f;
     const isC1Control = code >= 0x80 && code <= 0x9f;
@@ -24,4 +24,31 @@ export function sanitizeTerminalText(value: string): string {
   }
 
   return sanitized;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+export function sanitizeTerminalData<T>(value: T): T {
+  if (typeof value === 'string') {
+    return sanitizeTerminalText(value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeTerminalData(item)) as T;
+  }
+
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [key, sanitizeTerminalData(nestedValue)])
+    ) as T;
+  }
+
+  return value;
 }

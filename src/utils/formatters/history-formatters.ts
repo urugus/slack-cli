@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { formatTimestampFixed } from '../date-utils';
 import { formatMessageWithMentions, resolveUsername } from '../format-utils';
 import { Message as SlackMessage } from '../slack-api-client';
+import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface HistoryFormatterOptions {
@@ -31,7 +32,7 @@ class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
       const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
       console.log(text);
       if (permalinks?.has(message.ts)) {
-        console.log(chalk.blue(permalinks.get(message.ts)!));
+        console.log(chalk.blue(sanitizeTerminalText(permalinks.get(message.ts)!)));
       }
       console.log('');
     });
@@ -54,7 +55,7 @@ class SimpleHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> 
       const username = resolveUsername(message, users);
       const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
       const link = permalinks?.get(message.ts);
-      const linkSuffix = link ? ` ${link}` : '';
+      const linkSuffix = link ? ` ${sanitizeTerminalText(link)}` : '';
       console.log(`[${timestamp}] ${username}: ${text}${linkSuffix}`);
     });
   }

@@ -17,7 +17,7 @@
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write .",
-    "format:check": "biome format .",
+    "format:check": "biome check .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "prepublishOnly": "npm run build"

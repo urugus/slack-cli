@@ -1,5 +1,5 @@
-import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface ReminderInfo {
   id: string;
@@ -38,9 +38,9 @@ class ReminderTableFormatter extends AbstractFormatter<ReminderFormatterOptions>
 
     reminders.forEach((reminder) => {
       const id = sanitizeTerminalText(reminder.id || '').padEnd(idWidth);
-      const text = sanitizeTerminalText(reminder.text || '').slice(0, textWidth - 2).padEnd(
-        textWidth
-      );
+      const text = sanitizeTerminalText(reminder.text || '')
+        .slice(0, textWidth - 2)
+        .padEnd(textWidth);
       const time = formatTime(reminder.time).padEnd(timeWidth);
       const status = getStatus(reminder.complete_ts).padEnd(statusWidth);
 

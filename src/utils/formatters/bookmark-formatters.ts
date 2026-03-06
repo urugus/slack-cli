@@ -1,5 +1,5 @@
-import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
+import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 
 export interface BookmarkItem {
   type: string;

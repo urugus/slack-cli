@@ -106,8 +106,12 @@ export class TokenCryptoService {
     try {
       this.writeKeyFile(keyFilePath, legacyKeyHex);
     } catch (error: unknown) {
-      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'EEXIST') {
-        throw new ConfigurationError('Failed to migrate token encryption key');
+      if (!error || typeof error !== 'object' || !('code' in error)) {
+        return legacyKey;
+      }
+
+      if (error.code !== 'EEXIST' || !fs.existsSync(keyFilePath)) {
+        return legacyKey;
       }
     }
 

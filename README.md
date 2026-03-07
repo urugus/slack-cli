@@ -22,7 +22,8 @@ printf '%s\n' "$SLACK_API_TOKEN" | slack-cli config set --token-stdin
 
 Token storage security:
 - Tokens are encrypted with AES-256-GCM before being written to disk.
-- A local master key is created at `~/.slack-cli/master.key` with owner-only permissions.
+- A local master key is created at `~/.slack-cli-secrets/master.key` with owner-only permissions.
+- Existing `~/.slack-cli/master.key` files are migrated automatically on first use.
 - For ephemeral environments, you can supply `SLACK_CLI_MASTER_KEY` to override the local key.
 
 ## Usage

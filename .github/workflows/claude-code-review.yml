@@ -30,9 +30,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Detect workflow changes
+        id: changed-files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -q '^.github/workflows/'; then
+            echo "workflow_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "workflow_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip Claude Code Review for workflow changes
+        if: steps.changed-files.outputs.workflow_changes == 'true'
+        run: echo "Workflow changes detected. Skipping Claude Code Review to avoid GitHub App workflow validation failure."
 
       - name: Run Claude Code Review
+        if: steps.changed-files.outputs.workflow_changes != 'true'
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:

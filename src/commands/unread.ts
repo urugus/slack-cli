@@ -26,6 +26,8 @@ function formatChannelUnreadOutput(
     users: result.users,
     countOnly: countOnly,
     format: format,
+    totalUnreadCount: result.totalUnreadCount,
+    displayedMessageCount: result.displayedMessageCount,
   });
 }
 

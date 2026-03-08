@@ -115,6 +115,18 @@ describe('MessageFormatters', () => {
       expect(output).toContain('general');
       expect(output).toContain('(3)');
     });
+
+    it('should show truncation notice when not all unread messages are displayed', () => {
+      const options = createOptions({
+        totalUnreadCount: 10,
+        displayedMessageCount: 1,
+      });
+      const formatter = createMessageFormatter('simple');
+      formatter.format(options);
+
+      const output = consoleSpy.mock.calls.map((c) => c[0]).join('\n');
+      expect(output).toContain('Showing latest 1 of 10 unread messages');
+    });
   });
 
   describe('json formatter', () => {
@@ -158,6 +170,20 @@ describe('MessageFormatters', () => {
       const jsonOutput = consoleSpy.mock.calls[0][0];
       const parsed = JSON.parse(jsonOutput);
       expect(parsed.messages[0].author).toBe('unknown');
+    });
+
+    it('should include truncation metadata when output is partial', () => {
+      const options = createOptions({
+        totalUnreadCount: 10,
+        displayedMessageCount: 1,
+      });
+      const formatter = createMessageFormatter('json');
+      formatter.format(options);
+
+      const jsonOutput = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(jsonOutput);
+      expect(parsed.displayedMessageCount).toBe(1);
+      expect(parsed.isTruncated).toBe(true);
     });
   });
 

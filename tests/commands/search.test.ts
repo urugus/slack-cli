@@ -187,6 +187,9 @@ describe('search command', () => {
 
       const jsonCall = mockConsole.logSpy.mock.calls.find((call: unknown[]) => {
         try {
+          if (typeof call[0] !== 'string') {
+            return false;
+          }
           JSON.parse(call[0]);
           return true;
         } catch {

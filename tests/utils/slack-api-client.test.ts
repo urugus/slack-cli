@@ -5,8 +5,27 @@ import { SlackApiClient } from '../../src/utils/slack-api-client';
 vi.mock('@slack/web-api');
 
 describe('SlackApiClient', () => {
+  type MockWebClient = {
+    chat: {
+      postMessage: ReturnType<typeof vi.fn>;
+      scheduleMessage: ReturnType<typeof vi.fn>;
+      scheduledMessages: {
+        list: ReturnType<typeof vi.fn>;
+      };
+    };
+    conversations: {
+      list: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+      replies: ReturnType<typeof vi.fn>;
+    };
+    users: {
+      conversations: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let client: SlackApiClient;
-  let mockWebClient: unknown;
+  let mockWebClient: MockWebClient;
 
   beforeEach(() => {
     vi.clearAllMocks();

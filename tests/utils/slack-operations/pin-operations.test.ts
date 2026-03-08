@@ -21,13 +21,21 @@ vi.mock('../../../src/utils/channel-resolver');
 import { channelResolver } from '../../../src/utils/channel-resolver';
 
 describe('PinOperations', () => {
+  type MockClient = {
+    pins: {
+      add: ReturnType<typeof vi.fn>;
+      remove: ReturnType<typeof vi.fn>;
+      list: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let pinOps: PinOperations;
-  let mockClient: Record<string, unknown>;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     pinOps = new PinOperations('test-token');
-    mockClient = (pinOps as Record<string, unknown>)['client'];
+    mockClient = (pinOps as unknown as { client: MockClient }).client;
   });
 
   describe('addPin', () => {

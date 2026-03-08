@@ -35,13 +35,37 @@ vi.mock('../../../src/utils/channel-resolver');
 import { channelResolver } from '../../../src/utils/channel-resolver';
 
 describe('MessageOperations - getPermalink', () => {
+  type MockClient = {
+    chat: {
+      getPermalink: ReturnType<typeof vi.fn>;
+      postMessage: ReturnType<typeof vi.fn>;
+      scheduleMessage: ReturnType<typeof vi.fn>;
+      scheduledMessages: {
+        list: ReturnType<typeof vi.fn>;
+      };
+      update: ReturnType<typeof vi.fn>;
+      delete: ReturnType<typeof vi.fn>;
+      deleteScheduledMessage: ReturnType<typeof vi.fn>;
+    };
+    conversations: {
+      list: ReturnType<typeof vi.fn>;
+      history: ReturnType<typeof vi.fn>;
+      replies: ReturnType<typeof vi.fn>;
+      mark: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+    };
+    users: {
+      info: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let messageOps: MessageOperations;
-  let mockClient: Record<string, unknown>;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     messageOps = new MessageOperations('test-token');
-    mockClient = (messageOps as Record<string, unknown>)['client'];
+    mockClient = (messageOps as unknown as { client: MockClient }).client;
   });
 
   describe('getPermalink', () => {

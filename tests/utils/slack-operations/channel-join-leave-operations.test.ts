@@ -23,8 +23,18 @@ vi.mock('p-limit', () => ({
 }));
 
 describe('ChannelOperations - join/leave', () => {
+  type MockClient = {
+    conversations: {
+      list: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+      history: ReturnType<typeof vi.fn>;
+      join: ReturnType<typeof vi.fn>;
+      leave: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let channelOps: ChannelOperations;
-  let mockClient: Record<string, unknown>;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,7 +48,7 @@ describe('ChannelOperations - join/leave', () => {
       },
     };
     channelOps = new ChannelOperations('test-token');
-    (channelOps as Record<string, unknown>)['client'] = mockClient;
+    (channelOps as unknown as { client: MockClient }).client = mockClient;
   });
 
   describe('joinChannel', () => {

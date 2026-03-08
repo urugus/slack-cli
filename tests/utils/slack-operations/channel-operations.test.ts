@@ -24,8 +24,19 @@ vi.mock('p-limit', () => ({
 }));
 
 describe('ChannelOperations', () => {
+  type MockClient = {
+    conversations: {
+      list: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+      history: ReturnType<typeof vi.fn>;
+    };
+    users: {
+      conversations: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let channelOps: ChannelOperations;
-  let mockClient: Record<string, unknown>;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,7 +53,7 @@ describe('ChannelOperations', () => {
     // Create instance with mocked token
     channelOps = new ChannelOperations('test-token');
     // Replace the client with our mock
-    (channelOps as Record<string, unknown>)['client'] = mockClient;
+    (channelOps as unknown as { client: MockClient }).client = mockClient;
   });
 
   describe('fetchUserChannels', () => {

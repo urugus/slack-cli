@@ -24,8 +24,19 @@ vi.mock('p-limit', () => ({
 }));
 
 describe('UserOperations - DM', () => {
+  type MockClient = {
+    conversations: {
+      open: ReturnType<typeof vi.fn>;
+    };
+    users: {
+      list: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+      lookupByEmail: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let userOps: UserOperations;
-  let mockClient: Record<string, unknown>;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,7 +51,7 @@ describe('UserOperations - DM', () => {
       },
     };
     userOps = new UserOperations('test-token');
-    (userOps as Record<string, unknown>)['client'] = mockClient;
+    (userOps as unknown as { client: MockClient }).client = mockClient;
   });
 
   describe('openDmChannel', () => {

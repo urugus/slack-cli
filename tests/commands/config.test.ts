@@ -85,7 +85,7 @@ describe('profile config command', () => {
     it('should read token from stdin when --token-stdin is provided', async () => {
       const stdinSpy = vi
         .spyOn(process, 'stdin', 'get')
-        .mockReturnValue(Readable.from(['token-from-stdin\n']));
+        .mockReturnValue(Readable.from(['token-from-stdin\n']) as unknown as NodeJS.ReadStream);
 
       vi.mocked(mockConfigManager.setToken).mockResolvedValue(undefined);
       vi.mocked(mockConfigManager.getCurrentProfile).mockResolvedValue('default');

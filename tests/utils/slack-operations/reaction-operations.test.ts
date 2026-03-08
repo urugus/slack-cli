@@ -19,13 +19,20 @@ vi.mock('@slack/web-api', () => ({
 vi.mock('../../../src/utils/channel-resolver');
 
 describe('ReactionOperations', () => {
+  type MockClient = {
+    reactions: {
+      add: ReturnType<typeof vi.fn>;
+      remove: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let reactionOps: ReactionOperations;
-  let mockClient: Record<string, unknown>;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     reactionOps = new ReactionOperations('test-token');
-    mockClient = (reactionOps as Record<string, unknown>)['client'];
+    mockClient = (reactionOps as unknown as { client: MockClient }).client;
   });
 
   describe('addReaction', () => {

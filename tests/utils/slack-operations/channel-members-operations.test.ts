@@ -22,8 +22,17 @@ vi.mock('p-limit', () => ({
 }));
 
 describe('ChannelOperations - getChannelMembers', () => {
+  type MockClient = {
+    conversations: {
+      list: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+      history: ReturnType<typeof vi.fn>;
+      members: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let channelOps: ChannelOperations;
-  let mockClient: Record<string, unknown>;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,7 +45,7 @@ describe('ChannelOperations - getChannelMembers', () => {
       },
     };
     channelOps = new ChannelOperations('test-token');
-    (channelOps as Record<string, unknown>)['client'] = mockClient;
+    (channelOps as unknown as { client: MockClient }).client = mockClient;
   });
 
   it('should return member IDs for a channel', async () => {

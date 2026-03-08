@@ -9,10 +9,10 @@ vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
 
 describe('channels command', () => {
-  let program: ReturnType<decltype_createTestProgram>;
+  let program: ReturnType<typeof createTestProgram>;
   let mockSlackClient: SlackApiClient;
   let mockConfigManager: ProfileConfigManager;
-  let mockConsole: ReturnType<decltype_setupMockConsole>;
+  let mockConsole: ReturnType<typeof setupMockConsole>;
 
   beforeEach(() => {
     vi.clearAllMocks();

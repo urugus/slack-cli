@@ -138,6 +138,8 @@ export interface ChannelUnreadResult {
   channel: Channel;
   messages: Message[];
   users: Map<string, string>;
+  totalUnreadCount: number;
+  displayedMessageCount: number;
 }
 
 export class SlackApiClient {

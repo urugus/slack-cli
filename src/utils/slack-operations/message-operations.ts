@@ -8,7 +8,7 @@ import {
   ChatUpdateResponse,
 } from '@slack/web-api';
 import { channelResolver } from '../channel-resolver';
-import { DEFAULTS } from '../constants';
+import { DEFAULTS, RATE_LIMIT } from '../constants';
 import { extractAllUserIds } from '../mention-utils';
 import {
   ChannelUnreadResult,
@@ -203,40 +203,70 @@ export class MessageOperations extends BaseSlackClient {
 
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {
     const channel = await this.channelOps.getChannelInfo(channelNameOrId);
-
-    // Get unread messages
-    let messages: Message[] = [];
-    let users = new Map<string, string>();
-    let actualUnreadCount = 0;
-
-    if (channel.last_read) {
-      // Always fetch messages after last_read to get accurate unread count
-      const historyResult = await this.getHistory(channel.id, {
-        limit: 100, // Fetch up to 100 messages after last_read
-        oldest: channel.last_read,
-      });
-      messages = historyResult.messages;
-      users = historyResult.users;
-      actualUnreadCount = messages.length;
-    } else if (!channel.last_read) {
-      // If no last_read, all messages are unread
-      const historyResult = await this.getHistory(channel.id, {
-        limit: 100,
-      });
-      messages = historyResult.messages;
-      users = historyResult.users;
-      actualUnreadCount = messages.length;
-    }
+    const summary = await this.getUnreadMessageSummary(
+      channel.id,
+      channel.last_read,
+      DEFAULTS.UNREAD_MESSAGE_PREVIEW_LIMIT
+    );
+    const userIds = extractAllUserIds(summary.messages);
+    const users = await this.fetchUserInfo(userIds);
 
     return {
       channel: {
         ...channel,
-        unread_count: actualUnreadCount,
-        unread_count_display: actualUnreadCount,
+        unread_count: summary.totalCount,
+        unread_count_display: summary.totalCount,
       },
-      messages,
+      messages: summary.messages,
       users,
+      totalUnreadCount: summary.totalCount,
+      displayedMessageCount: summary.messages.length,
     };
+  }
+
+  private async getUnreadMessageSummary(
+    channelId: string,
+    lastRead: string | undefined,
+    previewLimit: number
+  ): Promise<{ totalCount: number; messages: Message[] }> {
+    const messages: Message[] = [];
+    let totalCount = 0;
+    let cursor: string | undefined;
+
+    do {
+      const response = await this.fetchHistoryPage(channelId, lastRead, cursor);
+
+      const pageMessages = (response.messages || []) as Message[];
+      totalCount += pageMessages.length;
+
+      if (messages.length < previewLimit) {
+        messages.push(...pageMessages.slice(0, previewLimit - messages.length));
+      }
+
+      cursor = response.response_metadata?.next_cursor || undefined;
+    } while (cursor);
+
+    return { totalCount, messages };
+  }
+
+  private async fetchHistoryPage(channelId: string, lastRead?: string, cursor?: string) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.client.conversations.history({
+          channel: channelId,
+          oldest: lastRead,
+          limit: 200,
+          cursor,
+        });
+      } catch (error) {
+        const isRateLimitError = error instanceof Error && error.message?.includes('rate limit');
+        if (!isRateLimitError || attempt >= RATE_LIMIT.RETRY_CONFIG.retries) {
+          throw error;
+        }
+
+        await this.handleRateLimit(error);
+      }
+    }
   }
 
   private async fetchUserInfo(userIds: string[]): Promise<Map<string, string>> {

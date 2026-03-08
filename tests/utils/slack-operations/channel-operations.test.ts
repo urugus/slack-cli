@@ -212,6 +212,8 @@ describe('ChannelOperations', () => {
             id: 'C123',
             name: 'general',
             last_read: '1234567890.000100',
+            unread_count: 2,
+            unread_count_display: 2,
           },
         })
         .mockResolvedValueOnce({
@@ -219,22 +221,9 @@ describe('ChannelOperations', () => {
             id: 'C456',
             name: 'random',
             last_read: '1234567890.000200',
+            unread_count: 0,
+            unread_count_display: 0,
           },
-        });
-
-      // Mock conversations.history responses
-      mockClient.conversations.history
-        // First call for C123 - check latest message
-        .mockResolvedValueOnce({
-          messages: [{ ts: '1234567890.000200' }], // Newer than last_read
-        })
-        // Second call for C123 - get unread messages
-        .mockResolvedValueOnce({
-          messages: [{ ts: '1234567890.000200' }, { ts: '1234567890.000150' }],
-        })
-        // Third call for C456 - check latest message
-        .mockResolvedValueOnce({
-          messages: [{ ts: '1234567890.000100' }], // Older than last_read
         });
 
       const result = await channelOps.listUnreadChannels();
@@ -261,24 +250,10 @@ describe('ChannelOperations', () => {
         channel: {
           id: 'C789',
           name: 'no-read-channel',
-          // last_read is missing
+          unread_count: 3,
+          unread_count_display: 3,
         },
       });
-
-      // Mock conversations.history responses
-      mockClient.conversations.history
-        // First call - check if channel has messages
-        .mockResolvedValueOnce({
-          messages: [{ ts: '1234567890.000300' }],
-        })
-        // Second call - get all messages (up to 100)
-        .mockResolvedValueOnce({
-          messages: [
-            { ts: '1234567890.000300' },
-            { ts: '1234567890.000200' },
-            { ts: '1234567890.000100' },
-          ],
-        });
 
       const result = await channelOps.listUnreadChannels();
 
@@ -303,12 +278,9 @@ describe('ChannelOperations', () => {
           id: 'C999',
           name: 'empty-channel',
           last_read: '1234567890.000100',
+          unread_count: 0,
+          unread_count_display: 0,
         },
-      });
-
-      // No messages in channel
-      mockClient.conversations.history.mockResolvedValue({
-        messages: [],
       });
 
       const result = await channelOps.listUnreadChannels();
@@ -327,17 +299,9 @@ describe('ChannelOperations', () => {
           id: 'C111',
           name: 'all-read',
           last_read: '1234567890.000200',
+          unread_count: 0,
+          unread_count_display: 0,
         },
-      });
-
-      // First call to get latest message (limit: 1)
-      mockClient.conversations.history.mockResolvedValueOnce({
-        messages: [{ ts: '1234567890.000100' }],
-      });
-
-      // Second call to get messages after last_read (should be empty)
-      mockClient.conversations.history.mockResolvedValueOnce({
-        messages: [],
       });
 
       const result = await channelOps.listUnreadChannels();
@@ -362,15 +326,9 @@ describe('ChannelOperations', () => {
             id: 'C333',
             name: 'good-channel',
             last_read: '1234567890.000100',
+            unread_count: 1,
+            unread_count_display: 1,
           },
-        });
-
-      mockClient.conversations.history
-        .mockResolvedValueOnce({
-          messages: [{ ts: '1234567890.000200' }],
-        })
-        .mockResolvedValueOnce({
-          messages: [{ ts: '1234567890.000200' }],
         });
 
       const result = await channelOps.listUnreadChannels();
@@ -395,17 +353,40 @@ describe('ChannelOperations', () => {
       });
 
       mockClient.conversations.info.mockResolvedValue({
-        channel: { id: 'C444', name: 'channel1' },
-      });
-
-      mockClient.conversations.history.mockResolvedValue({
-        messages: [],
+        channel: { id: 'C444', name: 'channel1', unread_count: 0, unread_count_display: 0 },
       });
 
       await channelOps.listUnreadChannels();
 
       // Verify delay was called between API calls
       expect(delaySpy).toHaveBeenCalledWith(100);
+    });
+
+    it('should use unread counters from conversations.info for channel scans', async () => {
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [{ id: 'C777', name: 'busy-channel' }],
+        response_metadata: { next_cursor: '' },
+      });
+
+      mockClient.conversations.info.mockResolvedValue({
+        channel: {
+          id: 'C777',
+          name: 'busy-channel',
+          last_read: '1234567890.000100',
+          unread_count: 3,
+          unread_count_display: 3,
+        },
+      });
+
+      const result = await channelOps.listUnreadChannels();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: 'C777',
+        unread_count: 3,
+        unread_count_display: 3,
+      });
+      expect(mockClient.conversations.history).not.toHaveBeenCalled();
     });
   });
 

@@ -1,7 +1,7 @@
 import { WebClient } from '@slack/web-api';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { Channel, ChannelDetail, ListChannelsOptions, Message } from '../slack-api-client';
+import { Channel, ChannelDetail, ListChannelsOptions } from '../slack-api-client';
 import { BaseSlackClient } from './base-client';
 
 export interface ChannelMembersOptions {
@@ -108,7 +108,7 @@ export class ChannelOperations extends BaseSlackClient {
 
   private async getChannelUnreadInfo(channel: Channel): Promise<Channel | null> {
     const channelInfo = await this.fetchChannelInfo(channel.id);
-    const unreadCount = await this.calculateUnreadCount(channel.id, channelInfo);
+    const unreadCount = channelInfo.unread_count_display ?? channelInfo.unread_count ?? 0;
 
     if (unreadCount > 0) {
       return {
@@ -128,51 +128,6 @@ export class ChannelOperations extends BaseSlackClient {
       include_num_members: false,
     });
     return info.channel as ChannelWithUnreadInfo;
-  }
-
-  private async calculateUnreadCount(
-    channelId: string,
-    channelInfo: ChannelWithUnreadInfo
-  ): Promise<number> {
-    // Get the latest message to check if channel has any messages
-    const latestMessage = await this.fetchLatestMessage(channelId);
-    if (!latestMessage) {
-      return 0;
-    }
-
-    if (channelInfo.last_read) {
-      return await this.fetchUnreadMessageCount(channelId, channelInfo.last_read);
-    } else {
-      // If no last_read, all messages are unread
-      return await this.fetchAllMessageCount(channelId);
-    }
-  }
-
-  private async fetchLatestMessage(channelId: string): Promise<Message | null> {
-    const history = await this.client.conversations.history({
-      channel: channelId,
-      limit: 1,
-    });
-    return history.messages && history.messages.length > 0
-      ? (history.messages[0] as Message)
-      : null;
-  }
-
-  private async fetchUnreadMessageCount(channelId: string, lastRead: string): Promise<number> {
-    const unreadHistory = await this.client.conversations.history({
-      channel: channelId,
-      oldest: lastRead,
-      limit: 100, // Get up to 100 unread messages
-    });
-    return unreadHistory.messages?.length || 0;
-  }
-
-  private async fetchAllMessageCount(channelId: string): Promise<number> {
-    const allHistory = await this.client.conversations.history({
-      channel: channelId,
-      limit: 100,
-    });
-    return allHistory.messages?.length || 0;
   }
 
   async getChannelInfo(channelNameOrId: string): Promise<ChannelWithUnreadInfo> {

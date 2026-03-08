@@ -12,14 +12,18 @@ export interface MessageFormatterOptions {
   users: Map<string, string>;
   countOnly: boolean;
   format: string;
+  totalUnreadCount?: number;
+  displayedMessageCount?: number;
 }
 
 class TableMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
   format(options: MessageFormatterOptions): void {
-    const { channel, messages, users, countOnly } = options;
+    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } =
+      options;
     const channelName = formatChannelName(channel.name);
+    const unreadCount = totalUnreadCount ?? channel.unread_count ?? 0;
 
-    console.log(chalk.bold(`${channelName}: ${channel.unread_count || 0} unread messages`));
+    console.log(chalk.bold(`${channelName}: ${unreadCount} unread messages`));
 
     if (!countOnly && messages.length > 0) {
       console.log('');
@@ -33,16 +37,30 @@ class TableMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
         console.log(text);
         console.log('');
       });
+
+      if (
+        displayedMessageCount !== undefined &&
+        totalUnreadCount !== undefined &&
+        displayedMessageCount < totalUnreadCount
+      ) {
+        console.log(
+          chalk.gray(
+            `Showing latest ${displayedMessageCount} of ${totalUnreadCount} unread messages`
+          )
+        );
+      }
     }
   }
 }
 
 class SimpleMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
   format(options: MessageFormatterOptions): void {
-    const { channel, messages, users, countOnly } = options;
+    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } =
+      options;
     const channelName = formatChannelName(channel.name);
+    const unreadCount = totalUnreadCount ?? channel.unread_count ?? 0;
 
-    console.log(`${channelName} (${channel.unread_count || 0})`);
+    console.log(`${channelName} (${unreadCount})`);
 
     if (!countOnly && messages.length > 0) {
       messages.forEach((message) => {
@@ -53,6 +71,16 @@ class SimpleMessageFormatter extends AbstractFormatter<MessageFormatterOptions> 
         const text = message.text ? formatMessageWithMentions(message.text, users) : '(no text)';
         console.log(`[${timestamp}] ${author}: ${text}`);
       });
+
+      if (
+        displayedMessageCount !== undefined &&
+        totalUnreadCount !== undefined &&
+        displayedMessageCount < totalUnreadCount
+      ) {
+        console.log(
+          `Showing latest ${displayedMessageCount} of ${totalUnreadCount} unread messages`
+        );
+      }
     }
   }
 }
@@ -61,6 +89,8 @@ interface MessageJsonOutput {
   channel: string;
   channelId: string;
   unreadCount: number;
+  displayedMessageCount?: number;
+  isTruncated?: boolean;
   messages?: {
     timestamp: string;
     author: string;
@@ -70,13 +100,15 @@ interface MessageJsonOutput {
 
 class JsonMessageFormatter extends JsonFormatter<MessageFormatterOptions, MessageJsonOutput> {
   protected transform(options: MessageFormatterOptions): MessageJsonOutput {
-    const { channel, messages, users, countOnly } = options;
+    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } =
+      options;
     const channelName = formatChannelName(channel.name);
+    const unreadCount = totalUnreadCount ?? channel.unread_count ?? 0;
 
     const output: MessageJsonOutput = {
       channel: channelName,
       channelId: channel.id,
-      unreadCount: channel.unread_count || 0,
+      unreadCount,
     };
 
     if (!countOnly && messages.length > 0) {
@@ -85,6 +117,18 @@ class JsonMessageFormatter extends JsonFormatter<MessageFormatterOptions, Messag
         author: message.user ? users.get(message.user) || message.user : 'unknown',
         text: message.text || '(no text)',
       }));
+    }
+
+    if (
+      !countOnly &&
+      displayedMessageCount !== undefined &&
+      totalUnreadCount !== undefined &&
+      displayedMessageCount < totalUnreadCount
+    ) {
+      Object.assign(output, {
+        displayedMessageCount,
+        isTruncated: true,
+      });
     }
 
     return output;

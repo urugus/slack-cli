@@ -169,6 +169,8 @@ describe('unread command', () => {
           ['U123', 'john.doe'],
           ['U456', 'jane.smith'],
         ]),
+        totalUnreadCount: 5,
+        displayedMessageCount: 2,
       });
 
       await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'general']);
@@ -191,6 +193,8 @@ describe('unread command', () => {
           ['U123', 'john.doe'],
           ['U456', 'jane.smith'],
         ]),
+        totalUnreadCount: 5,
+        displayedMessageCount: 2,
       });
 
       await program.parseAsync([
@@ -212,6 +216,8 @@ describe('unread command', () => {
         channel: '#general',
         channelId: 'C123',
         unreadCount: 5,
+        displayedMessageCount: 2,
+        isTruncated: true,
         messages: [
           {
             timestamp: expect.any(String),
@@ -239,6 +245,8 @@ describe('unread command', () => {
           ['U123', 'john.doe'],
           ['U456', 'jane.smith'],
         ]),
+        totalUnreadCount: 5,
+        displayedMessageCount: 2,
       });
 
       await program.parseAsync([
@@ -259,6 +267,7 @@ describe('unread command', () => {
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringMatching(/^\[.*\] jane\.smith: Test message$/)
       );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('Showing latest 2 of 5 unread messages');
     });
 
     it('should show only count for channel when --count-only is specified', async () => {
@@ -273,6 +282,8 @@ describe('unread command', () => {
           ['U123', 'john.doe'],
           ['U456', 'jane.smith'],
         ]),
+        totalUnreadCount: 5,
+        displayedMessageCount: 2,
       });
 
       await program.parseAsync([
@@ -302,6 +313,8 @@ describe('unread command', () => {
           ['U123', 'john.doe'],
           ['U456', 'jane.smith'],
         ]),
+        totalUnreadCount: 5,
+        displayedMessageCount: 2,
       });
 
       await program.parseAsync([
@@ -471,6 +484,8 @@ describe('unread command', () => {
         channel: { ...channelWithLastRead, unread_count: 1, unread_count_display: 1 },
         messages: [unreadMessage],
         users: new Map([['U5F87BSGP', 'jira-bot']]),
+        totalUnreadCount: 1,
+        displayedMessageCount: 1,
       });
 
       await program.parseAsync(['node', 'slack-cli', 'unread', '--channel', 'dev_kiban_jira']);
@@ -516,6 +531,8 @@ describe('unread command', () => {
           ['U123', 'john.doe'],
           ['U456', 'jane.smith'],
         ]),
+        totalUnreadCount: 5,
+        displayedMessageCount: 2,
       });
       vi.mocked(mockSlackClient.markAsRead).mockResolvedValue(undefined);
 

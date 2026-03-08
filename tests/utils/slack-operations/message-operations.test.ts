@@ -241,4 +241,56 @@ describe('MessageOperations', () => {
       expect(result.users.get('U222')).toBe('bob');
     });
   });
+
+  describe('getChannelUnread', () => {
+    it('should retry history fetches when Slack rate limits a page request', async () => {
+      const delaySpy = vi.spyOn(
+        messageOps as unknown as { handleRateLimit: (error: unknown) => Promise<void> },
+        'handleRateLimit'
+      );
+      vi.spyOn(
+        (
+          messageOps as unknown as {
+            channelOps: { getChannelInfo: (channelNameOrId: string) => Promise<unknown> };
+          }
+        ).channelOps,
+        'getChannelInfo'
+      ).mockResolvedValue({
+        id: 'C123456789',
+        name: 'general',
+        is_private: false,
+        created: 1234567890,
+        last_read: '1234567889.000000',
+      });
+
+      mockClient.conversations.history
+        .mockRejectedValueOnce(new Error('rate limit exceeded'))
+        .mockResolvedValueOnce({
+          ok: true,
+          messages: [
+            {
+              type: 'message',
+              text: 'Unread message',
+              user: 'U111',
+              ts: '1234567890.000100',
+            },
+          ],
+          response_metadata: {
+            next_cursor: '',
+          },
+        });
+
+      mockClient.users.info.mockResolvedValue({
+        ok: true,
+        user: { name: 'alice' },
+      });
+
+      const result = await messageOps.getChannelUnread('general');
+
+      expect(delaySpy).toHaveBeenCalledTimes(1);
+      expect(mockClient.conversations.history).toHaveBeenCalledTimes(2);
+      expect(result.totalUnreadCount).toBe(1);
+      expect(result.displayedMessageCount).toBe(1);
+    });
+  });
 });

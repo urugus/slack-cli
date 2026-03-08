@@ -199,7 +199,7 @@ describe('pin command', () => {
       ]);
 
       const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
-      expect(output[0].message.text).toBe('[31mPinned message[0m');
+      expect(output[0].message.text).toBe('Pinned message');
     });
 
     it('should output in simple format', async () => {

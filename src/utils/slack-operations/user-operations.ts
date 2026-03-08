@@ -1,5 +1,5 @@
 import { ApiError } from '../errors';
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 
 export interface UserPresence {
   presence: string;
@@ -24,8 +24,8 @@ export interface SlackUser {
 }
 
 export class UserOperations extends BaseSlackClient {
-  constructor(token: string) {
-    super(token);
+  constructor(dependency: SlackClientDependency) {
+    super(dependency);
   }
 
   async listUsers(limit?: number): Promise<SlackUser[]> {

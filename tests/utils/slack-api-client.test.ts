@@ -61,6 +61,7 @@ describe('SlackApiClient', () => {
         },
         logLevel: LogLevel.ERROR,
       });
+      expect(WebClient).toHaveBeenCalledTimes(1);
     });
   });
 

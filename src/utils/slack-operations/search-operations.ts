@@ -1,4 +1,4 @@
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 
 export interface SearchMatch {
   text?: string;
@@ -28,6 +28,10 @@ export interface SearchResult {
 }
 
 export class SearchOperations extends BaseSlackClient {
+  constructor(dependency: SlackClientDependency) {
+    super(dependency);
+  }
+
   async searchMessages(query: string, options: SearchMessagesOptions = {}): Promise<SearchResult> {
     const { sort = 'score', sortDir = 'desc', count = 20, page = 1 } = options;
 

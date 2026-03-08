@@ -2,7 +2,7 @@ import { WebClient } from '@slack/web-api';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
 import { Channel, ChannelDetail, ListChannelsOptions } from '../slack-api-client';
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 
 export interface ChannelMembersOptions {
   limit?: number;
@@ -21,12 +21,14 @@ interface ChannelWithUnreadInfo extends Channel {
 }
 
 export class ChannelOperations extends BaseSlackClient {
-  constructor(tokenOrClient: string | WebClient) {
+  constructor(tokenOrClient: SlackClientDependency) {
     if (typeof tokenOrClient === 'string') {
+      super(tokenOrClient);
+    } else if ('client' in tokenOrClient && 'rateLimiter' in tokenOrClient) {
       super(tokenOrClient);
     } else {
       super('dummy-token'); // Call parent constructor
-      this.client = tokenOrClient; // Override the client for testing
+      this.client = tokenOrClient as WebClient; // Override the client for testing
     }
   }
 

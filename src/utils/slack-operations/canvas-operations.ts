@@ -1,6 +1,6 @@
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 
 export interface CanvasSectionElement {
@@ -24,9 +24,9 @@ export interface CanvasFile {
 export class CanvasOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
 
-  constructor(token: string) {
-    super(token);
-    this.channelOps = new ChannelOperations(token);
+  constructor(dependency: SlackClientDependency, channelOps?: ChannelOperations) {
+    super(dependency);
+    this.channelOps = channelOps ?? new ChannelOperations(dependency);
   }
 
   private async resolveChannel(channel: string): Promise<string> {

@@ -1,7 +1,7 @@
 import { basename } from 'path';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 
 export interface UploadFileOptions {
@@ -18,9 +18,9 @@ export interface UploadFileOptions {
 export class FileOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
 
-  constructor(token: string) {
-    super(token);
-    this.channelOps = new ChannelOperations(token);
+  constructor(dependency: SlackClientDependency, channelOps?: ChannelOperations) {
+    super(dependency);
+    this.channelOps = channelOps ?? new ChannelOperations(dependency);
   }
 
   async uploadFile(options: UploadFileOptions): Promise<void> {

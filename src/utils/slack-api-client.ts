@@ -4,6 +4,7 @@ import {
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
+import { createSlackClientContext } from './slack-operations/base-client';
 import {
   CanvasFile,
   CanvasOperations,
@@ -155,16 +156,17 @@ export class SlackApiClient {
   private canvasOps: CanvasOperations;
 
   constructor(token: string) {
-    this.channelOps = new ChannelOperations(token);
-    this.messageOps = new MessageOperations(token);
-    this.fileOps = new FileOperations(token);
-    this.reactionOps = new ReactionOperations(token);
-    this.pinOps = new PinOperations(token);
-    this.userOps = new UserOperations(token);
-    this.searchOps = new SearchOperations(token);
-    this.reminderOps = new ReminderOperations(token);
-    this.starOps = new StarOperations(token);
-    this.canvasOps = new CanvasOperations(token);
+    const sharedContext = createSlackClientContext(token);
+    this.channelOps = new ChannelOperations(sharedContext);
+    this.messageOps = new MessageOperations(sharedContext, this.channelOps);
+    this.fileOps = new FileOperations(sharedContext, this.channelOps);
+    this.reactionOps = new ReactionOperations(sharedContext, this.channelOps);
+    this.pinOps = new PinOperations(sharedContext, this.channelOps);
+    this.userOps = new UserOperations(sharedContext);
+    this.searchOps = new SearchOperations(sharedContext);
+    this.reminderOps = new ReminderOperations(sharedContext);
+    this.starOps = new StarOperations(sharedContext);
+    this.canvasOps = new CanvasOperations(sharedContext, this.channelOps);
   }
 
   async sendMessage(

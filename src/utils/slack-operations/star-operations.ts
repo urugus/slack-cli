@@ -1,4 +1,4 @@
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 
 export interface StarredItem {
   type: string;
@@ -15,6 +15,10 @@ export interface StarListResult {
 }
 
 export class StarOperations extends BaseSlackClient {
+  constructor(dependency: SlackClientDependency) {
+    super(dependency);
+  }
+
   async addStar(channel: string, timestamp: string): Promise<void> {
     await this.client.stars.add({
       channel,

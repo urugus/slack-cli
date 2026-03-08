@@ -17,15 +17,15 @@ import {
   Message,
   ScheduledMessage,
 } from '../slack-api-client';
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 
 export class MessageOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
 
-  constructor(token: string) {
-    super(token);
-    this.channelOps = new ChannelOperations(token);
+  constructor(dependency: SlackClientDependency, channelOps?: ChannelOperations) {
+    super(dependency);
+    this.channelOps = channelOps ?? new ChannelOperations(dependency);
   }
 
   async sendMessage(

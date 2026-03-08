@@ -1,4 +1,4 @@
-import { BaseSlackClient } from './base-client';
+import { BaseSlackClient, SlackClientDependency } from './base-client';
 
 export interface Reminder {
   id: string;
@@ -9,6 +9,10 @@ export interface Reminder {
 }
 
 export class ReminderOperations extends BaseSlackClient {
+  constructor(dependency: SlackClientDependency) {
+    super(dependency);
+  }
+
   async addReminder(text: string, time: number): Promise<Reminder> {
     const response = await this.client.reminders.add({
       text,

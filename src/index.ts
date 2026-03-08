@@ -24,36 +24,59 @@ import { setupSendEphemeralCommand } from './commands/send-ephemeral';
 import { setupUnreadCommand } from './commands/unread';
 import { setupUploadCommand } from './commands/upload';
 import { setupUsersCommand } from './commands/users';
+import { checkForUpdates } from './utils/update-notifier';
 
-const program = new Command();
+const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')) as {
+  name: string;
+  version: string;
+};
 
-// Read version from package.json
-const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
-const version = packageJson.version;
+export function createProgram(): Command {
+  const program = new Command();
 
-program.name('slack-cli').description('CLI tool to send messages via Slack API').version(version);
+  program
+    .name('slack-cli')
+    .description('CLI tool to send messages via Slack API')
+    .version(packageJson.version);
 
-program.addCommand(setupConfigCommand());
-program.addCommand(setupSendCommand());
-program.addCommand(setupChannelsCommand());
-program.addCommand(setupHistoryCommand());
-program.addCommand(setupUnreadCommand());
-program.addCommand(setupScheduledCommand());
-program.addCommand(setupSearchCommand());
-program.addCommand(setupEditCommand());
-program.addCommand(setupDeleteCommand());
-program.addCommand(setupUploadCommand());
-program.addCommand(setupReactionCommand());
-program.addCommand(setupPinCommand());
-program.addCommand(setupUsersCommand());
-program.addCommand(setupChannelCommand());
-program.addCommand(setupMembersCommand());
-program.addCommand(setupSendEphemeralCommand());
-program.addCommand(setupJoinCommand());
-program.addCommand(setupLeaveCommand());
-program.addCommand(setupInviteCommand());
-program.addCommand(setupReminderCommand());
-program.addCommand(setupBookmarkCommand());
-program.addCommand(setupCanvasCommand());
+  program.hook('postAction', async () => {
+    await checkForUpdates({
+      packageName: packageJson.name,
+      currentVersion: packageJson.version,
+    });
+  });
 
-program.parse();
+  program.addCommand(setupConfigCommand());
+  program.addCommand(setupSendCommand());
+  program.addCommand(setupChannelsCommand());
+  program.addCommand(setupHistoryCommand());
+  program.addCommand(setupUnreadCommand());
+  program.addCommand(setupScheduledCommand());
+  program.addCommand(setupSearchCommand());
+  program.addCommand(setupEditCommand());
+  program.addCommand(setupDeleteCommand());
+  program.addCommand(setupUploadCommand());
+  program.addCommand(setupReactionCommand());
+  program.addCommand(setupPinCommand());
+  program.addCommand(setupUsersCommand());
+  program.addCommand(setupChannelCommand());
+  program.addCommand(setupMembersCommand());
+  program.addCommand(setupSendEphemeralCommand());
+  program.addCommand(setupJoinCommand());
+  program.addCommand(setupLeaveCommand());
+  program.addCommand(setupInviteCommand());
+  program.addCommand(setupReminderCommand());
+  program.addCommand(setupBookmarkCommand());
+  program.addCommand(setupCanvasCommand());
+
+  return program;
+}
+
+export async function runCli(argv = process.argv): Promise<void> {
+  const program = createProgram();
+  await program.parseAsync(argv);
+}
+
+if (require.main === module) {
+  void runCli();
+}

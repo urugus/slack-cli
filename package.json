@@ -1,6 +1,6 @@
 {
   "name": "@urugus/slack-cli",
-  "version": "0.20.6",
+  "version": "0.20.7",
   "description": "A command-line tool for sending messages to Slack",
   "main": "dist/index.js",
   "bin": {
@@ -32,11 +32,13 @@
     "@slack/web-api": "^7.9.3",
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
-    "p-limit": "^7.3.0"
+    "p-limit": "^7.3.0",
+    "semver": "^7.7.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
     "@types/node": "^25.3.0",
+    "@types/semver": "^7.7.1",
     "@vitest/coverage-v8": "^4.0.18",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2",

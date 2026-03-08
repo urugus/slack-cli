@@ -8,7 +8,7 @@ import {
   ChatUpdateResponse,
 } from '@slack/web-api';
 import { channelResolver } from '../channel-resolver';
-import { DEFAULTS } from '../constants';
+import { DEFAULTS, RATE_LIMIT } from '../constants';
 import { extractAllUserIds } from '../mention-utils';
 import {
   ChannelUnreadResult,
@@ -234,12 +234,7 @@ export class MessageOperations extends BaseSlackClient {
     let cursor: string | undefined;
 
     do {
-      const response = await this.client.conversations.history({
-        channel: channelId,
-        oldest: lastRead,
-        limit: 200,
-        cursor,
-      });
+      const response = await this.fetchHistoryPage(channelId, lastRead, cursor);
 
       const pageMessages = (response.messages || []) as Message[];
       totalCount += pageMessages.length;
@@ -252,6 +247,26 @@ export class MessageOperations extends BaseSlackClient {
     } while (cursor);
 
     return { totalCount, messages };
+  }
+
+  private async fetchHistoryPage(channelId: string, lastRead?: string, cursor?: string) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.client.conversations.history({
+          channel: channelId,
+          oldest: lastRead,
+          limit: 200,
+          cursor,
+        });
+      } catch (error) {
+        const isRateLimitError = error instanceof Error && error.message?.includes('rate limit');
+        if (!isRateLimitError || attempt >= RATE_LIMIT.RETRY_CONFIG.retries) {
+          throw error;
+        }
+
+        await this.handleRateLimit(error);
+      }
+    }
   }
 
   private async fetchUserInfo(userIds: string[]): Promise<Map<string, string>> {

@@ -1,7 +1,7 @@
 import { WebClient } from '@slack/web-api';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { Channel, ChannelDetail, ListChannelsOptions, Message } from '../slack-api-client';
+import { Channel, ChannelDetail, ListChannelsOptions } from '../slack-api-client';
 import { BaseSlackClient } from './base-client';
 
 export interface ChannelMembersOptions {
@@ -108,7 +108,7 @@ export class ChannelOperations extends BaseSlackClient {
 
   private async getChannelUnreadInfo(channel: Channel): Promise<Channel | null> {
     const channelInfo = await this.fetchChannelInfo(channel.id);
-    const unreadCount = await this.countUnreadMessages(channel.id, channelInfo.last_read);
+    const unreadCount = channelInfo.unread_count_display ?? channelInfo.unread_count ?? 0;
 
     if (unreadCount > 0) {
       return {
@@ -128,25 +128,6 @@ export class ChannelOperations extends BaseSlackClient {
       include_num_members: false,
     });
     return info.channel as ChannelWithUnreadInfo;
-  }
-
-  private async countUnreadMessages(channelId: string, lastRead?: string): Promise<number> {
-    let totalCount = 0;
-    let cursor: string | undefined;
-
-    do {
-      const response = await this.client.conversations.history({
-        channel: channelId,
-        oldest: lastRead,
-        limit: 200,
-        cursor,
-      });
-
-      totalCount += response.messages?.length || 0;
-      cursor = response.response_metadata?.next_cursor || undefined;
-    } while (cursor);
-
-    return totalCount;
   }
 
   async getChannelInfo(channelNameOrId: string): Promise<ChannelWithUnreadInfo> {

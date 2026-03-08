@@ -7,9 +7,15 @@ export function sanitizeTerminalText(value: string): string {
     return '';
   }
 
+  const oscSequencePattern = new RegExp('\\u001B\\][^\\u0007\\u001B]*(?:\\u0007|\\u001B\\\\)', 'g');
+  const ansiSequencePattern = new RegExp('\\u001B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])', 'g');
+  const withoutAnsiSequences = value
+    .replace(oscSequencePattern, '')
+    .replace(ansiSequencePattern, '');
+
   let sanitized = '';
 
-  for (const char of value) {
+  for (const char of withoutAnsiSequences) {
     const code = char.charCodeAt(0);
     const isAllowedWhitespace = code === 0x09 || code === 0x0a;
     const isAsciiControl = code < 0x20;

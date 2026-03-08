@@ -262,15 +262,14 @@ describe('ChannelOperations', () => {
       });
 
       // Mock conversations.history responses
-      mockClient.conversations.history
-        .mockResolvedValueOnce({
-          messages: [
-            { ts: '1234567890.000300' },
-            { ts: '1234567890.000200' },
-            { ts: '1234567890.000100' },
-          ],
-          response_metadata: { next_cursor: '' },
-        });
+      mockClient.conversations.history.mockResolvedValueOnce({
+        messages: [
+          { ts: '1234567890.000300' },
+          { ts: '1234567890.000200' },
+          { ts: '1234567890.000100' },
+        ],
+        response_metadata: { next_cursor: '' },
+      });
 
       const result = await channelOps.listUnreadChannels();
 

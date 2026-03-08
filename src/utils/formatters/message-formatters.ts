@@ -18,7 +18,8 @@ export interface MessageFormatterOptions {
 
 class TableMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
   format(options: MessageFormatterOptions): void {
-    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } = options;
+    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } =
+      options;
     const channelName = formatChannelName(channel.name);
     const unreadCount = totalUnreadCount ?? channel.unread_count ?? 0;
 
@@ -43,7 +44,9 @@ class TableMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
         displayedMessageCount < totalUnreadCount
       ) {
         console.log(
-          chalk.gray(`Showing latest ${displayedMessageCount} of ${totalUnreadCount} unread messages`)
+          chalk.gray(
+            `Showing latest ${displayedMessageCount} of ${totalUnreadCount} unread messages`
+          )
         );
       }
     }
@@ -52,7 +55,8 @@ class TableMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
 
 class SimpleMessageFormatter extends AbstractFormatter<MessageFormatterOptions> {
   format(options: MessageFormatterOptions): void {
-    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } = options;
+    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } =
+      options;
     const channelName = formatChannelName(channel.name);
     const unreadCount = totalUnreadCount ?? channel.unread_count ?? 0;
 
@@ -73,7 +77,9 @@ class SimpleMessageFormatter extends AbstractFormatter<MessageFormatterOptions> 
         totalUnreadCount !== undefined &&
         displayedMessageCount < totalUnreadCount
       ) {
-        console.log(`Showing latest ${displayedMessageCount} of ${totalUnreadCount} unread messages`);
+        console.log(
+          `Showing latest ${displayedMessageCount} of ${totalUnreadCount} unread messages`
+        );
       }
     }
   }
@@ -94,7 +100,8 @@ interface MessageJsonOutput {
 
 class JsonMessageFormatter extends JsonFormatter<MessageFormatterOptions, MessageJsonOutput> {
   protected transform(options: MessageFormatterOptions): MessageJsonOutput {
-    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } = options;
+    const { channel, messages, users, countOnly, totalUnreadCount, displayedMessageCount } =
+      options;
     const channelName = formatChannelName(channel.name);
     const unreadCount = totalUnreadCount ?? channel.unread_count ?? 0;
 

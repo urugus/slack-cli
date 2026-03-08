@@ -59,33 +59,7 @@ jobs:
             exit 0
           fi
 
-          if node <<'NODE'
-          const fs = require('node:fs');
-          const { execSync } = require('node:child_process');
-
-          const baseSha = process.env.BASE_SHA;
-          const headPackage = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const basePackage = JSON.parse(
-            execSync(`git show ${baseSha}:package.json`, { encoding: 'utf8' }),
-          );
-
-          const stripDependencyFields = (pkg) => {
-            const cloned = JSON.parse(JSON.stringify(pkg));
-            delete cloned.version;
-            delete cloned.dependencies;
-            delete cloned.devDependencies;
-            delete cloned.peerDependencies;
-            delete cloned.optionalDependencies;
-            delete cloned.overrides;
-            return cloned;
-          };
-
-          const dependencyOnlyChange =
-            JSON.stringify(stripDependencyFields(headPackage)) ===
-            JSON.stringify(stripDependencyFields(basePackage));
-
-          process.exit(dependencyOnlyChange ? 0 : 1);
-          NODE
+          if node -e "const fs = require('node:fs'); const { execSync } = require('node:child_process'); const baseSha = process.env.BASE_SHA; const headPackage = JSON.parse(fs.readFileSync('package.json', 'utf8')); const basePackage = JSON.parse(execSync('git show ' + baseSha + ':package.json', { encoding: 'utf8' })); const stripDependencyFields = (pkg) => { const cloned = JSON.parse(JSON.stringify(pkg)); delete cloned.version; delete cloned.dependencies; delete cloned.devDependencies; delete cloned.peerDependencies; delete cloned.optionalDependencies; delete cloned.overrides; return cloned; }; process.exit(JSON.stringify(stripDependencyFields(headPackage)) === JSON.stringify(stripDependencyFields(basePackage)) ? 0 : 1);"
           then
             echo "Dependency-manifest-only changes detected. Skipping version bump check."
             exit 0

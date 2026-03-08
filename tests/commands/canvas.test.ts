@@ -123,7 +123,7 @@ describe('canvas command', () => {
       ]);
 
       const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
-      expect(output[0].elements[0].elements[0].elements[0].text).toBe('[31mHello[0m');
+      expect(output[0].elements[0].elements[0].elements[0].text).toBe('Hello');
     });
 
     it('should display section text content in table format', async () => {

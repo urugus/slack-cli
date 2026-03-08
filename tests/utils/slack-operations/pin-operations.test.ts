@@ -22,12 +22,12 @@ import { channelResolver } from '../../../src/utils/channel-resolver';
 
 describe('PinOperations', () => {
   let pinOps: PinOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     pinOps = new PinOperations('test-token');
-    mockClient = (pinOps as any).client;
+    mockClient = (pinOps as Record<string, unknown>)['client'];
   });
 
   describe('addPin', () => {

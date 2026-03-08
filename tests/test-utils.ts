@@ -1,10 +1,10 @@
 import { Command } from 'commander';
-import { vi } from 'vitest';
+import { type MockInstance, vi } from 'vitest';
 
 export interface MockConsole {
-  logSpy: any;
-  errorSpy: any;
-  exitSpy: any;
+  logSpy: MockInstance<Console['log']>;
+  errorSpy: MockInstance<Console['error']>;
+  exitSpy: MockInstance<typeof process.exit>;
 }
 
 export function setupMockConsole(): MockConsole {

@@ -8,10 +8,10 @@ vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
 
 describe('channel command', () => {
-  let program: any;
+  let program: ReturnType<decltype_createTestProgram>;
   let mockSlackClient: SlackApiClient;
   let mockConfigManager: ProfileConfigManager;
-  let mockConsole: any;
+  let mockConsole: ReturnType<decltype_setupMockConsole>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -19,12 +19,12 @@ describe('channel command', () => {
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
-    } as any);
+    });
 
     mockSlackClient = new SlackApiClient('test-token');
     vi.mocked(SlackApiClient).mockImplementation(function () {
       return mockSlackClient;
-    } as any);
+    });
 
     mockConsole = setupMockConsole();
     program = createTestProgram();
@@ -88,7 +88,7 @@ describe('channel command', () => {
         'json',
       ]);
 
-      const logCall = mockConsole.logSpy.mock.calls.find((call: any[]) => {
+      const logCall = mockConsole.logSpy.mock.calls.find((call: unknown[]) => {
         try {
           JSON.parse(call[0]);
           return true;

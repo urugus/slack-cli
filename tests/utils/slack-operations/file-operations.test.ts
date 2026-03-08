@@ -19,12 +19,12 @@ vi.mock('../../../src/utils/channel-resolver');
 
 describe('FileOperations', () => {
   let fileOps: FileOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     fileOps = new FileOperations('test-token');
-    mockClient = (fileOps as any).client;
+    mockClient = (fileOps as Record<string, unknown>)['client'];
   });
 
   describe('uploadFile', () => {

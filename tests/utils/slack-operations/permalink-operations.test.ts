@@ -36,12 +36,12 @@ import { channelResolver } from '../../../src/utils/channel-resolver';
 
 describe('MessageOperations - getPermalink', () => {
   let messageOps: MessageOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     messageOps = new MessageOperations('test-token');
-    mockClient = (messageOps as any).client;
+    mockClient = (messageOps as Record<string, unknown>)['client'];
   });
 
   describe('getPermalink', () => {

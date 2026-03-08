@@ -5,7 +5,7 @@ import {
 } from '../../../src/utils/formatters/bookmark-formatters';
 
 describe('bookmark formatters', () => {
-  let logSpy: any;
+  let logSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);

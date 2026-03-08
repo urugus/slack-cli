@@ -20,12 +20,12 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 vi.mock('p-limit', () => ({
-  default: () => (fn: any) => fn(),
+  default: () => (fn: () => unknown) => fn(),
 }));
 
 describe('ChannelOperations', () => {
   let channelOps: ChannelOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,7 +42,7 @@ describe('ChannelOperations', () => {
     // Create instance with mocked token
     channelOps = new ChannelOperations('test-token');
     // Replace the client with our mock
-    (channelOps as any).client = mockClient;
+    (channelOps as Record<string, unknown>)['client'] = mockClient;
   });
 
   describe('fetchUserChannels', () => {
@@ -370,7 +370,10 @@ describe('ChannelOperations', () => {
     });
 
     it('should handle rate limiting with delay', async () => {
-      const delaySpy = vi.spyOn(channelOps as any, 'delay');
+      const delaySpy = vi.spyOn(
+        channelOps as unknown as { delay: (ms: number) => Promise<void> },
+        'delay'
+      );
 
       mockClient.users.conversations.mockResolvedValue({
         channels: [

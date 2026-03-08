@@ -5,7 +5,7 @@ import {
 } from '../../../src/utils/formatters/members-formatters';
 
 describe('members formatters', () => {
-  let logSpy: any;
+  let logSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);

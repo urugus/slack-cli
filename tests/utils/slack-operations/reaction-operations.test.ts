@@ -20,12 +20,12 @@ vi.mock('../../../src/utils/channel-resolver');
 
 describe('ReactionOperations', () => {
   let reactionOps: ReactionOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     reactionOps = new ReactionOperations('test-token');
-    mockClient = (reactionOps as any).client;
+    mockClient = (reactionOps as Record<string, unknown>)['client'];
   });
 
   describe('addReaction', () => {

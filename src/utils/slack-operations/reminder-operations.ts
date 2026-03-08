@@ -19,7 +19,7 @@ export class ReminderOperations extends BaseSlackClient {
 
   async listReminders(): Promise<Reminder[]> {
     const response = await this.client.reminders.list();
-    return ((response as any).reminders || []) as Reminder[];
+    return (response as { reminders?: Reminder[] }).reminders || [];
   }
 
   async deleteReminder(reminderId: string): Promise<void> {

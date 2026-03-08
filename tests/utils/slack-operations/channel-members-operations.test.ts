@@ -18,12 +18,12 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 vi.mock('p-limit', () => ({
-  default: () => (fn: any) => fn(),
+  default: () => (fn: () => unknown) => fn(),
 }));
 
 describe('ChannelOperations - getChannelMembers', () => {
   let channelOps: ChannelOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,7 +36,7 @@ describe('ChannelOperations - getChannelMembers', () => {
       },
     };
     channelOps = new ChannelOperations('test-token');
-    (channelOps as any).client = mockClient;
+    (channelOps as Record<string, unknown>)['client'] = mockClient;
   });
 
   it('should return member IDs for a channel', async () => {

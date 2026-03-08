@@ -28,7 +28,7 @@ export class StarOperations extends BaseSlackClient {
       cursor,
     });
     return {
-      items: ((response as any).items || []) as StarredItem[],
+      items: (response as { items?: StarredItem[] }).items || [],
     };
   }
 

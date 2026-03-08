@@ -6,7 +6,7 @@ import {
 import { SearchMatch } from '../../../src/utils/slack-api-client';
 
 describe('SearchFormatters', () => {
-  let mockConsole: any;
+  let mockConsole: ReturnType<typeof vi.spyOn>;
 
   const createMatches = (): SearchMatch[] => [
     {
@@ -104,7 +104,7 @@ describe('SearchFormatters', () => {
       const formatter = createSearchFormatter('json');
       formatter.format(createOptions());
 
-      const jsonCall = mockConsole.mock.calls.find((call: any[]) => {
+      const jsonCall = mockConsole.mock.calls.find((call: unknown[]) => {
         try {
           JSON.parse(call[0]);
           return true;

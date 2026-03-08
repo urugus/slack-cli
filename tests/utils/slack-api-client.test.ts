@@ -6,7 +6,7 @@ vi.mock('@slack/web-api');
 
 describe('SlackApiClient', () => {
   let client: SlackApiClient;
-  let mockWebClient: any;
+  let mockWebClient: unknown;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,7 +30,7 @@ describe('SlackApiClient', () => {
     };
     vi.mocked(WebClient).mockImplementation(function () {
       return mockWebClient;
-    } as any);
+    } as never);
     client = new SlackApiClient('test-token');
   });
 
@@ -48,7 +48,7 @@ describe('SlackApiClient', () => {
   describe('sendMessage', () => {
     it('should send message to channel', async () => {
       const mockResponse = { ok: true, ts: '1234567890.123456' };
-      vi.mocked(mockWebClient.chat.postMessage).mockResolvedValue(mockResponse as any);
+      vi.mocked(mockWebClient.chat.postMessage).mockResolvedValue(mockResponse as never);
 
       const result = await client.sendMessage('general', 'Hello, World!');
 
@@ -61,7 +61,7 @@ describe('SlackApiClient', () => {
 
     it('should handle channel ID format', async () => {
       const mockResponse = { ok: true, ts: '1234567890.123456' };
-      vi.mocked(mockWebClient.chat.postMessage).mockResolvedValue(mockResponse as any);
+      vi.mocked(mockWebClient.chat.postMessage).mockResolvedValue(mockResponse as never);
 
       await client.sendMessage('C1234567890', 'Hello!');
 
@@ -73,7 +73,7 @@ describe('SlackApiClient', () => {
 
     it('should handle multi-line messages', async () => {
       const mockResponse = { ok: true, ts: '1234567890.123456' };
-      vi.mocked(mockWebClient.chat.postMessage).mockResolvedValue(mockResponse as any);
+      vi.mocked(mockWebClient.chat.postMessage).mockResolvedValue(mockResponse as never);
 
       const multiLineMessage = 'Line 1\nLine 2\nLine 3';
       await client.sendMessage('general', multiLineMessage);
@@ -95,7 +95,7 @@ describe('SlackApiClient', () => {
   describe('scheduleMessage', () => {
     it('should schedule message to channel', async () => {
       const mockResponse = { ok: true, scheduled_message_id: 'Q123', post_at: 1770855000 };
-      vi.mocked(mockWebClient.chat.scheduleMessage).mockResolvedValue(mockResponse as any);
+      vi.mocked(mockWebClient.chat.scheduleMessage).mockResolvedValue(mockResponse as never);
 
       const result = await client.scheduleMessage('general', 'Hello, future!', 1770855000);
 
@@ -116,7 +116,7 @@ describe('SlackApiClient', () => {
           { id: 'Q123', channel_id: 'C123', post_at: 1770855000, date_created: 1770854400 },
         ],
       };
-      vi.mocked(mockWebClient.chat.scheduledMessages.list).mockResolvedValue(mockResponse as any);
+      vi.mocked(mockWebClient.chat.scheduledMessages.list).mockResolvedValue(mockResponse as never);
 
       const result = await client.listScheduledMessages();
 
@@ -141,7 +141,7 @@ describe('SlackApiClient', () => {
       vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
         ok: true,
         channels: mockChannels,
-      } as any);
+      } as never);
 
       const result = await client.listChannels({
         types: 'public_channel',
@@ -172,7 +172,7 @@ describe('SlackApiClient', () => {
       vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
         ok: true,
         channels: mockChannels,
-      } as any);
+      } as never);
 
       const result = await client.listChannels({
         types: 'private_channel',
@@ -192,7 +192,7 @@ describe('SlackApiClient', () => {
       vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
         ok: true,
         channels: [],
-      } as any);
+      } as never);
 
       await client.listChannels({
         types: 'public_channel,private_channel,im',
@@ -230,7 +230,7 @@ describe('SlackApiClient', () => {
         response_metadata: {
           next_cursor: 'cursor123',
         },
-      } as any);
+      } as never);
 
       // Second page
       vi.mocked(mockWebClient.conversations.list).mockResolvedValueOnce({
@@ -242,7 +242,7 @@ describe('SlackApiClient', () => {
         response_metadata: {
           next_cursor: 'cursor456',
         },
-      } as any);
+      } as never);
 
       // Third page (last page)
       vi.mocked(mockWebClient.conversations.list).mockResolvedValueOnce({
@@ -251,7 +251,7 @@ describe('SlackApiClient', () => {
         response_metadata: {
           next_cursor: '',
         },
-      } as any);
+      } as never);
 
       const result = await client.listChannels({
         types: 'public_channel',
@@ -302,7 +302,7 @@ describe('SlackApiClient', () => {
         response_metadata: {
           // No next_cursor field
         },
-      } as any);
+      } as never);
 
       const result = await client.listChannels({
         types: 'public_channel',
@@ -320,7 +320,7 @@ describe('SlackApiClient', () => {
       vi.mocked(mockWebClient.conversations.list).mockResolvedValue({
         ok: true,
         channels: [{ id: 'C123', name: 'general', is_private: false }],
-      } as any);
+      } as never);
 
       vi.mocked(mockWebClient.conversations.replies).mockResolvedValue({
         ok: true,
@@ -331,10 +331,10 @@ describe('SlackApiClient', () => {
         response_metadata: {
           next_cursor: '',
         },
-      } as any);
+      } as never);
 
       vi.mocked(mockWebClient.users.info).mockImplementation(({ user }: { user: string }) =>
-        Promise.resolve({ ok: true, user: { name: user === 'U1' ? 'alice' : 'bob' } } as any)
+        Promise.resolve({ ok: true, user: { name: user === 'U1' ? 'alice' : 'bob' } } as never)
       );
 
       const result = await client.getThreadHistory('general', '1234567890.000100');

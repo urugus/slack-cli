@@ -16,12 +16,12 @@ vi.mock('@slack/web-api', () => ({
 
 describe('SearchOperations', () => {
   let searchOps: SearchOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     searchOps = new SearchOperations('test-token');
-    mockClient = (searchOps as any).client;
+    mockClient = (searchOps as Record<string, unknown>)['client'];
   });
 
   describe('searchMessages', () => {

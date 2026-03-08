@@ -20,12 +20,12 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 vi.mock('p-limit', () => ({
-  default: () => (fn: any) => fn(),
+  default: () => (fn: () => unknown) => fn(),
 }));
 
 describe('UserOperations - DM', () => {
   let userOps: UserOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,7 +40,7 @@ describe('UserOperations - DM', () => {
       },
     };
     userOps = new UserOperations('test-token');
-    (userOps as any).client = mockClient;
+    (userOps as Record<string, unknown>)['client'] = mockClient;
   });
 
   describe('openDmChannel', () => {

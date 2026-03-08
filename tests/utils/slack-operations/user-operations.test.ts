@@ -19,12 +19,12 @@ vi.mock('@slack/web-api', () => ({
 
 describe('UserOperations', () => {
   let userOps: UserOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     userOps = new UserOperations('test-token');
-    mockClient = (userOps as any).client;
+    mockClient = (userOps as Record<string, unknown>)['client'] as Record<string, unknown>;
   });
 
   describe('listUsers', () => {

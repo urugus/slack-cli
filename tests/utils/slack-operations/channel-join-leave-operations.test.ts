@@ -19,12 +19,12 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 vi.mock('p-limit', () => ({
-  default: () => (fn: any) => fn(),
+  default: () => (fn: () => unknown) => fn(),
 }));
 
 describe('ChannelOperations - join/leave', () => {
   let channelOps: ChannelOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,7 +38,7 @@ describe('ChannelOperations - join/leave', () => {
       },
     };
     channelOps = new ChannelOperations('test-token');
-    (channelOps as any).client = mockClient;
+    (channelOps as Record<string, unknown>)['client'] = mockClient;
   });
 
   describe('joinChannel', () => {

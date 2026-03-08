@@ -19,12 +19,12 @@ vi.mock('@slack/web-api', () => ({
 
 describe('ReminderOperations', () => {
   let reminderOps: ReminderOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     reminderOps = new ReminderOperations('test-token');
-    mockClient = (reminderOps as any).client;
+    mockClient = (reminderOps as Record<string, unknown>)['client'];
   });
 
   describe('addReminder', () => {

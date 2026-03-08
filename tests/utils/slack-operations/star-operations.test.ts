@@ -18,12 +18,12 @@ vi.mock('@slack/web-api', () => ({
 
 describe('StarOperations', () => {
   let starOps: StarOperations;
-  let mockClient: any;
+  let mockClient: Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     starOps = new StarOperations('test-token');
-    mockClient = (starOps as any).client;
+    mockClient = (starOps as Record<string, unknown>)['client'];
   });
 
   describe('addStar', () => {

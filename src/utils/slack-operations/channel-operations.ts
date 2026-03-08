@@ -22,14 +22,7 @@ interface ChannelWithUnreadInfo extends Channel {
 
 export class ChannelOperations extends BaseSlackClient {
   constructor(tokenOrClient: SlackClientDependency) {
-    if (typeof tokenOrClient === 'string') {
-      super(tokenOrClient);
-    } else if ('client' in tokenOrClient && 'rateLimiter' in tokenOrClient) {
-      super(tokenOrClient);
-    } else {
-      super('dummy-token'); // Call parent constructor
-      this.client = tokenOrClient as WebClient; // Override the client for testing
-    }
+    super(tokenOrClient as string | WebClient);
   }
 
   async listChannels(options: ListChannelsOptions): Promise<Channel[]> {

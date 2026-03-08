@@ -106,8 +106,12 @@ export class ChannelOperations extends BaseSlackClient {
     const unreadCount = channelInfo.unread_count_display ?? channelInfo.unread_count ?? 0;
 
     if (unreadCount > 0) {
+      const display_name = await this.resolveChannelDisplayName(channel, channelInfo);
       return {
+        ...channelInfo,
         ...channel,
+        name: channelInfo.name || channel.name,
+        display_name,
         unread_count: unreadCount,
         unread_count_display: unreadCount,
         last_read: channelInfo.last_read,
@@ -123,6 +127,36 @@ export class ChannelOperations extends BaseSlackClient {
       include_num_members: false,
     });
     return info.channel as ChannelWithUnreadInfo;
+  }
+
+  private async resolveChannelDisplayName(
+    channel: Channel,
+    channelInfo: ChannelWithUnreadInfo
+  ): Promise<string | undefined> {
+    const conversationName = channelInfo.name || channel.name;
+    if (conversationName) {
+      return undefined;
+    }
+
+    if (channelInfo.is_im && channelInfo.user) {
+      try {
+        const response = await this.client.users.info({ user: channelInfo.user });
+        const user = response.user as { name?: string; profile?: { display_name?: string } };
+        const username = user.profile?.display_name || user.name || channelInfo.user;
+        return `@${username}`;
+      } catch {
+        return `@${channelInfo.user}`;
+      }
+    }
+
+    if (channelInfo.is_mpim) {
+      const purpose = channelInfo.purpose?.value?.trim();
+      if (purpose) {
+        return purpose;
+      }
+    }
+
+    return channelInfo.id;
   }
 
   async getChannelInfo(channelNameOrId: string): Promise<ChannelWithUnreadInfo> {

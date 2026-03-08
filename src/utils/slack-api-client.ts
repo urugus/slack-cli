@@ -50,6 +50,8 @@ export type {
 export interface Channel {
   id: string;
   name: string;
+  display_name?: string;
+  user?: string;
   is_channel?: boolean;
   is_group?: boolean;
   is_im?: boolean;

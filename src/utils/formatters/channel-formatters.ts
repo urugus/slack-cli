@@ -15,7 +15,7 @@ class ChannelTableFormatter extends AbstractFormatter<ChannelFormatterOptions> {
     console.log('─'.repeat(50));
 
     channels.forEach((channel) => {
-      const channelName = formatChannelName(channel.name);
+      const channelName = channel.display_name || formatChannelName(channel.name);
       const paddedName = channelName.padEnd(16);
       const count = (channel.unread_count || 0).toString().padEnd(6);
       const lastRead = channel.last_read ? formatSlackTimestamp(channel.last_read) : 'Unknown';
@@ -27,7 +27,7 @@ class ChannelTableFormatter extends AbstractFormatter<ChannelFormatterOptions> {
 class ChannelSimpleFormatter extends AbstractFormatter<ChannelFormatterOptions> {
   format({ channels }: ChannelFormatterOptions): void {
     channels.forEach((channel) => {
-      const channelName = formatChannelName(channel.name);
+      const channelName = channel.display_name || formatChannelName(channel.name);
       console.log(`${channelName} (${channel.unread_count || 0})`);
     });
   }
@@ -36,7 +36,7 @@ class ChannelSimpleFormatter extends AbstractFormatter<ChannelFormatterOptions> 
 class ChannelJsonFormatter extends JsonFormatter<ChannelFormatterOptions> {
   protected transform({ channels }: ChannelFormatterOptions) {
     return channels.map((channel) => ({
-      channel: formatChannelName(channel.name),
+      channel: channel.display_name || formatChannelName(channel.name),
       channelId: channel.id,
       unreadCount: channel.unread_count || 0,
     }));
@@ -49,7 +49,7 @@ class ChannelCountFormatter extends AbstractFormatter<ChannelFormatterOptions> {
     channels.forEach((channel) => {
       const count = channel.unread_count || 0;
       totalUnread += count;
-      const channelName = formatChannelName(channel.name);
+      const channelName = channel.display_name || formatChannelName(channel.name);
       console.log(`${channelName}: ${count}`);
     });
     console.log(chalk.bold(`Total: ${totalUnread} unread messages`));

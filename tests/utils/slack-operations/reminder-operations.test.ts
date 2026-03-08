@@ -18,13 +18,22 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 describe('ReminderOperations', () => {
+  type MockClient = {
+    reminders: {
+      add: ReturnType<typeof vi.fn>;
+      list: ReturnType<typeof vi.fn>;
+      delete: ReturnType<typeof vi.fn>;
+      complete: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let reminderOps: ReminderOperations;
-  let mockClient: any;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     reminderOps = new ReminderOperations('test-token');
-    mockClient = (reminderOps as any).client;
+    mockClient = (reminderOps as unknown as { client: MockClient }).client;
   });
 
   describe('addReminder', () => {

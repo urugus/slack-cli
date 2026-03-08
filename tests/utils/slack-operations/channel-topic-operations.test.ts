@@ -19,12 +19,22 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 vi.mock('p-limit', () => ({
-  default: () => (fn: any) => fn(),
+  default: () => (fn: () => unknown) => fn(),
 }));
 
 describe('ChannelOperations - topic/purpose', () => {
+  type MockClient = {
+    conversations: {
+      list: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+      history: ReturnType<typeof vi.fn>;
+      setTopic: ReturnType<typeof vi.fn>;
+      setPurpose: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let channelOps: ChannelOperations;
-  let mockClient: any;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,7 +48,7 @@ describe('ChannelOperations - topic/purpose', () => {
       },
     };
     channelOps = new ChannelOperations('test-token');
-    (channelOps as any).client = mockClient;
+    (channelOps as unknown as { client: MockClient }).client = mockClient;
   });
 
   describe('setTopic', () => {

@@ -9,9 +9,9 @@ import { createTestProgram, restoreMocks, setupMockConsole } from '../test-utils
 vi.mock('../../src/utils/profile-config');
 
 describe('profile config command', () => {
-  let program: any;
+  let program: ReturnType<typeof createTestProgram>;
   let mockConfigManager: ProfileConfigManager;
-  let mockConsole: any;
+  let mockConsole: ReturnType<typeof setupMockConsole>;
   const originalEnvToken = process.env.SLACK_CLI_TOKEN;
 
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('profile config command', () => {
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
-    } as any);
+    });
 
     mockConsole = setupMockConsole();
     program = createTestProgram();
@@ -85,7 +85,7 @@ describe('profile config command', () => {
     it('should read token from stdin when --token-stdin is provided', async () => {
       const stdinSpy = vi
         .spyOn(process, 'stdin', 'get')
-        .mockReturnValue(Readable.from(['token-from-stdin\n']) as any);
+        .mockReturnValue(Readable.from(['token-from-stdin\n']) as unknown as NodeJS.ReadStream);
 
       vi.mocked(mockConfigManager.setToken).mockResolvedValue(undefined);
       vi.mocked(mockConfigManager.getCurrentProfile).mockResolvedValue('default');

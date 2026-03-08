@@ -8,11 +8,11 @@ vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
 
 describe('scheduled command', () => {
-  let program: any;
+  let program: ReturnType<typeof createTestProgram>;
   let mockSlackClient: SlackApiClient;
   let mockConfigManager: ProfileConfigManager;
-  let mockConsole: any;
-  let tableSpy: any;
+  let mockConsole: ReturnType<typeof setupMockConsole>;
+  let tableSpy: ReturnType<typeof vi.spyOn>;
 
   const mockScheduledMessages = [
     {
@@ -37,12 +37,12 @@ describe('scheduled command', () => {
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
-    } as any);
+    });
 
     mockSlackClient = new SlackApiClient('test-token');
     vi.mocked(SlackApiClient).mockImplementation(function () {
       return mockSlackClient;
-    } as any);
+    });
 
     mockConsole = setupMockConsole();
     tableSpy = vi.spyOn(console, 'table').mockImplementation(() => undefined);
@@ -61,9 +61,7 @@ describe('scheduled command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-        mockScheduledMessages as any
-      );
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(mockScheduledMessages);
 
       await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list']);
 
@@ -76,9 +74,7 @@ describe('scheduled command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-        mockScheduledMessages as any
-      );
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(mockScheduledMessages);
 
       await program.parseAsync([
         'node',
@@ -99,9 +95,7 @@ describe('scheduled command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-        mockScheduledMessages as any
-      );
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(mockScheduledMessages);
 
       await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list', '--format', 'json']);
 
@@ -121,7 +115,7 @@ describe('scheduled command', () => {
           date_created: 1770854400,
           text: '\u001b]8;;https://example.com\u0007click\u001b]8;;\u0007',
         },
-      ] as any);
+      ]);
 
       await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list', '--format', 'json']);
 
@@ -134,9 +128,7 @@ describe('scheduled command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(
-        mockScheduledMessages as any
-      );
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue(mockScheduledMessages);
 
       await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list', '--format', 'simple']);
 
@@ -149,7 +141,7 @@ describe('scheduled command', () => {
         token: 'test-token',
         updatedAt: new Date().toISOString(),
       });
-      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue([] as any);
+      vi.mocked(mockSlackClient.listScheduledMessages).mockResolvedValue([]);
 
       await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list']);
 

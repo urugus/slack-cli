@@ -9,10 +9,10 @@ vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
 
 describe('history command', () => {
-  let program: any;
+  let program: ReturnType<typeof createTestProgram>;
   let mockSlackClient: SlackApiClient;
   let mockConfigManager: ProfileConfigManager;
-  let mockConsole: any;
+  let mockConsole: ReturnType<typeof setupMockConsole>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -20,12 +20,12 @@ describe('history command', () => {
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
-    } as any);
+    });
 
     mockSlackClient = new SlackApiClient('test-token');
     vi.mocked(SlackApiClient).mockImplementation(function () {
       return mockSlackClient;
-    } as any);
+    });
 
     mockConsole = setupMockConsole();
     program = createTestProgram();
@@ -520,8 +520,11 @@ describe('history command', () => {
           'json',
         ]);
 
-        const logCall = mockConsole.logSpy.mock.calls.find((call: any[]) => {
+        const logCall = mockConsole.logSpy.mock.calls.find((call: unknown[]) => {
           try {
+            if (typeof call[0] !== 'string') {
+              return false;
+            }
             const parsed = JSON.parse(call[0]);
             return parsed.channel === 'general';
           } catch {
@@ -533,13 +536,17 @@ describe('history command', () => {
         const output = JSON.parse(logCall[0]);
 
         // Message with thread should include thread_ts and reply_count
-        const threadMessage = output.messages.find((m: any) => m.text === 'Thread parent message');
+        const threadMessage = output.messages.find(
+          (m: { text?: string }) => m.text === 'Thread parent message'
+        );
         expect(threadMessage.ts).toBe('1609459200.000100');
         expect(threadMessage.thread_ts).toBe('1609459200.000100');
         expect(threadMessage.reply_count).toBe(3);
 
         // Normal message should not include thread_ts or reply_count
-        const normalMessage = output.messages.find((m: any) => m.text === 'Normal message');
+        const normalMessage = output.messages.find(
+          (m: { text?: string }) => m.text === 'Normal message'
+        );
         expect(normalMessage.ts).toBe('1609459100.000100');
         expect(normalMessage.thread_ts).toBeUndefined();
         expect(normalMessage.reply_count).toBeUndefined();
@@ -660,7 +667,7 @@ describe('history command', () => {
           'simple',
         ]);
 
-        const logCalls = mockConsole.logSpy.mock.calls.map((call: any[]) => call[0]);
+        const logCalls = mockConsole.logSpy.mock.calls.map((call: unknown[]) => call[0]);
         const parentIndex = logCalls.findIndex((line: string) => line.includes('Parent message'));
         const replyIndex = logCalls.findIndex((line: string) => line.includes('Thread reply'));
 
@@ -764,8 +771,11 @@ describe('history command', () => {
         'json',
       ]);
 
-      const logCall = mockConsole.logSpy.mock.calls.find((call: any[]) => {
+      const logCall = mockConsole.logSpy.mock.calls.find((call: unknown[]) => {
         try {
+          if (typeof call[0] !== 'string') {
+            return false;
+          }
           JSON.parse(call[0]);
           return true;
         } catch {

@@ -17,13 +17,21 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 describe('StarOperations', () => {
+  type MockClient = {
+    stars: {
+      add: ReturnType<typeof vi.fn>;
+      list: ReturnType<typeof vi.fn>;
+      remove: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let starOps: StarOperations;
-  let mockClient: any;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     starOps = new StarOperations('test-token');
-    mockClient = (starOps as any).client;
+    mockClient = (starOps as unknown as { client: MockClient }).client;
   });
 
   describe('addStar', () => {

@@ -15,13 +15,19 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 describe('SearchOperations', () => {
+  type MockClient = {
+    search: {
+      messages: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let searchOps: SearchOperations;
-  let mockClient: any;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     searchOps = new SearchOperations('test-token');
-    mockClient = (searchOps as any).client;
+    mockClient = (searchOps as unknown as { client: MockClient }).client;
   });
 
   describe('searchMessages', () => {

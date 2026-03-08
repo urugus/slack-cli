@@ -18,13 +18,19 @@ vi.mock('@slack/web-api', () => ({
 vi.mock('../../../src/utils/channel-resolver');
 
 describe('FileOperations', () => {
+  type MockClient = {
+    files: {
+      uploadV2: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let fileOps: FileOperations;
-  let mockClient: any;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     fileOps = new FileOperations('test-token');
-    mockClient = (fileOps as any).client;
+    mockClient = (fileOps as unknown as { client: MockClient }).client;
   });
 
   describe('uploadFile', () => {

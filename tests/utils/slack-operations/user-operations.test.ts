@@ -18,13 +18,22 @@ vi.mock('@slack/web-api', () => ({
 }));
 
 describe('UserOperations', () => {
+  type MockClient = {
+    users: {
+      list: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+      lookupByEmail: ReturnType<typeof vi.fn>;
+      getPresence: ReturnType<typeof vi.fn>;
+    };
+  };
+
   let userOps: UserOperations;
-  let mockClient: any;
+  let mockClient: MockClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     userOps = new UserOperations('test-token');
-    mockClient = (userOps as any).client;
+    mockClient = (userOps as unknown as { client: MockClient }).client;
   });
 
   describe('listUsers', () => {

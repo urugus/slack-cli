@@ -49,6 +49,8 @@ export class FileOperations extends BaseSlackClient {
     if (options.snippetType) params.snippet_type = options.snippetType;
     if (options.threadTs) params.thread_ts = options.threadTs;
 
-    await this.client.files.uploadV2(params as any);
+    await this.client.files.uploadV2(
+      params as unknown as Parameters<typeof this.client.files.uploadV2>[0]
+    );
   }
 }

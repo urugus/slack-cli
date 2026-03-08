@@ -5,7 +5,7 @@ import {
 } from '../../../src/utils/formatters/reminder-formatters';
 
 describe('reminder formatters', () => {
-  let logSpy: any;
+  let logSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
@@ -60,7 +60,7 @@ describe('reminder formatters', () => {
         ],
       });
 
-      const allOutput = logSpy.mock.calls.map((c: any) => c[0]).join('\n');
+      const allOutput = logSpy.mock.calls.map((c) => c[0]).join('\n');
       expect(allOutput).toContain('pending');
     });
 
@@ -78,7 +78,7 @@ describe('reminder formatters', () => {
         ],
       });
 
-      const allOutput = logSpy.mock.calls.map((c: any) => c[0]).join('\n');
+      const allOutput = logSpy.mock.calls.map((c) => c[0]).join('\n');
       expect(allOutput).toContain('completed');
     });
   });

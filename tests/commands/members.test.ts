@@ -8,10 +8,10 @@ vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
 
 describe('members command', () => {
-  let program: any;
+  let program: ReturnType<typeof createTestProgram>;
   let mockSlackClient: SlackApiClient;
   let mockConfigManager: ProfileConfigManager;
-  let mockConsole: any;
+  let mockConsole: ReturnType<typeof setupMockConsole>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -19,12 +19,12 @@ describe('members command', () => {
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
-    } as any);
+    });
 
     mockSlackClient = new SlackApiClient('test-token');
     vi.mocked(SlackApiClient).mockImplementation(function () {
       return mockSlackClient;
-    } as any);
+    });
 
     mockConsole = setupMockConsole();
     program = createTestProgram();
@@ -46,7 +46,7 @@ describe('members command', () => {
         nextCursor: '',
       });
       vi.mocked(mockSlackClient.getUserInfo).mockImplementation(async (userId: string) => {
-        const users: Record<string, any> = {
+        const users: Record<string, { id: string; name: string; real_name: string }> = {
           U01ABCDEF: { id: 'U01ABCDEF', name: 'alice', real_name: 'Alice Smith' },
           U02GHIJKL: { id: 'U02GHIJKL', name: 'bob', real_name: 'Bob Jones' },
         };

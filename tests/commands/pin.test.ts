@@ -8,10 +8,10 @@ vi.mock('../../src/utils/slack-api-client');
 vi.mock('../../src/utils/profile-config');
 
 describe('pin command', () => {
-  let program: any;
+  let program: ReturnType<typeof createTestProgram>;
   let mockSlackClient: SlackApiClient;
   let mockConfigManager: ProfileConfigManager;
-  let mockConsole: any;
+  let mockConsole: ReturnType<typeof setupMockConsole>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -19,12 +19,12 @@ describe('pin command', () => {
     mockConfigManager = new ProfileConfigManager();
     vi.mocked(ProfileConfigManager).mockImplementation(function () {
       return mockConfigManager;
-    } as any);
+    });
 
     mockSlackClient = new SlackApiClient('test-token');
     vi.mocked(SlackApiClient).mockImplementation(function () {
       return mockSlackClient;
-    } as any);
+    });
 
     mockConsole = setupMockConsole();
     program = createTestProgram();
@@ -274,7 +274,7 @@ describe('pin command', () => {
       const pinCommand = setupPinCommand();
       pinCommand.exitOverride();
 
-      const addCommand = pinCommand.commands.find((c: any) => c.name() === 'add')!;
+      const addCommand = pinCommand.commands.find((c) => c.name() === 'add')!;
       addCommand.exitOverride();
 
       await expect(
@@ -288,7 +288,7 @@ describe('pin command', () => {
       const pinCommand = setupPinCommand();
       pinCommand.exitOverride();
 
-      const removeCommand = pinCommand.commands.find((c: any) => c.name() === 'remove')!;
+      const removeCommand = pinCommand.commands.find((c) => c.name() === 'remove')!;
       removeCommand.exitOverride();
 
       await expect(

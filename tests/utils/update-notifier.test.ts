@@ -95,12 +95,16 @@ describe('update notifier', () => {
       })
     );
     expect(fs.writeFile).toHaveBeenCalledWith(
-      expect.stringMatching(/^\/home\/test-user\/\.slack-cli\/update-notifier\.json\.\d+\.\d+\.tmp$/),
+      expect.stringMatching(
+        /^\/home\/test-user\/\.slack-cli\/update-notifier\.json\.\d+\.\d+\.tmp$/
+      ),
       expect.stringContaining('"latestVersion": "1.3.0"'),
       expect.objectContaining({ mode: 0o600, flag: 'wx' })
     );
     expect(fs.rename).toHaveBeenCalledWith(
-      expect.stringMatching(/^\/home\/test-user\/\.slack-cli\/update-notifier\.json\.\d+\.\d+\.tmp$/),
+      expect.stringMatching(
+        /^\/home\/test-user\/\.slack-cli\/update-notifier\.json\.\d+\.\d+\.tmp$/
+      ),
       '/home/test-user/.slack-cli/update-notifier.json'
     );
     expect(console.error).toHaveBeenCalledTimes(2);
@@ -154,6 +158,23 @@ describe('update notifier', () => {
   it('disable flag skips update checks', async () => {
     process.env.SLACK_CLI_DISABLE_UPDATE_NOTIFIER = '1';
     const fetchImpl = vi.fn();
+
+    await checkForUpdates({
+      packageName: '@urugus/slack-cli',
+      currentVersion: '1.0.0',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(fs.readFile).not.toHaveBeenCalled();
+  });
+
+  it('undefined isTTY skips update checks', async () => {
+    const fetchImpl = vi.fn();
+    Object.defineProperty(process.stderr, 'isTTY', {
+      configurable: true,
+      value: undefined,
+    });
 
     await checkForUpdates({
       packageName: '@urugus/slack-cli',

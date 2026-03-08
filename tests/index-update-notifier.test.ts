@@ -1,8 +1,14 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { restoreMocks, setupMockConsole } from './test-utils';
 
 const mockCheckForUpdates = vi.fn().mockResolvedValue(undefined);
 const mockGetCurrentProfile = vi.fn().mockResolvedValue('default');
+const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')) as {
+  name: string;
+  version: string;
+};
 
 vi.mock('../src/utils/update-notifier', () => ({
   checkForUpdates: mockCheckForUpdates,
@@ -53,8 +59,8 @@ describe('index update notifier integration', () => {
 
     expect(mockGetCurrentProfile).toHaveBeenCalledTimes(1);
     expect(mockCheckForUpdates).toHaveBeenCalledWith({
-      packageName: '@urugus/slack-cli',
-      currentVersion: '0.20.5',
+      packageName: packageJson.name,
+      currentVersion: packageJson.version,
     });
   });
 });

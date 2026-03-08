@@ -8,7 +8,7 @@ A command-line tool for sending messages to Slack using the Slack API.
 npm install -g @urugus/slack-cli
 ```
 
-通常コマンド実行時には、新しい npm 公開版があれば更新通知を表示します。不要な場合は `SLACK_CLI_DISABLE_UPDATE_NOTIFIER=1` を設定してください。
+By default, when you run commands, the CLI will show an update notification if a new npm release is available. To disable this, set `SLACK_CLI_DISABLE_UPDATE_NOTIFIER=1`.
 
 ## Configuration
 

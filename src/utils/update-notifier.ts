@@ -51,7 +51,7 @@ function shouldSkipUpdateCheck(): boolean {
   return (
     process.env.CI !== undefined ||
     process.env.SLACK_CLI_DISABLE_UPDATE_NOTIFIER === '1' ||
-    process.stderr.isTTY === false
+    !process.stderr.isTTY
   );
 }
 
@@ -119,7 +119,7 @@ async function readCache(cachePath: string): Promise<UpdateNotifierCache | null>
       return null;
     }
 
-    return null;
+    throw error;
   }
 }
 

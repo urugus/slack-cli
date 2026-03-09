@@ -170,7 +170,8 @@ export function setupUsersCommand(): Command {
             {
               table: ({ userId, presence }) => renderPresenceTable(userId, presence),
               simple: ({ userId, presence }) => renderPresenceSimple(userId, presence),
-              json: ({ presence }) => console.log(JSON.stringify(presence, null, 2)),
+              json: ({ presence }) =>
+                console.log(JSON.stringify(sanitizeTerminalData(presence), null, 2)),
             }
           );
         });

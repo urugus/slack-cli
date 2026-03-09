@@ -21,6 +21,8 @@ interface ChannelWithUnreadInfo extends Channel {
 }
 
 export class ChannelOperations extends BaseSlackClient {
+  private channelLookupCache?: Promise<Channel[]>;
+
   constructor(tokenOrClient: SlackClientDependency) {
     super(tokenOrClient as string | WebClient);
   }
@@ -101,6 +103,22 @@ export class ChannelOperations extends BaseSlackClient {
     return channels;
   }
 
+  async resolveChannelId(channelNameOrId: string): Promise<string> {
+    return channelResolver.resolveChannelId(channelNameOrId, async () => this.getChannelLookupCache());
+  }
+
+  private getChannelLookupCache(): Promise<Channel[]> {
+    if (!this.channelLookupCache) {
+      this.channelLookupCache = this.listChannels({
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      });
+    }
+
+    return this.channelLookupCache;
+  }
+
   private async getChannelUnreadInfo(channel: Channel): Promise<Channel | null> {
     const channelInfo = await this.fetchChannelInfo(channel.id);
     const unreadCount = channelInfo.unread_count_display ?? channelInfo.unread_count ?? 0;
@@ -126,13 +144,7 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async getChannelInfo(channelNameOrId: string): Promise<ChannelWithUnreadInfo> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     const info = await this.client.conversations.info({
       channel: channelId,
@@ -142,13 +154,7 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async getChannelDetail(channelNameOrId: string): Promise<ChannelDetail> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     const info = await this.client.conversations.info({
       channel: channelId,
@@ -159,13 +165,7 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async setTopic(channelNameOrId: string, topic: string): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     await this.client.conversations.setTopic({
       channel: channelId,
@@ -174,13 +174,7 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async setPurpose(channelNameOrId: string, purpose: string): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     await this.client.conversations.setPurpose({
       channel: channelId,
@@ -189,13 +183,7 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async joinChannel(channelNameOrId: string): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     await this.client.conversations.join({
       channel: channelId,
@@ -203,13 +191,7 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async leaveChannel(channelNameOrId: string): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     await this.client.conversations.leave({
       channel: channelId,
@@ -221,13 +203,7 @@ export class ChannelOperations extends BaseSlackClient {
     userIds: string[],
     force?: boolean
   ): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     await this.client.conversations.invite({
       channel: channelId,
@@ -240,13 +216,7 @@ export class ChannelOperations extends BaseSlackClient {
     channelNameOrId: string,
     options: ChannelMembersOptions = {}
   ): Promise<ChannelMembersResult> {
-    const channelId = await channelResolver.resolveChannelId(channelNameOrId, () =>
-      this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.resolveChannelId(channelNameOrId);
 
     const response = await this.client.conversations.members({
       channel: channelId,

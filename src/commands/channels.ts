@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { ChannelsOptions } from '../types/commands';
 import { getChannelTypes, mapChannelToInfo } from '../utils/channel-formatter';
-import { createSlackClient } from '../utils/client-factory';
+import { withSlackClient } from '../utils/command-support';
 import { wrapCommand } from '../utils/command-wrapper';
 import { ERROR_MESSAGES } from '../utils/constants';
 import { createChannelsListFormatter } from '../utils/formatters/channels-list-formatters';
@@ -19,30 +19,25 @@ export function setupChannelsCommand(): Command {
     .option('--profile <profile>', 'Use specific workspace profile')
     .action(
       wrapCommand(async (options: ChannelsOptions) => {
-        // Create Slack client
-        const client = await createSlackClient(options.profile);
+        await withSlackClient(options, async (client) => {
+          const types = getChannelTypes(options.type);
+          const limit = parseLimit(options.limit, 100);
+          const channels = await client.listChannels({
+            types,
+            exclude_archived: !parseBoolean(options.includeArchived),
+            limit,
+          });
 
-        // Map channel type to API types
-        const types = getChannelTypes(options.type);
+          if (channels.length === 0) {
+            console.log(ERROR_MESSAGES.NO_CHANNELS_FOUND);
+            return;
+          }
 
-        // List channels
-        const limit = parseLimit(options.limit, 100);
-        const channels = await client.listChannels({
-          types,
-          exclude_archived: !parseBoolean(options.includeArchived),
-          limit: limit,
+          const channelInfos = channels.map(mapChannelToInfo);
+          const format = parseFormat(options.format);
+          const formatter = createChannelsListFormatter(format);
+          formatter.format({ channels: channelInfos });
         });
-
-        if (channels.length === 0) {
-          console.log(ERROR_MESSAGES.NO_CHANNELS_FOUND);
-          return;
-        }
-
-        // Format and display channels
-        const channelInfos = channels.map(mapChannelToInfo);
-        const format = parseFormat(options.format);
-        const formatter = createChannelsListFormatter(format);
-        formatter.format({ channels: channelInfos });
       })
     );
 

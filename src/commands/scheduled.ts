@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { ScheduledCancelOptions, ScheduledListOptions } from '../types/commands';
-import { createSlackClient } from '../utils/client-factory';
+import { renderByFormat, withSlackClient } from '../utils/command-support';
 import { wrapCommand } from '../utils/command-wrapper';
-import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
+import { parseLimit } from '../utils/option-parsers';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
@@ -48,29 +48,20 @@ export function setupScheduledCommand(): Command {
     .hook('preAction', createValidationHook([optionValidators.format]))
     .action(
       wrapCommand(async (options: ScheduledListOptions) => {
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
-        const limit = parseLimit(options.limit, 50);
-        const messages = await client.listScheduledMessages(options.channel, limit);
+        await withSlackClient(options, async (client) => {
+          const limit = parseLimit(options.limit, 50);
+          const messages = await client.listScheduledMessages(options.channel, limit);
 
-        if (messages.length === 0) {
-          console.log('No scheduled messages found');
-          return;
-        }
+          if (messages.length === 0) {
+            console.log('No scheduled messages found');
+            return;
+          }
 
-        const format = parseFormat(options.format);
-
-        if (format === 'json') {
-          console.log(JSON.stringify(sanitizeTerminalData(messages), null, 2));
-          return;
-        }
-
-        if (format === 'simple') {
-          renderSimple(messages);
-          return;
-        }
-
-        renderTable(messages);
+          renderByFormat(options, messages, {
+            table: renderTable,
+            simple: renderSimple,
+          });
+        });
       })
     );
 
@@ -81,11 +72,10 @@ export function setupScheduledCommand(): Command {
     .option('--profile <profile>', 'Use specific workspace profile')
     .action(
       wrapCommand(async (options: ScheduledCancelOptions) => {
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
-
-        await client.cancelScheduledMessage(options.channel, options.id);
-        console.log(chalk.green(`✓ Scheduled message ${options.id} cancelled`));
+        await withSlackClient(options, async (client) => {
+          await client.cancelScheduledMessage(options.channel, options.id);
+          console.log(chalk.green(`✓ Scheduled message ${options.id} cancelled`));
+        });
       })
     );
 

@@ -6,9 +6,9 @@ import {
   UsersPresenceOptions,
 } from '../types/commands';
 import { SlackUser, UserPresence } from '../types/slack';
-import { createSlackClient } from '../utils/client-factory';
+import { renderByFormat, withSlackClient } from '../utils/command-support';
 import { wrapCommand } from '../utils/command-wrapper';
-import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
+import { parseLimit } from '../utils/option-parsers';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
@@ -85,29 +85,20 @@ export function setupUsersCommand(): Command {
     .hook('preAction', createValidationHook([optionValidators.format]))
     .action(
       wrapCommand(async (options: UsersListOptions) => {
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
-        const limit = parseLimit(options.limit, 100);
-        const users = await client.listUsers(limit);
+        await withSlackClient(options, async (client) => {
+          const limit = parseLimit(options.limit, 100);
+          const users = await client.listUsers(limit);
 
-        if (users.length === 0) {
-          console.log('No users found');
-          return;
-        }
+          if (users.length === 0) {
+            console.log('No users found');
+            return;
+          }
 
-        const format = parseFormat(options.format);
-
-        if (format === 'json') {
-          console.log(JSON.stringify(sanitizeTerminalData(users), null, 2));
-          return;
-        }
-
-        if (format === 'simple') {
-          renderUserSimple(users);
-          return;
-        }
-
-        renderUserTable(users);
+          renderByFormat(options, users, {
+            table: renderUserTable,
+            simple: renderUserSimple,
+          });
+        });
       })
     );
 
@@ -119,18 +110,13 @@ export function setupUsersCommand(): Command {
     .hook('preAction', createValidationHook([optionValidators.format]))
     .action(
       wrapCommand(async (options: UsersInfoOptions) => {
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
-        const user = await client.getUserInfo(options.id);
+        await withSlackClient(options, async (client) => {
+          const user = await client.getUserInfo(options.id);
 
-        const format = parseFormat(options.format);
-
-        if (format === 'json') {
-          console.log(JSON.stringify(sanitizeTerminalData(user), null, 2));
-          return;
-        }
-
-        renderUserInfo(user);
+          renderByFormat(options, user, {
+            table: renderUserInfo,
+          });
+        });
       })
     );
 
@@ -142,18 +128,13 @@ export function setupUsersCommand(): Command {
     .hook('preAction', createValidationHook([optionValidators.format]))
     .action(
       wrapCommand(async (options: UsersLookupOptions) => {
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
-        const user = await client.lookupUserByEmail(options.email);
+        await withSlackClient(options, async (client) => {
+          const user = await client.lookupUserByEmail(options.email);
 
-        const format = parseFormat(options.format);
-
-        if (format === 'json') {
-          console.log(JSON.stringify(sanitizeTerminalData(user), null, 2));
-          return;
-        }
-
-        renderUserInfo(user);
+          renderByFormat(options, user, {
+            table: renderUserInfo,
+          });
+        });
       })
     );
 
@@ -173,31 +154,27 @@ export function setupUsersCommand(): Command {
           throw new Error('Cannot use both --id and --name');
         }
 
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
+        await withSlackClient(options, async (client) => {
+          let userId: string;
+          if (options.name) {
+            userId = await client.resolveUserIdByName(options.name);
+          } else {
+            userId = options.id!;
+          }
 
-        let userId: string;
-        if (options.name) {
-          userId = await client.resolveUserIdByName(options.name);
-        } else {
-          userId = options.id!;
-        }
+          const presence = await client.getUserPresence(userId);
 
-        const presence = await client.getUserPresence(userId);
-
-        const format = parseFormat(options.format);
-
-        if (format === 'json') {
-          console.log(JSON.stringify(sanitizeTerminalData(presence), null, 2));
-          return;
-        }
-
-        if (format === 'simple') {
-          renderPresenceSimple(userId, presence);
-          return;
-        }
-
-        renderPresenceTable(userId, presence);
+          renderByFormat(
+            options,
+            { userId, presence },
+            {
+              table: ({ userId, presence }) => renderPresenceTable(userId, presence),
+              simple: ({ userId, presence }) => renderPresenceSimple(userId, presence),
+              json: ({ presence }) =>
+                console.log(JSON.stringify(sanitizeTerminalData(presence), null, 2)),
+            }
+          );
+        });
       })
     );
 

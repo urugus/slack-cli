@@ -1,5 +1,5 @@
-import { ApiError } from './errors';
 import { Channel } from '../types/slack';
+import { ApiError } from './errors';
 import { sanitizeTerminalText } from './terminal-sanitizer';
 
 export type GetChannelsFunction = () => Promise<Channel[]>;

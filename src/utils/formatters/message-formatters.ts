@@ -1,8 +1,8 @@
 import chalk from 'chalk';
+import { Channel, Message } from '../../types/slack';
 import { formatChannelName } from '../channel-formatter';
 import { formatSlackTimestamp } from '../date-utils';
 import { formatMessageWithMentions } from '../format-utils';
-import { Channel, Message } from '../../types/slack';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 

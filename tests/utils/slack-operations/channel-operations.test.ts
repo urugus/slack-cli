@@ -11,6 +11,7 @@ vi.mock('@slack/web-api', () => ({
       },
       users: {
         conversations: vi.fn(),
+        info: vi.fn(),
       },
     };
   }),
@@ -32,6 +33,7 @@ describe('ChannelOperations', () => {
     };
     users: {
       conversations: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
     };
   };
 
@@ -48,6 +50,7 @@ describe('ChannelOperations', () => {
       },
       users: {
         conversations: vi.fn(),
+        info: vi.fn(),
       },
     };
     // Create instance with mocked token
@@ -387,6 +390,94 @@ describe('ChannelOperations', () => {
         unread_count_display: 3,
       });
       expect(mockClient.conversations.history).not.toHaveBeenCalled();
+    });
+
+    it('should use channel name from conversations.info when users.conversations omits it', async () => {
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [{ id: 'C888' }],
+        response_metadata: { next_cursor: '' },
+      });
+
+      mockClient.conversations.info.mockResolvedValue({
+        channel: {
+          id: 'C888',
+          name: 'restored-name',
+          unread_count: 1,
+          unread_count_display: 1,
+        },
+      });
+
+      const result = await channelOps.listUnreadChannels();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: 'C888',
+        name: 'restored-name',
+      });
+    });
+
+    it('should resolve DM display name when the conversation has no name', async () => {
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [{ id: 'D999', is_im: true }],
+        response_metadata: { next_cursor: '' },
+      });
+
+      mockClient.conversations.info.mockResolvedValue({
+        channel: {
+          id: 'D999',
+          is_im: true,
+          user: 'U999',
+          unread_count: 2,
+          unread_count_display: 2,
+        },
+      });
+
+      mockClient.users.info.mockResolvedValue({
+        user: {
+          id: 'U999',
+          name: 'alice',
+        },
+      });
+
+      const result = await channelOps.listUnreadChannels();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: 'D999',
+        display_name: '@alice',
+        name: 'D999',
+      });
+      expect(mockClient.users.info).toHaveBeenCalledWith({ user: 'U999' });
+    });
+
+    it('should sanitize resolved display names for unread conversations', async () => {
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [{ id: 'D999', is_im: true }],
+        response_metadata: { next_cursor: '' },
+      });
+
+      mockClient.conversations.info.mockResolvedValue({
+        channel: {
+          id: 'D999',
+          is_im: true,
+          user: 'U999',
+          unread_count: 1,
+          unread_count_display: 1,
+        },
+      });
+
+      mockClient.users.info.mockResolvedValue({
+        user: {
+          id: 'U999',
+          name: '\u001b[31malice',
+        },
+      });
+
+      const result = await channelOps.listUnreadChannels();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].display_name).toBe('@alice');
+      expect(result[0].display_name).not.toContain('\u001b');
     });
   });
 

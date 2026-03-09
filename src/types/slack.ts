@@ -1,42 +1,118 @@
-import type {
-  CanvasFile,
-  CanvasSection,
-  CanvasSectionElement,
-} from '../utils/slack-operations/canvas-operations';
-import type {
-  ChannelMembersOptions,
-  ChannelMembersResult,
-} from '../utils/slack-operations/channel-operations';
-import type { PinnedItem } from '../utils/slack-operations/pin-operations';
-import type { Reminder } from '../utils/slack-operations/reminder-operations';
-import type {
-  SearchMatch,
-  SearchMessagesOptions,
-  SearchResult,
-} from '../utils/slack-operations/search-operations';
-import type { StarListResult, StarredItem } from '../utils/slack-operations/star-operations';
-import type { SlackUser, UserPresence } from '../utils/slack-operations/user-operations';
+export interface CanvasSectionElement {
+  type?: string;
+  text?: string;
+  elements?: CanvasSectionElement[];
+}
 
-export type {
-  CanvasFile,
-  CanvasSection,
-  CanvasSectionElement,
-  ChannelMembersOptions,
-  ChannelMembersResult,
-  PinnedItem,
-  Reminder,
-  SearchMatch,
-  SearchMessagesOptions,
-  SearchResult,
-  SlackUser,
-  StarListResult,
-  StarredItem,
-  UserPresence,
-};
+export interface CanvasSection {
+  id?: string;
+  elements?: CanvasSectionElement[];
+}
+
+export interface CanvasFile {
+  id?: string;
+  name?: string;
+  created?: number;
+  filetype?: string;
+}
+
+export interface ChannelMembersOptions {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ChannelMembersResult {
+  members: string[];
+  nextCursor: string;
+}
+
+export interface PinnedItem {
+  type?: string;
+  created?: number;
+  created_by?: string;
+  message?: {
+    text?: string;
+    user?: string;
+    ts?: string;
+  };
+}
+
+export interface Reminder {
+  id: string;
+  text: string;
+  time: number;
+  complete_ts: number;
+  recurring: boolean;
+}
+
+export interface SearchMatch {
+  text?: string;
+  user?: string;
+  username?: string;
+  ts?: string;
+  channel: {
+    id?: string;
+    name?: string;
+  };
+  permalink?: string;
+}
+
+export interface SearchMessagesOptions {
+  sort?: 'score' | 'timestamp';
+  sortDir?: 'asc' | 'desc';
+  count?: number;
+  page?: number;
+}
+
+export interface SearchResult {
+  query: string;
+  matches: SearchMatch[];
+  totalCount: number;
+  page: number;
+  pageCount: number;
+}
+
+export interface StarredItem {
+  type: string;
+  channel: string;
+  message: {
+    text: string;
+    ts: string;
+  };
+  date_create: number;
+}
+
+export interface StarListResult {
+  items: StarredItem[];
+}
+
+export interface UserPresence {
+  presence: string;
+}
+
+export interface SlackUser {
+  id?: string;
+  name?: string;
+  real_name?: string;
+  profile?: {
+    email?: string;
+    display_name?: string;
+    title?: string;
+    status_text?: string;
+    status_emoji?: string;
+  };
+  tz?: string;
+  tz_label?: string;
+  is_admin?: boolean;
+  is_bot?: boolean;
+  deleted?: boolean;
+}
 
 export interface Channel {
   id: string;
   name: string;
+  display_name?: string;
+  user?: string;
   is_channel?: boolean;
   is_group?: boolean;
   is_im?: boolean;

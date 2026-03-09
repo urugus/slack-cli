@@ -1,25 +1,8 @@
+import type { CanvasFile, CanvasSection } from '../../types/slack';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
-
-export interface CanvasSectionElement {
-  type?: string;
-  text?: string;
-  elements?: CanvasSectionElement[];
-}
-
-export interface CanvasSection {
-  id?: string;
-  elements?: CanvasSectionElement[];
-}
-
-export interface CanvasFile {
-  id?: string;
-  name?: string;
-  created?: number;
-  filetype?: string;
-}
 
 export class CanvasOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;

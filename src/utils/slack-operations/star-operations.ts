@@ -1,18 +1,5 @@
+import type { StarListResult, StarredItem } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
-
-export interface StarredItem {
-  type: string;
-  channel: string;
-  message: {
-    text: string;
-    ts: string;
-  };
-  date_create: number;
-}
-
-export interface StarListResult {
-  items: StarredItem[];
-}
 
 export class StarOperations extends BaseSlackClient {
   constructor(dependency: SlackClientDependency) {
@@ -32,7 +19,7 @@ export class StarOperations extends BaseSlackClient {
       cursor,
     });
     return {
-      items: (response as { items?: StarredItem[] }).items || [],
+      items: ((response as { items?: StarredItem[] }).items || []) as StarredItem[],
     };
   }
 

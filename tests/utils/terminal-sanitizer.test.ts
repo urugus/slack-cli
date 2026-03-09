@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../../src/utils/terminal-sanitizer';
 
 describe('terminal-sanitizer', () => {
-  it('removes escape and control characters', () => {
+  it('removes ANSI escape sequences and control characters', () => {
     const input = '\u001b[31mhello\u001b[0m\u0007';
-    expect(sanitizeTerminalText(input)).toBe('[31mhello[0m');
+    expect(sanitizeTerminalText(input)).toBe('hello');
   });
 
   it('keeps tab and newline for readability while removing carriage returns', () => {
@@ -20,8 +20,8 @@ describe('terminal-sanitizer', () => {
     };
 
     expect(sanitizeTerminalData(input)).toEqual({
-      message: ']8;;https://example.comclick]8;;',
-      items: [{ text: '[31mwarning[0m' }, 'safe'],
+      message: 'click',
+      items: [{ text: 'warning' }, 'safe'],
       count: 2,
     });
   });

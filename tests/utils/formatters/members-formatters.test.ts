@@ -84,7 +84,7 @@ describe('members formatters', () => {
       });
 
       const output = JSON.parse(logSpy.mock.calls[0][0]);
-      expect(output).toEqual([{ id: 'U01', name: '[31malice[0m', real_name: 'Alice' }]);
+      expect(output).toEqual([{ id: 'U01', name: 'alice', real_name: 'Alice' }]);
     });
   });
 

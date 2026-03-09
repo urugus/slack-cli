@@ -5,10 +5,10 @@ import {
   UsersLookupOptions,
   UsersPresenceOptions,
 } from '../types/commands';
+import { SlackUser, UserPresence } from '../types/slack';
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
-import { SlackUser, UserPresence } from '../types/slack';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 

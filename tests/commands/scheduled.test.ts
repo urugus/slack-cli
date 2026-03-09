@@ -120,7 +120,7 @@ describe('scheduled command', () => {
       await program.parseAsync(['node', 'slack-cli', 'scheduled', 'list', '--format', 'json']);
 
       const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
-      expect(output[0].text).toBe(']8;;https://example.comclick]8;;');
+      expect(output[0].text).toBe('click');
     });
 
     it('should output simple format', async () => {

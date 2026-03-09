@@ -1,18 +1,15 @@
 import { WebClient } from '@slack/web-api';
+import type {
+  Channel,
+  ChannelDetail,
+  ChannelMembersOptions,
+  ChannelMembersResult,
+  ListChannelsOptions,
+} from '../../types/slack';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { Channel, ChannelDetail, ListChannelsOptions } from '../../types/slack';
+import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
-
-export interface ChannelMembersOptions {
-  limit?: number;
-  cursor?: string;
-}
-
-export interface ChannelMembersResult {
-  members: string[];
-  nextCursor: string;
-}
 
 interface ChannelWithUnreadInfo extends Channel {
   unread_count: number;
@@ -31,7 +28,6 @@ export class ChannelOperations extends BaseSlackClient {
     const channels: Channel[] = [];
     let cursor: string | undefined;
 
-    // Paginate through all channels
     do {
       const response = await this.client.conversations.list({
         types: options.types,
@@ -51,12 +47,9 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async listUnreadChannels(): Promise<Channel[]> {
-    // Use users.conversations instead of conversations.list to only fetch
-    // channels the current user is a member of, reducing API calls significantly
     const channels = await this.fetchUserChannels();
     const channelsWithUnread: Channel[] = [];
 
-    // Process channels one by one with delay to avoid rate limits
     for (const channel of channels) {
       try {
         const unreadInfo = await this.getChannelUnreadInfo(channel);
@@ -64,10 +57,8 @@ export class ChannelOperations extends BaseSlackClient {
           channelsWithUnread.push(unreadInfo);
         }
 
-        // Add delay between API calls to avoid rate limiting
         await this.delay(100);
       } catch (error) {
-        // Skip channels that fail
         await this.handleRateLimit(error);
       }
     }
@@ -75,12 +66,6 @@ export class ChannelOperations extends BaseSlackClient {
     return channelsWithUnread;
   }
 
-  /**
-   * Fetch channels the current user is a member of using users.conversations API.
-   * This is more efficient than conversations.list for unread discovery since
-   * unread messages only exist in channels the user has joined.
-   * Supports pagination via next_cursor.
-   */
   async fetchUserChannels(): Promise<Channel[]> {
     const channels: Channel[] = [];
     let cursor: string | undefined;
@@ -104,7 +89,9 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async resolveChannelId(channelNameOrId: string): Promise<string> {
-    return channelResolver.resolveChannelId(channelNameOrId, async () => this.getChannelLookupCache());
+    return channelResolver.resolveChannelId(channelNameOrId, async () =>
+      this.getChannelLookupCache()
+    );
   }
 
   private getChannelLookupCache(): Promise<Channel[]> {
@@ -113,6 +100,9 @@ export class ChannelOperations extends BaseSlackClient {
         types: 'public_channel,private_channel,im,mpim',
         exclude_archived: true,
         limit: DEFAULTS.CHANNELS_LIMIT,
+      }).catch((error) => {
+        this.channelLookupCache = undefined;
+        throw error;
       });
     }
 
@@ -124,8 +114,13 @@ export class ChannelOperations extends BaseSlackClient {
     const unreadCount = channelInfo.unread_count_display ?? channelInfo.unread_count ?? 0;
 
     if (unreadCount > 0) {
+      const name = channelInfo.name || channel.name || channelInfo.id || channel.id;
+      const display_name = await this.resolveChannelDisplayName(channel, channelInfo);
       return {
+        ...channelInfo,
         ...channel,
+        name,
+        display_name,
         unread_count: unreadCount,
         unread_count_display: unreadCount,
         last_read: channelInfo.last_read,
@@ -141,6 +136,36 @@ export class ChannelOperations extends BaseSlackClient {
       include_num_members: false,
     });
     return info.channel as ChannelWithUnreadInfo;
+  }
+
+  private async resolveChannelDisplayName(
+    channel: Channel,
+    channelInfo: ChannelWithUnreadInfo
+  ): Promise<string | undefined> {
+    const conversationName = channelInfo.name || channel.name;
+    if (conversationName) {
+      return undefined;
+    }
+
+    if (channelInfo.is_im && channelInfo.user) {
+      try {
+        const response = await this.client.users.info({ user: channelInfo.user });
+        const user = response.user as { name?: string; profile?: { display_name?: string } };
+        const username = user.profile?.display_name || user.name || channelInfo.user;
+        return sanitizeTerminalText(`@${username}`);
+      } catch {
+        return sanitizeTerminalText(`@${channelInfo.user}`);
+      }
+    }
+
+    if (channelInfo.is_mpim) {
+      const purpose = channelInfo.purpose?.value?.trim();
+      if (purpose) {
+        return sanitizeTerminalText(purpose);
+      }
+    }
+
+    return sanitizeTerminalText(channelInfo.id);
   }
 
   async getChannelInfo(channelNameOrId: string): Promise<ChannelWithUnreadInfo> {

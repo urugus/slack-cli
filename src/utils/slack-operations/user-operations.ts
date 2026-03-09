@@ -1,27 +1,6 @@
+import type { SlackUser, UserPresence } from '../../types/slack';
 import { ApiError } from '../errors';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
-
-export interface UserPresence {
-  presence: string;
-}
-
-export interface SlackUser {
-  id?: string;
-  name?: string;
-  real_name?: string;
-  profile?: {
-    email?: string;
-    display_name?: string;
-    title?: string;
-    status_text?: string;
-    status_emoji?: string;
-  };
-  tz?: string;
-  tz_label?: string;
-  is_admin?: boolean;
-  is_bot?: boolean;
-  deleted?: boolean;
-}
 
 export class UserOperations extends BaseSlackClient {
   constructor(dependency: SlackClientDependency) {

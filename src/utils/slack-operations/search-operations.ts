@@ -1,31 +1,5 @@
+import type { SearchMatch, SearchMessagesOptions, SearchResult } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
-
-export interface SearchMatch {
-  text?: string;
-  user?: string;
-  username?: string;
-  ts?: string;
-  channel: {
-    id?: string;
-    name?: string;
-  };
-  permalink?: string;
-}
-
-export interface SearchMessagesOptions {
-  sort?: 'score' | 'timestamp';
-  sortDir?: 'asc' | 'desc';
-  count?: number;
-  page?: number;
-}
-
-export interface SearchResult {
-  query: string;
-  matches: SearchMatch[];
-  totalCount: number;
-  page: number;
-  pageCount: number;
-}
 
 export class SearchOperations extends BaseSlackClient {
   constructor(dependency: SlackClientDependency) {
@@ -53,7 +27,7 @@ export class SearchOperations extends BaseSlackClient {
         name: match.channel?.name,
       },
       permalink: match.permalink,
-    }));
+    })) as SearchMatch[];
 
     const pagination = response.messages?.pagination;
 

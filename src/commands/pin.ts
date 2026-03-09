@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { PinListOptions, PinOptions } from '../types/commands';
+import { PinnedItem } from '../types/slack';
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
-import { PinnedItem } from '../types/slack';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 

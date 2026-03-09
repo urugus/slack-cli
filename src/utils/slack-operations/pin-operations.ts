@@ -1,16 +1,6 @@
+import type { PinnedItem } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
-
-export interface PinnedItem {
-  type?: string;
-  created?: number;
-  created_by?: string;
-  message?: {
-    text?: string;
-    user?: string;
-    ts?: string;
-  };
-}
 
 export class PinOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;

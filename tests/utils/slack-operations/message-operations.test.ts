@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { channelResolver } from '../../../src/utils/channel-resolver';
+import { ChannelOperations } from '../../../src/utils/slack-operations/channel-operations';
+import { MessageHistoryOperations } from '../../../src/utils/slack-operations/message-history-operations';
 import { MessageOperations } from '../../../src/utils/slack-operations/message-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -244,18 +246,10 @@ describe('MessageOperations', () => {
 
   describe('getChannelUnread', () => {
     it('should retry history fetches when Slack rate limits a page request', async () => {
-      const delaySpy = vi.spyOn(
-        messageOps as unknown as { handleRateLimit: (error: unknown) => Promise<void> },
-        'handleRateLimit'
-      );
-      vi.spyOn(
-        (
-          messageOps as unknown as {
-            channelOps: { getChannelInfo: (channelNameOrId: string) => Promise<unknown> };
-          }
-        ).channelOps,
-        'getChannelInfo'
-      ).mockResolvedValue({
+      const delaySpy = vi
+        .spyOn(MessageHistoryOperations.prototype, 'handleRateLimit')
+        .mockResolvedValue(undefined);
+      vi.spyOn(ChannelOperations.prototype, 'getChannelInfo').mockResolvedValue({
         id: 'C123456789',
         name: 'general',
         is_private: false,

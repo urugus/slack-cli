@@ -1,5 +1,5 @@
 import { createHistoryFormatter } from '../utils/formatters/history-formatters';
-import { Message } from '../utils/slack-api-client';
+import { Message } from '../types/slack';
 
 interface DisplayHistoryOptions {
   preserveOrder?: boolean;

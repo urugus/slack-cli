@@ -4,7 +4,7 @@ import { CanvasListOptions, CanvasReadOptions } from '../types/commands';
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
-import { CanvasFile, CanvasSection, CanvasSectionElement } from '../utils/slack-api-client';
+import { CanvasFile, CanvasSection, CanvasSectionElement } from '../types/slack';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 

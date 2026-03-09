@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { formatTimestampFixed } from '../date-utils';
 import { formatMessageWithMentions, resolveUsername } from '../format-utils';
-import { Message as SlackMessage } from '../slack-api-client';
+import { Message as SlackMessage } from '../../types/slack';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 

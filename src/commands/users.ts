@@ -8,7 +8,7 @@ import {
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseLimit, parseProfile } from '../utils/option-parsers';
-import { SlackUser, UserPresence } from '../utils/slack-api-client';
+import { SlackUser, UserPresence } from '../types/slack';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 

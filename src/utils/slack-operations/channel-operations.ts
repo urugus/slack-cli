@@ -1,7 +1,7 @@
 import { WebClient } from '@slack/web-api';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { Channel, ChannelDetail, ListChannelsOptions } from '../slack-api-client';
+import { Channel, ChannelDetail, ListChannelsOptions } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 
 export interface ChannelMembersOptions {

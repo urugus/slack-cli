@@ -1,5 +1,5 @@
 import { formatUnixTimestamp } from './date-utils';
-import { Channel } from './slack-api-client';
+import { Channel } from '../types/slack';
 import { sanitizeTerminalText } from './terminal-sanitizer';
 
 export interface ChannelInfo {

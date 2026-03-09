@@ -16,7 +16,7 @@ import {
   HistoryResult,
   Message,
   ScheduledMessage,
-} from '../slack-api-client';
+} from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 

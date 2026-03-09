@@ -4,7 +4,7 @@ import { PinListOptions, PinOptions } from '../types/commands';
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
-import { PinnedItem } from '../utils/slack-api-client';
+import { PinnedItem } from '../types/slack';
 import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 

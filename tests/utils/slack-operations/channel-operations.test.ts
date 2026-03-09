@@ -175,6 +175,39 @@ describe('ChannelOperations', () => {
     });
   });
 
+  describe('resolveChannelId', () => {
+    it('should reuse the cached channel list across resolutions', async () => {
+      mockClient.conversations.list.mockResolvedValue({
+        channels: [
+          { id: 'C123', name: 'general', is_channel: true, is_private: false, created: 1 },
+          { id: 'C456', name: 'random', is_channel: true, is_private: false, created: 1 },
+        ],
+        response_metadata: { next_cursor: '' },
+      });
+
+      await expect(channelOps.resolveChannelId('general')).resolves.toBe('C123');
+      await expect(channelOps.resolveChannelId('random')).resolves.toBe('C456');
+
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('should clear the cached promise after a lookup fetch failure', async () => {
+      mockClient.conversations.list
+        .mockRejectedValueOnce(new Error('temporary failure'))
+        .mockResolvedValueOnce({
+          channels: [
+            { id: 'C123', name: 'general', is_channel: true, is_private: false, created: 1 },
+          ],
+          response_metadata: { next_cursor: '' },
+        });
+
+      await expect(channelOps.resolveChannelId('general')).rejects.toThrow('temporary failure');
+      await expect(channelOps.resolveChannelId('general')).resolves.toBe('C123');
+
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('listUnreadChannels', () => {
     it('should use users.conversations instead of conversations.list', async () => {
       // Mock users.conversations response (used by fetchUserChannels)

@@ -14,7 +14,6 @@ import type {
   Message,
   ScheduledMessage,
 } from '../../types/slack';
-import { channelResolver } from '../channel-resolver';
 import { DEFAULTS, RATE_LIMIT } from '../constants';
 import { extractAllUserIds } from '../mention-utils';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
@@ -84,15 +83,7 @@ export class MessageOperations extends BaseSlackClient {
   }
 
   async listScheduledMessages(channel?: string, limit = 50): Promise<ScheduledMessage[]> {
-    const channelId = channel
-      ? await channelResolver.resolveChannelId(channel, () =>
-          this.channelOps.listChannels({
-            types: 'public_channel,private_channel,im,mpim',
-            exclude_archived: true,
-            limit: DEFAULTS.CHANNELS_LIMIT,
-          })
-        )
-      : undefined;
+    const channelId = channel ? await this.channelOps.resolveChannelId(channel) : undefined;
 
     const response = await this.client.chat.scheduledMessages.list({
       limit,
@@ -102,13 +93,7 @@ export class MessageOperations extends BaseSlackClient {
   }
 
   async updateMessage(channel: string, ts: string, text: string): Promise<ChatUpdateResponse> {
-    const channelId = await channelResolver.resolveChannelId(channel, () =>
-      this.channelOps.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.channelOps.resolveChannelId(channel);
 
     return await this.client.chat.update({
       channel: channelId,
@@ -118,13 +103,7 @@ export class MessageOperations extends BaseSlackClient {
   }
 
   async deleteMessage(channel: string, ts: string): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(channel, () =>
-      this.channelOps.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.channelOps.resolveChannelId(channel);
 
     await this.client.chat.delete({
       channel: channelId,
@@ -133,13 +112,7 @@ export class MessageOperations extends BaseSlackClient {
   }
 
   async cancelScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(channel, () =>
-      this.channelOps.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.channelOps.resolveChannelId(channel);
 
     await this.client.chat.deleteScheduledMessage({
       channel: channelId,
@@ -148,14 +121,7 @@ export class MessageOperations extends BaseSlackClient {
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {
-    // Resolve channel name to ID if needed
-    const channelId = await channelResolver.resolveChannelId(channel, () =>
-      this.channelOps.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.channelOps.resolveChannelId(channel);
 
     const response = await this.client.conversations.history({
       channel: channelId,
@@ -173,13 +139,7 @@ export class MessageOperations extends BaseSlackClient {
   }
 
   async getThreadHistory(channel: string, threadTs: string): Promise<HistoryResult> {
-    const channelId = await channelResolver.resolveChannelId(channel, () =>
-      this.channelOps.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.channelOps.resolveChannelId(channel);
 
     const messages: Message[] = [];
     let cursor: string | undefined;
@@ -298,13 +258,7 @@ export class MessageOperations extends BaseSlackClient {
 
   async getPermalink(channel: string, messageTs: string): Promise<string | null> {
     try {
-      const channelId = await channelResolver.resolveChannelId(channel, () =>
-        this.channelOps.listChannels({
-          types: 'public_channel,private_channel,im,mpim',
-          exclude_archived: true,
-          limit: DEFAULTS.CHANNELS_LIMIT,
-        })
-      );
+      const channelId = await this.channelOps.resolveChannelId(channel);
 
       const response = await this.client.chat.getPermalink({
         channel: channelId,
@@ -323,13 +277,7 @@ export class MessageOperations extends BaseSlackClient {
       return permalinks;
     }
 
-    const channelId = await channelResolver.resolveChannelId(channel, () =>
-      this.channelOps.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.channelOps.resolveChannelId(channel);
 
     for (const ts of messageTimestamps) {
       try {

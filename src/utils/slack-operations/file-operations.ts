@@ -1,6 +1,4 @@
 import { basename } from 'path';
-import { channelResolver } from '../channel-resolver';
-import { DEFAULTS } from '../constants';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 
@@ -24,13 +22,7 @@ export class FileOperations extends BaseSlackClient {
   }
 
   async uploadFile(options: UploadFileOptions): Promise<void> {
-    const channelId = await channelResolver.resolveChannelId(options.channel, () =>
-      this.channelOps.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      })
-    );
+    const channelId = await this.channelOps.resolveChannelId(options.channel);
 
     const params: Record<string, unknown> = {
       channel_id: channelId,

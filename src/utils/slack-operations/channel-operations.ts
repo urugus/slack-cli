@@ -1,19 +1,15 @@
 import { WebClient } from '@slack/web-api';
+import type {
+  Channel,
+  ChannelDetail,
+  ChannelMembersOptions,
+  ChannelMembersResult,
+  ListChannelsOptions,
+} from '../../types/slack';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS } from '../constants';
-import { Channel, ChannelDetail, ListChannelsOptions } from '../slack-api-client';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
-
-export interface ChannelMembersOptions {
-  limit?: number;
-  cursor?: string;
-}
-
-export interface ChannelMembersResult {
-  members: string[];
-  nextCursor: string;
-}
 
 interface ChannelWithUnreadInfo extends Channel {
   unread_count: number;
@@ -30,7 +26,6 @@ export class ChannelOperations extends BaseSlackClient {
     const channels: Channel[] = [];
     let cursor: string | undefined;
 
-    // Paginate through all channels
     do {
       const response = await this.client.conversations.list({
         types: options.types,
@@ -50,12 +45,9 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   async listUnreadChannels(): Promise<Channel[]> {
-    // Use users.conversations instead of conversations.list to only fetch
-    // channels the current user is a member of, reducing API calls significantly
     const channels = await this.fetchUserChannels();
     const channelsWithUnread: Channel[] = [];
 
-    // Process channels one by one with delay to avoid rate limits
     for (const channel of channels) {
       try {
         const unreadInfo = await this.getChannelUnreadInfo(channel);
@@ -63,10 +55,8 @@ export class ChannelOperations extends BaseSlackClient {
           channelsWithUnread.push(unreadInfo);
         }
 
-        // Add delay between API calls to avoid rate limiting
         await this.delay(100);
       } catch (error) {
-        // Skip channels that fail
         await this.handleRateLimit(error);
       }
     }
@@ -74,12 +64,6 @@ export class ChannelOperations extends BaseSlackClient {
     return channelsWithUnread;
   }
 
-  /**
-   * Fetch channels the current user is a member of using users.conversations API.
-   * This is more efficient than conversations.list for unread discovery since
-   * unread messages only exist in channels the user has joined.
-   * Supports pagination via next_cursor.
-   */
   async fetchUserChannels(): Promise<Channel[]> {
     const channels: Channel[] = [];
     let cursor: string | undefined;

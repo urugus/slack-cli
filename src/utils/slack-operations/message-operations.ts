@@ -7,16 +7,16 @@ import {
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
-import { channelResolver } from '../channel-resolver';
-import { DEFAULTS, RATE_LIMIT } from '../constants';
-import { extractAllUserIds } from '../mention-utils';
-import {
+import type {
   ChannelUnreadResult,
   HistoryOptions,
   HistoryResult,
   Message,
   ScheduledMessage,
-} from '../slack-api-client';
+} from '../../types/slack';
+import { channelResolver } from '../channel-resolver';
+import { DEFAULTS, RATE_LIMIT } from '../constants';
+import { extractAllUserIds } from '../mention-utils';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 

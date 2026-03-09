@@ -1,4 +1,4 @@
-import { Message } from './slack-api-client';
+import { Message } from '../types/slack';
 import { USER_MENTION_PATTERN } from './slack-patterns';
 import { sanitizeTerminalText } from './terminal-sanitizer';
 

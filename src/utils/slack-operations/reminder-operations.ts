@@ -1,12 +1,5 @@
+import type { Reminder } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
-
-export interface Reminder {
-  id: string;
-  text: string;
-  time: number;
-  complete_ts: number;
-  recurring: boolean;
-}
 
 export class ReminderOperations extends BaseSlackClient {
   constructor(dependency: SlackClientDependency) {

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
+import { SearchMatch } from '../../types/slack';
 import { formatTimestampFixed } from '../date-utils';
-import { SearchMatch } from '../slack-api-client';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 

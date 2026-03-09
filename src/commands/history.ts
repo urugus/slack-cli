@@ -1,10 +1,10 @@
 import { Command } from 'commander';
 import { HistoryOptions } from '../types/commands';
+import { HistoryOptions as ApiHistoryOptions, Message } from '../types/slack';
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { API_LIMITS } from '../utils/constants';
 import { parseCount, parseFormat, parseProfile } from '../utils/option-parsers';
-import { HistoryOptions as ApiHistoryOptions, Message } from '../utils/slack-api-client';
 import { createValidationHook, optionValidators } from '../utils/validators';
 import { displayHistoryResults } from './history-display';
 import { prepareSinceTimestamp } from './history-validators';

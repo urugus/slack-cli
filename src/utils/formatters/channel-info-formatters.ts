@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { ChannelDetail } from '../slack-api-client';
+import { ChannelDetail } from '../../types/slack';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { AbstractFormatter, createFormatterFactory, JsonFormatter } from './base-formatter';
 

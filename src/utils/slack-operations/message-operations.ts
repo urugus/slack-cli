@@ -1,9 +1,6 @@
-import {
-  ChatPostEphemeralArguments,
+import type {
   ChatPostEphemeralResponse,
-  ChatPostMessageArguments,
   ChatPostMessageResponse,
-  ChatScheduleMessageArguments,
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
@@ -11,20 +8,35 @@ import type {
   ChannelUnreadResult,
   HistoryOptions,
   HistoryResult,
-  Message,
   ScheduledMessage,
 } from '../../types/slack';
-import { DEFAULTS, RATE_LIMIT } from '../constants';
-import { extractAllUserIds } from '../mention-utils';
-import { BaseSlackClient, SlackClientDependency } from './base-client';
+import { BaseSlackClient, createSlackClientContext, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
+import { MessageHistoryOperations } from './message-history-operations';
+import { MessagePermalinkOperations } from './message-permalink-operations';
+import { MessageUserResolver } from './message-user-resolver';
+import { MessageWriteOperations } from './message-write-operations';
 
 export class MessageOperations extends BaseSlackClient {
-  private channelOps: ChannelOperations;
+  private writeOps: MessageWriteOperations;
+  private historyOps: MessageHistoryOperations;
+  private permalinkOps: MessagePermalinkOperations;
 
   constructor(dependency: SlackClientDependency, channelOps?: ChannelOperations) {
-    super(dependency);
-    this.channelOps = channelOps ?? new ChannelOperations(dependency);
+    const sharedDependency =
+      typeof dependency === 'string' ? createSlackClientContext(dependency) : dependency;
+
+    super(sharedDependency);
+    const resolvedChannelOps = channelOps ?? new ChannelOperations(sharedDependency);
+    const userResolver = new MessageUserResolver(sharedDependency);
+
+    this.writeOps = new MessageWriteOperations(sharedDependency, resolvedChannelOps);
+    this.historyOps = new MessageHistoryOperations(
+      sharedDependency,
+      resolvedChannelOps,
+      userResolver
+    );
+    this.permalinkOps = new MessagePermalinkOperations(sharedDependency, resolvedChannelOps);
   }
 
   async sendMessage(
@@ -32,16 +44,7 @@ export class MessageOperations extends BaseSlackClient {
     text: string,
     thread_ts?: string
   ): Promise<ChatPostMessageResponse> {
-    const params: ChatPostMessageArguments = {
-      channel,
-      text,
-    };
-
-    if (thread_ts) {
-      params.thread_ts = thread_ts;
-    }
-
-    return await this.client.chat.postMessage(params);
+    return await this.writeOps.sendMessage(channel, text, thread_ts);
   }
 
   async sendEphemeralMessage(
@@ -50,17 +53,7 @@ export class MessageOperations extends BaseSlackClient {
     text: string,
     thread_ts?: string
   ): Promise<ChatPostEphemeralResponse> {
-    const params: ChatPostEphemeralArguments = {
-      channel,
-      user,
-      text,
-    };
-
-    if (thread_ts) {
-      params.thread_ts = thread_ts;
-    }
-
-    return await this.client.chat.postEphemeral(params);
+    return await this.writeOps.sendEphemeralMessage(channel, user, text, thread_ts);
   }
 
   async scheduleMessage(
@@ -69,230 +62,46 @@ export class MessageOperations extends BaseSlackClient {
     post_at: number,
     thread_ts?: string
   ): Promise<ChatScheduleMessageResponse> {
-    const params: ChatScheduleMessageArguments = {
-      channel,
-      text,
-      post_at,
-    };
-
-    if (thread_ts) {
-      params.thread_ts = thread_ts;
-    }
-
-    return await this.client.chat.scheduleMessage(params);
+    return await this.writeOps.scheduleMessage(channel, text, post_at, thread_ts);
   }
 
   async listScheduledMessages(channel?: string, limit = 50): Promise<ScheduledMessage[]> {
-    const channelId = channel ? await this.channelOps.resolveChannelId(channel) : undefined;
-
-    const response = await this.client.chat.scheduledMessages.list({
-      limit,
-      ...(channelId ? { channel: channelId } : {}),
-    });
-    return (response.scheduled_messages || []) as ScheduledMessage[];
+    return await this.writeOps.listScheduledMessages(channel, limit);
   }
 
   async updateMessage(channel: string, ts: string, text: string): Promise<ChatUpdateResponse> {
-    const channelId = await this.channelOps.resolveChannelId(channel);
-
-    return await this.client.chat.update({
-      channel: channelId,
-      ts,
-      text,
-    });
+    return await this.writeOps.updateMessage(channel, ts, text);
   }
 
   async deleteMessage(channel: string, ts: string): Promise<void> {
-    const channelId = await this.channelOps.resolveChannelId(channel);
-
-    await this.client.chat.delete({
-      channel: channelId,
-      ts,
-    });
+    await this.writeOps.deleteMessage(channel, ts);
   }
 
   async cancelScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {
-    const channelId = await this.channelOps.resolveChannelId(channel);
-
-    await this.client.chat.deleteScheduledMessage({
-      channel: channelId,
-      scheduled_message_id: scheduledMessageId,
-    });
+    await this.writeOps.cancelScheduledMessage(channel, scheduledMessageId);
   }
 
   async getHistory(channel: string, options: HistoryOptions): Promise<HistoryResult> {
-    const channelId = await this.channelOps.resolveChannelId(channel);
-
-    const response = await this.client.conversations.history({
-      channel: channelId,
-      limit: options.limit,
-      oldest: options.oldest,
-    });
-
-    const messages = response.messages as Message[];
-
-    // Extract all unique user IDs (authors and mentioned users)
-    const userIds = extractAllUserIds(messages);
-    const users = await this.fetchUserInfo(userIds);
-
-    return { messages, users };
+    return await this.historyOps.getHistory(channel, options);
   }
 
   async getThreadHistory(channel: string, threadTs: string): Promise<HistoryResult> {
-    const channelId = await this.channelOps.resolveChannelId(channel);
-
-    const messages: Message[] = [];
-    let cursor: string | undefined;
-
-    do {
-      const response = await this.client.conversations.replies({
-        channel: channelId,
-        ts: threadTs,
-        cursor,
-      });
-
-      messages.push(...((response.messages || []) as Message[]));
-      cursor = response.response_metadata?.next_cursor || undefined;
-    } while (cursor);
-
-    const userIds = extractAllUserIds(messages);
-    const users = await this.fetchUserInfo(userIds);
-
-    return { messages, users };
+    return await this.historyOps.getThreadHistory(channel, threadTs);
   }
 
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {
-    const channel = await this.channelOps.getChannelInfo(channelNameOrId);
-    const summary = await this.getUnreadMessageSummary(
-      channel.id,
-      channel.last_read,
-      DEFAULTS.UNREAD_MESSAGE_PREVIEW_LIMIT
-    );
-    const userIds = extractAllUserIds(summary.messages);
-    const users = await this.fetchUserInfo(userIds);
-
-    return {
-      channel: {
-        ...channel,
-        unread_count: summary.totalCount,
-        unread_count_display: summary.totalCount,
-      },
-      messages: summary.messages,
-      users,
-      totalUnreadCount: summary.totalCount,
-      displayedMessageCount: summary.messages.length,
-    };
-  }
-
-  private async getUnreadMessageSummary(
-    channelId: string,
-    lastRead: string | undefined,
-    previewLimit: number
-  ): Promise<{ totalCount: number; messages: Message[] }> {
-    const messages: Message[] = [];
-    let totalCount = 0;
-    let cursor: string | undefined;
-
-    do {
-      const response = await this.fetchHistoryPage(channelId, lastRead, cursor);
-
-      const pageMessages = (response.messages || []) as Message[];
-      totalCount += pageMessages.length;
-
-      if (messages.length < previewLimit) {
-        messages.push(...pageMessages.slice(0, previewLimit - messages.length));
-      }
-
-      cursor = response.response_metadata?.next_cursor || undefined;
-    } while (cursor);
-
-    return { totalCount, messages };
-  }
-
-  private async fetchHistoryPage(channelId: string, lastRead?: string, cursor?: string) {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        return await this.client.conversations.history({
-          channel: channelId,
-          oldest: lastRead,
-          limit: 200,
-          cursor,
-        });
-      } catch (error) {
-        const isRateLimitError = error instanceof Error && error.message?.includes('rate limit');
-        if (!isRateLimitError || attempt >= RATE_LIMIT.RETRY_CONFIG.retries) {
-          throw error;
-        }
-
-        await this.handleRateLimit(error);
-      }
-    }
-  }
-
-  private async fetchUserInfo(userIds: string[]): Promise<Map<string, string>> {
-    const users = new Map<string, string>();
-
-    if (userIds.length > 0) {
-      for (const userId of userIds) {
-        try {
-          const userInfo = await this.client.users.info({ user: userId });
-          if (userInfo.user?.name) {
-            users.set(userId, userInfo.user.name);
-          }
-        } catch (_error) {
-          // If we can't get user info, we'll use the ID
-          users.set(userId, userId);
-        }
-      }
-    }
-
-    return users;
+    return await this.historyOps.getChannelUnread(channelNameOrId);
   }
 
   async markAsRead(channelId: string): Promise<void> {
-    await this.client.conversations.mark({
-      channel: channelId,
-      ts: Date.now() / 1000 + '',
-    });
+    await this.historyOps.markAsRead(channelId);
   }
 
   async getPermalink(channel: string, messageTs: string): Promise<string | null> {
-    try {
-      const channelId = await this.channelOps.resolveChannelId(channel);
-
-      const response = await this.client.chat.getPermalink({
-        channel: channelId,
-        message_ts: messageTs,
-      });
-      return response.permalink || null;
-    } catch {
-      return null;
-    }
+    return await this.permalinkOps.getPermalink(channel, messageTs);
   }
 
   async getPermalinks(channel: string, messageTimestamps: string[]): Promise<Map<string, string>> {
-    const permalinks = new Map<string, string>();
-
-    if (messageTimestamps.length === 0) {
-      return permalinks;
-    }
-
-    const channelId = await this.channelOps.resolveChannelId(channel);
-
-    for (const ts of messageTimestamps) {
-      try {
-        const response = await this.client.chat.getPermalink({
-          channel: channelId,
-          message_ts: ts,
-        });
-        if (response.permalink) {
-          permalinks.set(ts, response.permalink);
-        }
-      } catch {
-        // Skip failed permalink retrievals gracefully
-      }
-    }
-
-    return permalinks;
+    return await this.permalinkOps.getPermalinks(channel, messageTimestamps);
   }
 }

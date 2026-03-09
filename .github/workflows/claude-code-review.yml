@@ -59,5 +59,9 @@ jobs:
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
           allowed_bots: 'dependabot[bot],claude[bot]'
+          # Keep a single visible PR comment updated so successful reviews are still observable
+          # even when there are no new inline findings.
+          use_sticky_comment: true
+          display_report: true
           show_full_output: true
           claude_args: '--allowedTools Read,Glob,Grep,Bash(gh:*),Bash(git:*)'

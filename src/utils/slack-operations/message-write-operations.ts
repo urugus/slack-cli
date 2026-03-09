@@ -11,6 +11,7 @@ import type { ScheduledMessage } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 
+/** @internal Internal split of MessageOperations write responsibilities. */
 export class MessageWriteOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
 

@@ -1,6 +1,7 @@
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 
+/** @internal Internal split of MessageOperations permalink responsibilities. */
 export class MessagePermalinkOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
 

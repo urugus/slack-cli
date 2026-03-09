@@ -10,6 +10,7 @@ import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 import { MessageUserResolver } from './message-user-resolver';
 
+/** @internal Internal split of MessageOperations history responsibilities. */
 export class MessageHistoryOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
   private userResolver: MessageUserResolver;

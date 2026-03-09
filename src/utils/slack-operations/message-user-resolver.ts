@@ -1,5 +1,6 @@
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 
+/** @internal Internal helper for resolving user names in message flows. */
 export class MessageUserResolver extends BaseSlackClient {
   constructor(dependency: SlackClientDependency) {
     super(dependency);

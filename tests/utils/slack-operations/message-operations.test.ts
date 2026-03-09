@@ -246,7 +246,9 @@ describe('MessageOperations', () => {
 
   describe('getChannelUnread', () => {
     it('should retry history fetches when Slack rate limits a page request', async () => {
-      const delaySpy = vi.spyOn(MessageHistoryOperations.prototype, 'handleRateLimit');
+      const delaySpy = vi
+        .spyOn(MessageHistoryOperations.prototype, 'handleRateLimit')
+        .mockResolvedValue(undefined);
       vi.spyOn(ChannelOperations.prototype, 'getChannelInfo').mockResolvedValue({
         id: 'C123456789',
         name: 'general',

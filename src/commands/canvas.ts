@@ -2,10 +2,9 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { CanvasListOptions, CanvasReadOptions } from '../types/commands';
 import { CanvasFile, CanvasSection, CanvasSectionElement } from '../types/slack';
-import { createSlackClient } from '../utils/client-factory';
+import { renderByFormat, withSlackClient } from '../utils/command-support';
 import { wrapCommand } from '../utils/command-wrapper';
-import { parseFormat, parseProfile } from '../utils/option-parsers';
-import { sanitizeTerminalData, sanitizeTerminalText } from '../utils/terminal-sanitizer';
+import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 function extractText(elements: CanvasSectionElement[]): string {
@@ -18,21 +17,7 @@ function extractText(elements: CanvasSectionElement[]): string {
     .join('');
 }
 
-function formatSections(sections: CanvasSection[], format: string): void {
-  if (format === 'json') {
-    console.log(JSON.stringify(sanitizeTerminalData(sections)));
-    return;
-  }
-
-  if (format === 'simple') {
-    sections.forEach((section) => {
-      const text = section.elements ? extractText(section.elements) : '';
-      console.log(`${sanitizeTerminalText(section.id || '(no id)')}\t${text || '(no content)'}`);
-    });
-    return;
-  }
-
-  // table format (default)
+function formatSectionsTable(sections: CanvasSection[]): void {
   sections.forEach((section) => {
     const text = section.elements ? extractText(section.elements) : '';
     console.log(
@@ -42,26 +27,26 @@ function formatSections(sections: CanvasSection[], format: string): void {
   });
 }
 
-function formatCanvases(canvases: CanvasFile[], format: string): void {
-  if (format === 'json') {
-    console.log(JSON.stringify(sanitizeTerminalData(canvases)));
-    return;
-  }
+function formatSectionsSimple(sections: CanvasSection[]): void {
+  sections.forEach((section) => {
+    const text = section.elements ? extractText(section.elements) : '';
+    console.log(`${sanitizeTerminalText(section.id || '(no id)')}\t${text || '(no content)'}`);
+  });
+}
 
-  if (format === 'simple') {
-    canvases.forEach((canvas) => {
-      console.log(
-        `${sanitizeTerminalText(canvas.id || '(no id)')}\t${sanitizeTerminalText(canvas.name || '(no name)')}`
-      );
-    });
-    return;
-  }
-
-  // table format (default)
+function formatCanvasesTable(canvases: CanvasFile[]): void {
   canvases.forEach((canvas) => {
     console.log(
       chalk.cyan(`ID: ${sanitizeTerminalText(canvas.id || '(no id)')}`) +
         `  Name: ${sanitizeTerminalText(canvas.name || '(no name)')}`
+    );
+  });
+}
+
+function formatCanvasesSimple(canvases: CanvasFile[]): void {
+  canvases.forEach((canvas) => {
+    console.log(
+      `${sanitizeTerminalText(canvas.id || '(no id)')}\t${sanitizeTerminalText(canvas.name || '(no name)')}`
     );
   });
 }
@@ -77,18 +62,19 @@ export function setupCanvasCommand(): Command {
     .hook('preAction', createValidationHook([optionValidators.format]))
     .action(
       wrapCommand(async (options: CanvasReadOptions) => {
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
+        await withSlackClient(options, async (client) => {
+          const sections = await client.readCanvas(options.id);
 
-        const sections = await client.readCanvas(options.id);
+          if (sections.length === 0) {
+            console.log('No sections found in canvas');
+            return;
+          }
 
-        if (sections.length === 0) {
-          console.log('No sections found in canvas');
-          return;
-        }
-
-        const format = parseFormat(options.format);
-        formatSections(sections, format);
+          renderByFormat(options, sections, {
+            table: formatSectionsTable,
+            simple: formatSectionsSimple,
+          });
+        });
       })
     );
 
@@ -100,18 +86,19 @@ export function setupCanvasCommand(): Command {
     .hook('preAction', createValidationHook([optionValidators.format]))
     .action(
       wrapCommand(async (options: CanvasListOptions) => {
-        const profile = parseProfile(options.profile);
-        const client = await createSlackClient(profile);
+        await withSlackClient(options, async (client) => {
+          const canvases = await client.listCanvases(options.channel);
 
-        const canvases = await client.listCanvases(options.channel);
+          if (canvases.length === 0) {
+            console.log('No canvases found in channel');
+            return;
+          }
 
-        if (canvases.length === 0) {
-          console.log('No canvases found in channel');
-          return;
-        }
-
-        const format = parseFormat(options.format);
-        formatCanvases(canvases, format);
+          renderByFormat(options, canvases, {
+            table: formatCanvasesTable,
+            simple: formatCanvasesSimple,
+          });
+        });
       })
     );
 

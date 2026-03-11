@@ -172,4 +172,86 @@ describe('SearchOperations', () => {
       expect(result.matches[0].channel.name).toBeUndefined();
     });
   });
+
+  describe('listUnreadChannels', () => {
+    it('should aggregate unread counts by channel across pages', async () => {
+      mockClient.search.messages
+        .mockResolvedValueOnce({
+          ok: true,
+          messages: {
+            matches: [
+              {
+                ts: '1700000002.000200',
+                channel: { id: 'C123', name: 'general', is_channel: true, is_private: false },
+              },
+              {
+                ts: '1700000001.000100',
+                channel: { id: 'C123', name: 'general', is_channel: true, is_private: false },
+              },
+            ],
+            pagination: { page_count: 2 },
+          },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          messages: {
+            matches: [
+              {
+                ts: '1699999999.000300',
+                channel: { id: 'C456', name: 'random', is_channel: true, is_private: true },
+              },
+            ],
+            pagination: { page_count: 2 },
+          },
+        });
+
+      const result = await searchOps.listUnreadChannels();
+
+      expect(mockClient.search.messages).toHaveBeenNthCalledWith(1, {
+        query: 'is:unread',
+        sort: 'timestamp',
+        sort_dir: 'desc',
+        count: 100,
+        page: 1,
+      });
+      expect(mockClient.search.messages).toHaveBeenNthCalledWith(2, {
+        query: 'is:unread',
+        sort: 'timestamp',
+        sort_dir: 'desc',
+        count: 100,
+        page: 2,
+      });
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: 'C123',
+          name: 'general',
+          unread_count: 2,
+          unread_count_display: 2,
+          last_read: '1700000002.000200',
+        }),
+        expect.objectContaining({
+          id: 'C456',
+          name: 'random',
+          unread_count: 1,
+          unread_count_display: 1,
+          last_read: '1699999999.000300',
+          is_private: true,
+        }),
+      ]);
+    });
+
+    it('should ignore matches without channel ids', async () => {
+      mockClient.search.messages.mockResolvedValue({
+        ok: true,
+        messages: {
+          matches: [{ ts: '1700000000.000100', channel: { name: 'general' } }],
+          pagination: { page_count: 1 },
+        },
+      });
+
+      const result = await searchOps.listUnreadChannels();
+
+      expect(result).toEqual([]);
+    });
+  });
 });

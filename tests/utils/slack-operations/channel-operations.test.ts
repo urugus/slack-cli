@@ -212,16 +212,8 @@ describe('ChannelOperations', () => {
     it('should use users.conversations instead of conversations.list', async () => {
       // Mock users.conversations response (used by fetchUserChannels)
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'C123', name: 'general' }],
+        channels: [{ id: 'C123', name: 'general', unread_count: 1, unread_count_display: 1 }],
         response_metadata: { next_cursor: '' },
-      });
-
-      mockClient.conversations.info.mockResolvedValue({
-        channel: { id: 'C123', name: 'general', last_read: '1234567890.000100' },
-      });
-
-      mockClient.conversations.history.mockResolvedValue({
-        messages: [],
       });
 
       await channelOps.listUnreadChannels();
@@ -235,32 +227,23 @@ describe('ChannelOperations', () => {
       // Mock users.conversations response
       mockClient.users.conversations.mockResolvedValue({
         channels: [
-          { id: 'C123', name: 'general' },
-          { id: 'C456', name: 'random' },
-        ],
-        response_metadata: { next_cursor: '' },
-      });
-
-      // Mock conversations.info responses
-      mockClient.conversations.info
-        .mockResolvedValueOnce({
-          channel: {
+          {
             id: 'C123',
             name: 'general',
             last_read: '1234567890.000100',
             unread_count: 2,
             unread_count_display: 2,
           },
-        })
-        .mockResolvedValueOnce({
-          channel: {
+          {
             id: 'C456',
             name: 'random',
             last_read: '1234567890.000200',
             unread_count: 0,
             unread_count_display: 0,
           },
-        });
+        ],
+        response_metadata: { next_cursor: '' },
+      });
 
       const result = await channelOps.listUnreadChannels();
 
@@ -277,18 +260,15 @@ describe('ChannelOperations', () => {
     it('should count all messages as unread when last_read is not present', async () => {
       // Mock users.conversations response
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'C789', name: 'no-read-channel' }],
+        channels: [
+          {
+            id: 'C789',
+            name: 'no-read-channel',
+            unread_count: 3,
+            unread_count_display: 3,
+          },
+        ],
         response_metadata: { next_cursor: '' },
-      });
-
-      // Mock conversations.info response - no last_read
-      mockClient.conversations.info.mockResolvedValue({
-        channel: {
-          id: 'C789',
-          name: 'no-read-channel',
-          unread_count: 3,
-          unread_count_display: 3,
-        },
       });
 
       const result = await channelOps.listUnreadChannels();
@@ -305,18 +285,8 @@ describe('ChannelOperations', () => {
 
     it('should skip channels with no messages', async () => {
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'C999', name: 'empty-channel' }],
+        channels: [{ id: 'C999', name: 'empty-channel', unread_count: 0, unread_count_display: 0 }],
         response_metadata: { next_cursor: '' },
-      });
-
-      mockClient.conversations.info.mockResolvedValue({
-        channel: {
-          id: 'C999',
-          name: 'empty-channel',
-          last_read: '1234567890.000100',
-          unread_count: 0,
-          unread_count_display: 0,
-        },
       });
 
       const result = await channelOps.listUnreadChannels();
@@ -326,18 +296,8 @@ describe('ChannelOperations', () => {
 
     it('should skip channels with all messages read', async () => {
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'C111', name: 'all-read' }],
+        channels: [{ id: 'C111', name: 'all-read', unread_count: 0, unread_count_display: 0 }],
         response_metadata: { next_cursor: '' },
-      });
-
-      mockClient.conversations.info.mockResolvedValue({
-        channel: {
-          id: 'C111',
-          name: 'all-read',
-          last_read: '1234567890.000200',
-          unread_count: 0,
-          unread_count_display: 0,
-        },
       });
 
       const result = await channelOps.listUnreadChannels();
@@ -349,23 +309,12 @@ describe('ChannelOperations', () => {
       mockClient.users.conversations.mockResolvedValue({
         channels: [
           { id: 'C222', name: 'error-channel' },
-          { id: 'C333', name: 'good-channel' },
+          { id: 'C333', name: 'good-channel', unread_count: 1, unread_count_display: 1 },
         ],
         response_metadata: { next_cursor: '' },
       });
 
-      // First channel throws error
-      mockClient.conversations.info
-        .mockRejectedValueOnce(new Error('API Error'))
-        .mockResolvedValueOnce({
-          channel: {
-            id: 'C333',
-            name: 'good-channel',
-            last_read: '1234567890.000100',
-            unread_count: 1,
-            unread_count_display: 1,
-          },
-        });
+      mockClient.conversations.info.mockRejectedValueOnce(new Error('API Error'));
 
       const result = await channelOps.listUnreadChannels();
 
@@ -374,31 +323,21 @@ describe('ChannelOperations', () => {
       expect(result[0].id).toBe('C333');
     });
 
-    it('should handle rate limiting with delay', async () => {
-      const delaySpy = vi.spyOn(
-        channelOps as unknown as { delay: (ms: number) => Promise<void> },
-        'delay'
-      );
-
+    it('should avoid conversations.info when users.conversations already includes unread counters', async () => {
       mockClient.users.conversations.mockResolvedValue({
         channels: [
-          { id: 'C444', name: 'channel1' },
-          { id: 'C555', name: 'channel2' },
+          { id: 'C444', name: 'channel1', unread_count: 2, unread_count_display: 2 },
+          { id: 'C555', name: 'channel2', unread_count: 0, unread_count_display: 0 },
         ],
         response_metadata: { next_cursor: '' },
       });
 
-      mockClient.conversations.info.mockResolvedValue({
-        channel: { id: 'C444', name: 'channel1', unread_count: 0, unread_count_display: 0 },
-      });
-
       await channelOps.listUnreadChannels();
 
-      // Verify delay was called between API calls
-      expect(delaySpy).toHaveBeenCalledWith(100);
+      expect(mockClient.conversations.info).not.toHaveBeenCalled();
     });
 
-    it('should use unread counters from conversations.info for channel scans', async () => {
+    it('should use unread counters from conversations.info when users.conversations omits them', async () => {
       mockClient.users.conversations.mockResolvedValue({
         channels: [{ id: 'C777', name: 'busy-channel' }],
         response_metadata: { next_cursor: '' },
@@ -451,18 +390,10 @@ describe('ChannelOperations', () => {
 
     it('should resolve DM display name when the conversation has no name', async () => {
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'D999', is_im: true }],
+        channels: [
+          { id: 'D999', is_im: true, user: 'U999', unread_count: 2, unread_count_display: 2 },
+        ],
         response_metadata: { next_cursor: '' },
-      });
-
-      mockClient.conversations.info.mockResolvedValue({
-        channel: {
-          id: 'D999',
-          is_im: true,
-          user: 'U999',
-          unread_count: 2,
-          unread_count_display: 2,
-        },
       });
 
       mockClient.users.info.mockResolvedValue({
@@ -480,23 +411,16 @@ describe('ChannelOperations', () => {
         display_name: '@alice',
         name: 'D999',
       });
+      expect(mockClient.conversations.info).not.toHaveBeenCalled();
       expect(mockClient.users.info).toHaveBeenCalledWith({ user: 'U999' });
     });
 
     it('should sanitize resolved display names for unread conversations', async () => {
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'D999', is_im: true }],
+        channels: [
+          { id: 'D999', is_im: true, user: 'U999', unread_count: 1, unread_count_display: 1 },
+        ],
         response_metadata: { next_cursor: '' },
-      });
-
-      mockClient.conversations.info.mockResolvedValue({
-        channel: {
-          id: 'D999',
-          is_im: true,
-          user: 'U999',
-          unread_count: 1,
-          unread_count_display: 1,
-        },
       });
 
       mockClient.users.info.mockResolvedValue({

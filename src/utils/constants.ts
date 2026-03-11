@@ -64,6 +64,7 @@ export const API_LIMITS = {
 // API Rate Limiting Configuration
 export const RATE_LIMIT = {
   CONCURRENT_REQUESTS: 3,
+  UNREAD_SCAN_CONCURRENT_REQUESTS: 15,
   BATCH_SIZE: 10,
   BATCH_DELAY_MS: 1000,
   RETRY_CONFIG: {

@@ -1,4 +1,5 @@
 import { WebClient } from '@slack/web-api';
+import pLimit from 'p-limit';
 import type {
   Channel,
   ChannelDetail,
@@ -7,7 +8,7 @@ import type {
   ListChannelsOptions,
 } from '../../types/slack';
 import { channelResolver } from '../channel-resolver';
-import { DEFAULTS } from '../constants';
+import { DEFAULTS, RATE_LIMIT } from '../constants';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 
@@ -48,22 +49,21 @@ export class ChannelOperations extends BaseSlackClient {
 
   async listUnreadChannels(): Promise<Channel[]> {
     const channels = await this.fetchUserChannels();
-    const channelsWithUnread: Channel[] = [];
+    const unreadScanLimiter = pLimit(RATE_LIMIT.UNREAD_SCAN_CONCURRENT_REQUESTS);
+    const unreadChannels = await Promise.all(
+      channels.map((channel) =>
+        unreadScanLimiter(async () => {
+          try {
+            return await this.getChannelUnreadInfo(channel);
+          } catch (error) {
+            await this.handleRateLimit(error);
+            return null;
+          }
+        })
+      )
+    );
 
-    for (const channel of channels) {
-      try {
-        const unreadInfo = await this.getChannelUnreadInfo(channel);
-        if (unreadInfo) {
-          channelsWithUnread.push(unreadInfo);
-        }
-
-        await this.delay(100);
-      } catch (error) {
-        await this.handleRateLimit(error);
-      }
-    }
-
-    return channelsWithUnread;
+    return unreadChannels.filter((channel): channel is Channel => channel !== null);
   }
 
   async fetchUserChannels(): Promise<Channel[]> {
@@ -110,20 +110,34 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   private async getChannelUnreadInfo(channel: Channel): Promise<Channel | null> {
-    const channelInfo = await this.fetchChannelInfo(channel.id);
-    const unreadCount = channelInfo.unread_count_display ?? channelInfo.unread_count ?? 0;
+    const hasUnreadCount =
+      channel.unread_count !== undefined || channel.unread_count_display !== undefined;
+    const needsChannelInfo = !hasUnreadCount || (!channel.name && !channel.is_im && !channel.is_mpim);
+    const channelInfo = needsChannelInfo ? await this.fetchChannelInfo(channel.id) : undefined;
+    const unreadCount =
+      channel.unread_count_display ??
+      channel.unread_count ??
+      channelInfo?.unread_count_display ??
+      channelInfo?.unread_count ??
+      0;
 
     if (unreadCount > 0) {
-      const name = channelInfo.name || channel.name || channelInfo.id || channel.id;
-      const display_name = await this.resolveChannelDisplayName(channel, channelInfo);
-      return {
+      const mergedChannel = {
         ...channelInfo,
         ...channel,
-        name,
-        display_name,
         unread_count: unreadCount,
         unread_count_display: unreadCount,
-        last_read: channelInfo.last_read,
+        last_read: channel.last_read ?? channelInfo?.last_read,
+      };
+      const name = mergedChannel.name || channelInfo?.id || channel.id;
+      const display_name = mergedChannel.display_name
+        ? sanitizeTerminalText(mergedChannel.display_name)
+        : await this.resolveChannelDisplayName(mergedChannel);
+
+      return {
+        ...mergedChannel,
+        name,
+        display_name,
       };
     }
 
@@ -131,41 +145,49 @@ export class ChannelOperations extends BaseSlackClient {
   }
 
   private async fetchChannelInfo(channelId: string): Promise<ChannelWithUnreadInfo> {
-    const info = await this.client.conversations.info({
-      channel: channelId,
-      include_num_members: false,
-    });
-    return info.channel as ChannelWithUnreadInfo;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const info = await this.client.conversations.info({
+          channel: channelId,
+          include_num_members: false,
+        });
+        return info.channel as ChannelWithUnreadInfo;
+      } catch (error) {
+        const isRateLimitError = error instanceof Error && error.message?.includes('rate limit');
+        if (!isRateLimitError || attempt >= RATE_LIMIT.RETRY_CONFIG.retries) {
+          throw error;
+        }
+
+        await this.handleRateLimit(error);
+      }
+    }
   }
 
-  private async resolveChannelDisplayName(
-    channel: Channel,
-    channelInfo: ChannelWithUnreadInfo
-  ): Promise<string | undefined> {
-    const conversationName = channelInfo.name || channel.name;
+  private async resolveChannelDisplayName(channel: ChannelWithUnreadInfo): Promise<string | undefined> {
+    const conversationName = channel.name;
     if (conversationName) {
       return undefined;
     }
 
-    if (channelInfo.is_im && channelInfo.user) {
+    if (channel.is_im && channel.user) {
       try {
-        const response = await this.client.users.info({ user: channelInfo.user });
+        const response = await this.client.users.info({ user: channel.user });
         const user = response.user as { name?: string; profile?: { display_name?: string } };
-        const username = user.profile?.display_name || user.name || channelInfo.user;
+        const username = user.profile?.display_name || user.name || channel.user;
         return sanitizeTerminalText(`@${username}`);
       } catch {
-        return sanitizeTerminalText(`@${channelInfo.user}`);
+        return sanitizeTerminalText(`@${channel.user}`);
       }
     }
 
-    if (channelInfo.is_mpim) {
-      const purpose = channelInfo.purpose?.value?.trim();
+    if (channel.is_mpim) {
+      const purpose = channel.purpose?.value?.trim();
       if (purpose) {
         return sanitizeTerminalText(purpose);
       }
     }
 
-    return sanitizeTerminalText(channelInfo.id);
+    return sanitizeTerminalText(channel.id);
   }
 
   async getChannelInfo(channelNameOrId: string): Promise<ChannelWithUnreadInfo> {

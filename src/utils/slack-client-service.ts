@@ -130,7 +130,11 @@ export class SlackApiClient {
   }
 
   async listUnreadChannels(): Promise<Channel[]> {
-    return this.channelOps.listUnreadChannels();
+    try {
+      return await this.searchOps.listUnreadChannels();
+    } catch {
+      return this.channelOps.listUnreadChannels();
+    }
   }
 
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {

@@ -390,7 +390,9 @@ describe('ChannelOperations', () => {
 
     it('should resolve DM display name when the conversation has no name', async () => {
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'D999', is_im: true, user: 'U999', unread_count: 2, unread_count_display: 2 }],
+        channels: [
+          { id: 'D999', is_im: true, user: 'U999', unread_count: 2, unread_count_display: 2 },
+        ],
         response_metadata: { next_cursor: '' },
       });
 
@@ -415,7 +417,9 @@ describe('ChannelOperations', () => {
 
     it('should sanitize resolved display names for unread conversations', async () => {
       mockClient.users.conversations.mockResolvedValue({
-        channels: [{ id: 'D999', is_im: true, user: 'U999', unread_count: 1, unread_count_display: 1 }],
+        channels: [
+          { id: 'D999', is_im: true, user: 'U999', unread_count: 1, unread_count_display: 1 },
+        ],
         response_metadata: { next_cursor: '' },
       });
 

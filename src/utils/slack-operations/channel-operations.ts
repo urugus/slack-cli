@@ -88,6 +88,30 @@ export class ChannelOperations extends BaseSlackClient {
     return channels;
   }
 
+  async enrichUnreadChannels(channels: Channel[]): Promise<Channel[]> {
+    const unreadScanLimiter = pLimit(RATE_LIMIT.UNREAD_SCAN_CONCURRENT_REQUESTS);
+
+    const enrichedChannels = await Promise.all(
+      channels.map((channel) =>
+        unreadScanLimiter(async () => {
+          try {
+            const channelInfo = await this.fetchChannelInfo(channel.id);
+            return await this.buildUnreadChannel(
+              channel,
+              channelInfo,
+              channel.unread_count_display ?? channel.unread_count ?? 0
+            );
+          } catch (error) {
+            await this.handleRateLimit(error);
+            return channel;
+          }
+        })
+      )
+    );
+
+    return enrichedChannels;
+  }
+
   async resolveChannelId(channelNameOrId: string): Promise<string> {
     return channelResolver.resolveChannelId(channelNameOrId, async () =>
       this.getChannelLookupCache()
@@ -112,7 +136,8 @@ export class ChannelOperations extends BaseSlackClient {
   private async getChannelUnreadInfo(channel: Channel): Promise<Channel | null> {
     const hasUnreadCount =
       channel.unread_count !== undefined || channel.unread_count_display !== undefined;
-    const needsChannelInfo = !hasUnreadCount || (!channel.name && !channel.is_im && !channel.is_mpim);
+    const needsChannelInfo =
+      !hasUnreadCount || (!channel.name && !channel.is_im && !channel.is_mpim);
     const channelInfo = needsChannelInfo ? await this.fetchChannelInfo(channel.id) : undefined;
     const unreadCount =
       channel.unread_count_display ??
@@ -122,23 +147,7 @@ export class ChannelOperations extends BaseSlackClient {
       0;
 
     if (unreadCount > 0) {
-      const mergedChannel = {
-        ...channelInfo,
-        ...channel,
-        unread_count: unreadCount,
-        unread_count_display: unreadCount,
-        last_read: channel.last_read ?? channelInfo?.last_read,
-      };
-      const name = mergedChannel.name || channelInfo?.id || channel.id;
-      const display_name = mergedChannel.display_name
-        ? sanitizeTerminalText(mergedChannel.display_name)
-        : await this.resolveChannelDisplayName(mergedChannel);
-
-      return {
-        ...mergedChannel,
-        name,
-        display_name,
-      };
+      return this.buildUnreadChannel(channel, channelInfo, unreadCount);
     }
 
     return null;
@@ -163,9 +172,11 @@ export class ChannelOperations extends BaseSlackClient {
     }
   }
 
-  private async resolveChannelDisplayName(channel: ChannelWithUnreadInfo): Promise<string | undefined> {
+  private async resolveChannelDisplayName(
+    channel: ChannelWithUnreadInfo
+  ): Promise<string | undefined> {
     const conversationName = channel.name;
-    if (conversationName) {
+    if (conversationName && conversationName !== channel.id) {
       return undefined;
     }
 
@@ -188,6 +199,30 @@ export class ChannelOperations extends BaseSlackClient {
     }
 
     return sanitizeTerminalText(channel.id);
+  }
+
+  private async buildUnreadChannel(
+    channel: Channel,
+    channelInfo?: ChannelWithUnreadInfo,
+    unreadCount = 0
+  ): Promise<Channel> {
+    const mergedChannel: ChannelWithUnreadInfo = {
+      ...channelInfo,
+      ...channel,
+      unread_count: unreadCount,
+      unread_count_display: unreadCount,
+      last_read: channel.last_read ?? channelInfo?.last_read,
+    };
+    const name = mergedChannel.name || channelInfo?.id || channel.id;
+    const display_name = mergedChannel.display_name
+      ? sanitizeTerminalText(mergedChannel.display_name)
+      : await this.resolveChannelDisplayName(mergedChannel);
+
+    return {
+      ...mergedChannel,
+      name,
+      display_name,
+    };
   }
 
   async getChannelInfo(channelNameOrId: string): Promise<ChannelWithUnreadInfo> {

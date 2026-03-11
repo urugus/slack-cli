@@ -104,7 +104,7 @@ export class SearchOperations extends BaseSlackClient {
     const channels = new Map<string, Channel>();
 
     for (const match of matches) {
-      const channelId = match.channel?.id || match.channel?.name;
+      const channelId = match.channel?.id;
       if (!channelId) {
         continue;
       }
@@ -121,7 +121,7 @@ export class SearchOperations extends BaseSlackClient {
       }
 
       channels.set(channelId, {
-        id: match.channel?.id || channelId,
+        id: channelId,
         name: match.channel?.name || channelId,
         is_channel: match.channel?.is_channel,
         is_group: match.channel?.is_group,

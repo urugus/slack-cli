@@ -355,6 +355,14 @@ describe('SlackApiClient', () => {
           pagination: { page_count: 1 },
         },
       } as never);
+      vi.mocked(mockWebClient.conversations.info).mockResolvedValue({
+        channel: {
+          id: 'C123',
+          name: 'general',
+          unread_count: 1,
+          unread_count_display: 1,
+        },
+      } as never);
 
       const result = await client.listUnreadChannels();
 
@@ -368,6 +376,7 @@ describe('SlackApiClient', () => {
       expect(result).toEqual([
         expect.objectContaining({
           id: 'C123',
+          name: 'general',
           unread_count: 1,
           unread_count_display: 1,
         }),
@@ -397,6 +406,48 @@ describe('SlackApiClient', () => {
           id: 'C123',
           unread_count: 2,
           unread_count_display: 2,
+        }),
+      ]);
+    });
+
+    it('should enrich DM display names after unread aggregation via search.messages', async () => {
+      vi.mocked(mockWebClient.search.messages).mockResolvedValue({
+        ok: true,
+        messages: {
+          matches: [
+            {
+              ts: '1700000000.000100',
+              channel: { id: 'D123', is_im: true, is_private: true },
+            },
+          ],
+          pagination: { page_count: 1 },
+        },
+      } as never);
+      vi.mocked(mockWebClient.conversations.info).mockResolvedValue({
+        channel: {
+          id: 'D123',
+          is_im: true,
+          is_private: true,
+          user: 'U123',
+          unread_count: 1,
+          unread_count_display: 1,
+        },
+      } as never);
+      vi.mocked(mockWebClient.users.info).mockResolvedValue({
+        user: {
+          id: 'U123',
+          name: 'alice',
+        },
+      } as never);
+
+      const result = await client.listUnreadChannels();
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: 'D123',
+          name: 'D123',
+          display_name: '@alice',
+          unread_count: 1,
         }),
       ]);
     });

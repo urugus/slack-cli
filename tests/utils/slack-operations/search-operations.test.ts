@@ -240,11 +240,11 @@ describe('SearchOperations', () => {
       ]);
     });
 
-    it('should ignore matches without channel identifiers', async () => {
+    it('should ignore matches without channel ids', async () => {
       mockClient.search.messages.mockResolvedValue({
         ok: true,
         messages: {
-          matches: [{ ts: '1700000000.000100', channel: {} }],
+          matches: [{ ts: '1700000000.000100', channel: { name: 'general' } }],
           pagination: { page_count: 1 },
         },
       });

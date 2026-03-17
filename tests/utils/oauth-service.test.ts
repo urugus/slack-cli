@@ -1,15 +1,16 @@
-import * as http from 'http';
+import * as https from 'https';
 import { describe, expect, it } from 'vitest';
 import { OAuthService } from '../../src/utils/oauth-service';
 
 function makeRequest(port: number, path: string): Promise<number> {
   return new Promise((resolve, reject) => {
-    const req = http.request(
+    const req = https.request(
       {
         hostname: '127.0.0.1',
         port,
         path,
         method: 'GET',
+        rejectUnauthorized: false, // 自己署名証明書を許可
       },
       (res) => {
         res.resume();
@@ -41,7 +42,7 @@ describe('OAuthService', () => {
       expect(authUrl).toContain('https://slack.com/oauth/v2/authorize');
       expect(authUrl).toContain('client_id=test-client-id');
       expect(authUrl).toContain('user_scope=');
-      expect(authUrl).toContain('redirect_uri=http%3A%2F%2Flocalhost%3A8435%2Fcallback');
+      expect(authUrl).toContain('redirect_uri=https%3A%2F%2Flocalhost%3A8435%2Fcallback');
       expect(authUrl).toContain('state=');
     });
 
@@ -69,7 +70,19 @@ describe('OAuthService', () => {
       });
       const authUrl = service.getAuthorizationUrl();
 
-      expect(authUrl).toContain('redirect_uri=http%3A%2F%2Flocalhost%3A9999%2Fcallback');
+      expect(authUrl).toContain('redirect_uri=https%3A%2F%2Flocalhost%3A9999%2Fcallback');
+    });
+
+    it('リダイレクトURIがhttpsスキームである', () => {
+      const service = new OAuthService({
+        clientId: 'test-id',
+        clientSecret: 'test-secret',
+      });
+      const authUrl = service.getAuthorizationUrl();
+      const url = new URL(authUrl);
+      const redirectUri = url.searchParams.get('redirect_uri');
+
+      expect(redirectUri).toMatch(/^https:\/\//);
     });
   });
 
@@ -82,11 +95,10 @@ describe('OAuthService', () => {
         redirectPort: port,
       });
 
-      // callbackPromiseを先にcatchチェーンに登録してからリクエストを送る
       const callbackPromise = service.waitForCallback();
       const rejectPromise = expect(callbackPromise).rejects.toThrow('state');
 
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
       const statusCode = await makeRequest(port, '/callback?code=test-code&state=wrong-state');
       expect(statusCode).toBe(400);
 
@@ -108,7 +120,7 @@ describe('OAuthService', () => {
       const callbackPromise = service.waitForCallback();
       const rejectPromise = expect(callbackPromise).rejects.toThrow('認可コード');
 
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
       const statusCode = await makeRequest(port, `/callback?state=${state}`);
       expect(statusCode).toBe(400);
 
@@ -126,7 +138,7 @@ describe('OAuthService', () => {
       const callbackPromise = service.waitForCallback();
       const rejectPromise = expect(callbackPromise).rejects.toThrow('access_denied');
 
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
       const statusCode = await makeRequest(port, '/callback?error=access_denied');
       expect(statusCode).toBe(400);
 

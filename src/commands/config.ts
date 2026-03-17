@@ -4,6 +4,7 @@ import {
   handleClearConfig,
   handleGetConfig,
   handleListProfiles,
+  handleLogin,
   handleSetToken,
   handleShowCurrentProfile,
   handleUseProfile,
@@ -49,6 +50,18 @@ export function setupConfigCommand(): Command {
     .description('Clear configuration')
     .option('--profile <profile>', 'Profile name')
     .action(wrapCommand(handleClearConfig));
+
+  config
+    .command('login')
+    .description('Login via Slack OAuth 2.0 (opens browser)')
+    .option('--client-id <clientId>', 'Slack App Client ID (or set SLACK_CLI_CLIENT_ID)')
+    .option(
+      '--client-secret <clientSecret>',
+      'Slack App Client Secret (or set SLACK_CLI_CLIENT_SECRET)'
+    )
+    .option('--port <port>', 'Local callback server port (default: 8435)')
+    .option('--profile <profile>', 'Profile name (default: "default")')
+    .action(wrapCommand(handleLogin));
 
   return config;
 }

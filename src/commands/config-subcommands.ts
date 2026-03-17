@@ -3,6 +3,7 @@ import * as readline from 'readline';
 import { Writable } from 'stream';
 import { getProfileName } from '../utils/command-wrapper';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
+import { OAuthService } from '../utils/oauth-service';
 import { ProfileConfigManager } from '../utils/profile-config';
 
 interface SetTokenOptions {
@@ -154,4 +155,66 @@ export async function handleClearConfig(options: { profile?: string }): Promise<
   const profileName = await getProfileName(configManager, options.profile);
   await configManager.clearConfig(options.profile);
   console.log(chalk.green(`✓ ${SUCCESS_MESSAGES.PROFILE_CLEARED(profileName)}`));
+}
+
+interface LoginOptions {
+  clientId?: string;
+  clientSecret?: string;
+  port?: string;
+  profile?: string;
+}
+
+export async function handleLogin(options: LoginOptions): Promise<void> {
+  const clientId = options.clientId || process.env.SLACK_CLI_CLIENT_ID;
+  const clientSecret = options.clientSecret || process.env.SLACK_CLI_CLIENT_SECRET;
+
+  if (!clientId) {
+    throw new Error(
+      'Client ID が必要です。--client-id オプションまたは環境変数 SLACK_CLI_CLIENT_ID を設定してください。'
+    );
+  }
+
+  if (!clientSecret) {
+    throw new Error(
+      'Client Secret が必要です。--client-secret オプションまたは環境変数 SLACK_CLI_CLIENT_SECRET を設定してください。'
+    );
+  }
+
+  const port = options.port ? Number.parseInt(options.port, 10) : 8435;
+  if (Number.isNaN(port) || port < 1 || port > 65535) {
+    throw new Error('ポート番号は 1〜65535 の範囲で指定してください。');
+  }
+
+  const oauthService = new OAuthService({
+    clientId,
+    clientSecret,
+    redirectPort: port,
+  });
+
+  const authUrl = oauthService.getAuthorizationUrl();
+
+  console.log(chalk.bold('\nSlack OAuth 認証を開始します...\n'));
+  console.log(chalk.cyan('ブラウザで以下のURLを開いてSlackにログインしてください:'));
+  console.log(chalk.underline(authUrl));
+  console.log('');
+
+  // ブラウザを自動で開く
+  try {
+    const open = (await import('open')).default;
+    await open(authUrl);
+    console.log(chalk.gray('ブラウザを自動で開きました。'));
+  } catch {
+    console.log(chalk.yellow('ブラウザを自動で開けませんでした。上記URLを手動で開いてください。'));
+  }
+
+  console.log(chalk.gray('認証を待機中... (3分でタイムアウトします)\n'));
+
+  const token = await oauthService.waitForCallback();
+
+  // トークンを保存
+  const configManager = new ProfileConfigManager();
+  const profileName = await getProfileName(configManager, options.profile);
+  await configManager.setToken(token, options.profile);
+  console.log(chalk.green(`\n✓ ${SUCCESS_MESSAGES.TOKEN_SAVED(profileName)}`));
+  console.log(chalk.gray('OAuth認証が完了しました。'));
 }

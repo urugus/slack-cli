@@ -12,21 +12,58 @@ By default, when you run commands, the CLI will show an update notification if a
 
 ## Configuration
 
-You need to configure your Slack API token on first use:
+There are two ways to configure authentication:
+
+### Option 1: OAuth Login (Recommended)
+
+Authenticate via your browser using Slack's OAuth 2.0 flow. This automatically obtains a user token with the required scopes.
+
+**Prerequisites:** Create a Slack App at https://api.slack.com/apps and add `https://localhost:8435/callback` to **OAuth & Permissions > Redirect URLs**.
 
 ```bash
-# Interactive secure prompt (recommended)
+# Using environment variables (recommended)
+export SLACK_CLI_CLIENT_ID="your-client-id"
+export SLACK_CLI_CLIENT_SECRET="your-client-secret"
+slack-cli config login
+
+# Using CLI options
+slack-cli config login --client-id <clientId> --client-secret <clientSecret>
+
+# With custom port and profile
+slack-cli config login --port 9999 --profile work
+```
+
+The CLI will open your browser for Slack authorization. After you approve, the token is automatically saved to your profile.
+
+> **Note:** A self-signed certificate is used for the local HTTPS callback server. Your browser may show a security warning — this is expected and safe to proceed.
+
+### Option 2: Manual Token Setup
+
+Set a token directly (useful for bot tokens or CI environments):
+
+```bash
+# Interactive secure prompt
 slack-cli config set
 
 # Non-interactive (CI/scripts)
 printf '%s\n' "$SLACK_API_TOKEN" | slack-cli config set --token-stdin
 ```
 
-Token storage security:
+### Token Storage Security
+
 - Tokens are encrypted with AES-256-GCM before being written to disk.
 - A local master key is created at `~/.slack-cli-secrets/master.key` with owner-only permissions.
 - Existing `~/.slack-cli/master.key` files are migrated automatically on first use.
 - For ephemeral environments, you can supply `SLACK_CLI_MASTER_KEY` to override the local key.
+
+### Environment Variables
+
+| Variable                        | Description                                                       |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `SLACK_CLI_CLIENT_ID`           | Slack App Client ID for `config login`                            |
+| `SLACK_CLI_CLIENT_SECRET`       | Slack App Client Secret for `config login`                        |
+| `SLACK_CLI_MASTER_KEY`          | Override the local master encryption key (for CI/ephemeral envs)  |
+| `SLACK_CLI_DISABLE_UPDATE_NOTIFIER` | Set to `1` to disable npm update notifications                |
 
 ## Usage
 
@@ -369,6 +406,14 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 | --------- | ----- | ------------------------------ |
 | --profile | -p    | Use specific workspace profile |
 
+### config login command
+
+| Option          | Short | Description                                                                    |
+| --------------- | ----- | ------------------------------------------------------------------------------ |
+| --client-id     |       | Slack App Client ID (or set `SLACK_CLI_CLIENT_ID` env var)                     |
+| --client-secret |       | Slack App Client Secret (or set `SLACK_CLI_CLIENT_SECRET` env var)             |
+| --port          |       | Local callback server port (default: 8435)                                     |
+
 ### send command
 
 | Option    | Short | Description                              |
@@ -560,6 +605,8 @@ Your Slack API token needs the following scopes:
 - `files:write` - Upload files and snippets
 - `files:read` - List canvases linked to a channel
 - `canvases:read` - Read Canvas sections
+
+> **Tip:** `config login` uses OAuth with **User Token Scopes** and automatically requests all the scopes listed above. If you set a token manually, ensure your token has the necessary scopes enabled.
 
 ## Advanced Features
 

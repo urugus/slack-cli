@@ -9,6 +9,7 @@ import type {
 } from '../../types/slack';
 import { channelResolver } from '../channel-resolver';
 import { DEFAULTS, RATE_LIMIT } from '../constants';
+import { getSlackErrorCode, getSlackNeededScopes } from '../error-utils';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 
@@ -17,6 +18,22 @@ interface ChannelWithUnreadInfo extends Channel {
   unread_count_display: number;
   last_read?: string;
 }
+
+type ChannelLookupType = 'public_channel' | 'private_channel' | 'im' | 'mpim';
+
+const DEFAULT_CHANNEL_LOOKUP_TYPES: ChannelLookupType[] = [
+  'public_channel',
+  'private_channel',
+  'im',
+  'mpim',
+];
+
+const MISSING_SCOPE_TO_CHANNEL_TYPE: Partial<Record<string, ChannelLookupType>> = {
+  'channels:read': 'public_channel',
+  'groups:read': 'private_channel',
+  'im:read': 'im',
+  'mpim:read': 'mpim',
+};
 
 export class ChannelOperations extends BaseSlackClient {
   private channelLookupCache?: Promise<Channel[]>;
@@ -120,17 +137,62 @@ export class ChannelOperations extends BaseSlackClient {
 
   private getChannelLookupCache(): Promise<Channel[]> {
     if (!this.channelLookupCache) {
-      this.channelLookupCache = this.listChannels({
-        types: 'public_channel,private_channel,im,mpim',
-        exclude_archived: true,
-        limit: DEFAULTS.CHANNELS_LIMIT,
-      }).catch((error) => {
+      this.channelLookupCache = this.fetchChannelLookupChannels().catch((error) => {
         this.channelLookupCache = undefined;
         throw error;
       });
     }
 
     return this.channelLookupCache;
+  }
+
+  private async fetchChannelLookupChannels(
+    types: ChannelLookupType[] = DEFAULT_CHANNEL_LOOKUP_TYPES
+  ): Promise<Channel[]> {
+    try {
+      return await this.listChannels({
+        types: types.join(','),
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      });
+    } catch (error) {
+      const fallbackTypes = this.getFallbackChannelLookupTypes(error, types);
+      if (!fallbackTypes) {
+        throw error;
+      }
+
+      return this.listChannels({
+        types: fallbackTypes.join(','),
+        exclude_archived: true,
+        limit: DEFAULTS.CHANNELS_LIMIT,
+      });
+    }
+  }
+
+  private getFallbackChannelLookupTypes(
+    error: unknown,
+    requestedTypes: ChannelLookupType[]
+  ): ChannelLookupType[] | null {
+    if (getSlackErrorCode(error) !== 'missing_scope') {
+      return null;
+    }
+
+    const blockedTypes = new Set(
+      getSlackNeededScopes(error)
+        .map((scope) => MISSING_SCOPE_TO_CHANNEL_TYPE[scope])
+        .filter((channelType): channelType is ChannelLookupType => channelType !== undefined)
+    );
+
+    if (blockedTypes.size === 0) {
+      return null;
+    }
+
+    const fallbackTypes = requestedTypes.filter((channelType) => !blockedTypes.has(channelType));
+    if (fallbackTypes.length === 0 || fallbackTypes.length === requestedTypes.length) {
+      return null;
+    }
+
+    return fallbackTypes;
   }
 
   private async getChannelUnreadInfo(channel: Channel): Promise<Channel | null> {

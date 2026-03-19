@@ -40,6 +40,14 @@ describe('ChannelOperations', () => {
   let channelOps: ChannelOperations;
   let mockClient: MockClient;
 
+  const createMissingScopeError = (needed: string) =>
+    Object.assign(new Error('An API error occurred: missing_scope'), {
+      data: {
+        error: 'missing_scope',
+        needed,
+      },
+    });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockClient = {
@@ -205,6 +213,67 @@ describe('ChannelOperations', () => {
       await expect(channelOps.resolveChannelId('general')).resolves.toBe('C123');
 
       expect(mockClient.conversations.list).toHaveBeenCalledTimes(2);
+    });
+
+    it('should retry channel lookup without private channels after groups:read missing_scope', async () => {
+      mockClient.conversations.list
+        .mockRejectedValueOnce(createMissingScopeError('groups:read'))
+        .mockResolvedValueOnce({
+          channels: [
+            { id: 'C123', name: 'general', is_channel: true, is_private: false, created: 1 },
+          ],
+          response_metadata: { next_cursor: '' },
+        });
+
+      await expect(channelOps.resolveChannelId('general')).resolves.toBe('C123');
+
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(2);
+      expect(mockClient.conversations.list).toHaveBeenNthCalledWith(1, {
+        types: 'public_channel,private_channel,im,mpim',
+        exclude_archived: true,
+        limit: 1000,
+        cursor: undefined,
+      });
+      expect(mockClient.conversations.list).toHaveBeenNthCalledWith(2, {
+        types: 'public_channel,im,mpim',
+        exclude_archived: true,
+        limit: 1000,
+        cursor: undefined,
+      });
+    });
+
+    it('should cache the successful fallback channel lookup', async () => {
+      mockClient.conversations.list
+        .mockRejectedValueOnce(createMissingScopeError('groups:read'))
+        .mockResolvedValueOnce({
+          channels: [
+            { id: 'C123', name: 'general', is_channel: true, is_private: false, created: 1 },
+            { id: 'C456', name: 'random', is_channel: true, is_private: false, created: 1 },
+          ],
+          response_metadata: { next_cursor: '' },
+        });
+
+      await expect(channelOps.resolveChannelId('general')).resolves.toBe('C123');
+      await expect(channelOps.resolveChannelId('random')).resolves.toBe('C456');
+
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(2);
+    });
+
+    it('should rethrow missing_scope when no lookup types remain after fallback', async () => {
+      const missingScopeError = createMissingScopeError(
+        'channels:read,groups:read,im:read,mpim:read'
+      );
+      mockClient.conversations.list.mockRejectedValueOnce(missingScopeError);
+
+      await expect(channelOps.resolveChannelId('general')).rejects.toBe(missingScopeError);
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not retry on non-missing_scope errors', async () => {
+      mockClient.conversations.list.mockRejectedValueOnce(new Error('invalid_auth'));
+
+      await expect(channelOps.resolveChannelId('general')).rejects.toThrow('invalid_auth');
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(1);
     });
   });
 

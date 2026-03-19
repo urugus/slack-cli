@@ -28,7 +28,7 @@ const DEFAULT_CHANNEL_LOOKUP_TYPES: ChannelLookupType[] = [
   'mpim',
 ];
 
-const MISSING_SCOPE_TO_CHANNEL_TYPE: Record<string, ChannelLookupType> = {
+const MISSING_SCOPE_TO_CHANNEL_TYPE: Partial<Record<string, ChannelLookupType>> = {
   'channels:read': 'public_channel',
   'groups:read': 'private_channel',
   'im:read': 'im',

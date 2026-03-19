@@ -31,4 +31,17 @@ describe('extractErrorMessage', () => {
     const error = undefined;
     expect(extractErrorMessage(error)).toBe('undefined');
   });
+
+  it('should include needed scopes for Slack missing_scope errors', () => {
+    const error = Object.assign(new Error('An API error occurred: missing_scope'), {
+      data: {
+        error: 'missing_scope',
+        needed: 'groups:read,im:read',
+      },
+    });
+
+    expect(extractErrorMessage(error)).toBe(
+      'An API error occurred: missing_scope (needed: groups:read, im:read)'
+    );
+  });
 });

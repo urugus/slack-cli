@@ -39,3 +39,23 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}
           generate_release_notes: true
+
+      - uses: actions/setup-node@v4
+        if: steps.check_tag.outputs.exists == 'false'
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        if: steps.check_tag.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Build
+        if: steps.check_tag.outputs.exists == 'false'
+        run: npm run build
+
+      - name: Publish to npm
+        if: steps.check_tag.outputs.exists == 'false'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

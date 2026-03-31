@@ -1,0 +1,78 @@
+name: Supply Chain Security Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+  id-token: write
+
+jobs:
+  supply-chain-check:
+    if: ${{ !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-slim
+
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Get base branch package.json
+      id: base-pkg
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        git show "$BASE_SHA":package.json > /tmp/base-package.json
+
+    - name: Run supply chain security check
+      id: check
+      run: |
+        npx ts-node scripts/supply-chain-check-runner.ts /tmp/base-package.json > /tmp/supply-chain-report.md
+
+    - name: Claude supply chain analysis
+      uses: anthropics/claude-code-action@88c168b39e7e64da0286d812b6e9fbebb6708185 # v1.0.82
+      with:
+        claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        use_sticky_comment: true
+        direct_prompt: |
+          You are a supply chain security analyst. Your job is to analyze dependency changes
+          in this PR for supply chain attack risks and known vulnerabilities.
+
+          ## Step 1: Read the automated report
+          Read the supply chain security check report at /tmp/supply-chain-report.md.
+          This contains dependency changes, risk signals, and npm audit results.
+
+          ## Step 2: Web research for each changed/added package
+          For each added or updated dependency found in the report, use WebSearch to research:
+          - "<package-name> npm security vulnerability" (recent CVEs or advisories)
+          - "<package-name> npm supply chain attack" (known compromise incidents)
+          - "<package-name> npm malware typosquatting" (typosquatting or impersonation)
+          Search in English. Focus on results from the last 12 months.
+
+          ## Step 3: Post a PR comment in English
+          Write a concise PR comment that includes:
+          1. A summary header with ✅ (all clear) or ⚠️ (issues found)
+          2. A table of dependency changes (added/updated/removed) if any
+          3. Automated risk signals from the report
+          4. **Web research findings** — for each package, summarize what you found
+             (or note "No recent security issues found" if clean)
+          5. npm audit vulnerability findings if any
+          6. An actionable recommendation section
+
+          Keep the comment concise and focused on actionable insights.
+          Use markdown formatting for readability.
+          IMPORTANT: Your entire analysis and comment MUST be in English.
+        allowed_bots: 'dependabot[bot],claude[bot]'
+        claude_args: '--allowedTools Read,WebSearch,WebFetch,Bash(cat:*)'

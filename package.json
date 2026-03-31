@@ -1,6 +1,6 @@
 {
   "name": "@urugus/slack-cli",
-  "version": "0.20.20",
+  "version": "0.20.21",
   "description": "A command-line tool for sending messages to Slack",
   "main": "dist/index.js",
   "bin": {
@@ -41,7 +41,7 @@
     "@types/semver": "7.7.1",
     "@vitest/coverage-v8": "4.1.2",
     "ts-node": "10.9.2",
-    "typescript": "5.8.3",
+    "typescript": "6.0.2",
     "vitest": "4.1.2"
   },
   "engines": {

@@ -1,12 +1,14 @@
 {
   "name": "@urugus/slack-cli",
-  "version": "0.20.20",
+  "version": "0.20.21",
   "description": "A command-line tool for sending messages to Slack",
   "main": "dist/index.js",
   "bin": {
     "slack-cli": "dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
@@ -22,7 +24,13 @@
     "check:fix": "biome check --write .",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["slack", "cli", "command-line", "messaging", "api"],
+  "keywords": [
+    "slack",
+    "cli",
+    "command-line",
+    "messaging",
+    "api"
+  ],
   "author": "urugus",
   "publishConfig": {
     "access": "public"

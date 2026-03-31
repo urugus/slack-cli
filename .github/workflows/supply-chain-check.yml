@@ -1,0 +1,78 @@
+name: Supply Chain Security Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  supply-chain-check:
+    runs-on: ubuntu-slim
+
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Get base branch package.json
+      id: base-pkg
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        git show "$BASE_SHA":package.json > /tmp/base-package.json
+
+    - name: Run supply chain security check
+      id: check
+      run: |
+        BASE_PKG=$(cat /tmp/base-package.json)
+        REPORT=$(npx tsx scripts/supply-chain-check-runner.ts "$BASE_PKG")
+        {
+          echo "report<<REPORT_EOF"
+          echo "$REPORT"
+          echo "REPORT_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Comment on PR
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      env:
+        REPORT: ${{ steps.check.outputs.report }}
+      with:
+        script: |
+          const marker = '<!-- supply-chain-check -->';
+          const report = process.env.REPORT;
+          const body = `${marker}\n${report}`;
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existing = comments.find(c => c.body?.includes(marker));
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }

@@ -3,8 +3,8 @@
  * Invoked by the GitHub Actions workflow to analyze dependency changes,
  * fetch package metadata, run npm audit, and output a markdown report.
  *
- * Usage: npx tsx scripts/supply-chain-check-runner.ts <base-package-json>
- *   base-package-json: JSON string of the base branch's package.json
+ * Usage: npx ts-node scripts/supply-chain-check-runner.ts <base-package-json-path>
+ *   base-package-json-path: Path to the base branch's package.json file
  *
  * Outputs the markdown report to stdout.
  */
@@ -20,13 +20,13 @@ import {
 } from './supply-chain-check';
 
 async function main() {
-  const basePackageJsonStr = process.argv[2];
-  if (!basePackageJsonStr) {
-    console.error('Usage: supply-chain-check-runner.ts <base-package-json>');
+  const basePackageJsonPath = process.argv[2];
+  if (!basePackageJsonPath) {
+    console.error('Usage: supply-chain-check-runner.ts <base-package-json-path>');
     process.exit(1);
   }
 
-  const basePackage = JSON.parse(basePackageJsonStr);
+  const basePackage = JSON.parse(fs.readFileSync(basePackageJsonPath, 'utf-8'));
   const headPackage = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
 
   // Find all dependency changes (production + dev)
@@ -55,7 +55,7 @@ async function main() {
         pkg: pkg.name,
         risks: [
           {
-            type: 'no-repository' as const,
+            type: 'metadata-fetch-failed' as const,
             severity: 'high' as const,
             message: `Failed to fetch package metadata: ${error instanceof Error ? error.message : String(error)}`,
           },

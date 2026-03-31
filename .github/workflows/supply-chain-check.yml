@@ -39,8 +39,7 @@ jobs:
     - name: Run supply chain security check
       id: check
       run: |
-        BASE_PKG=$(cat /tmp/base-package.json)
-        npx tsx scripts/supply-chain-check-runner.ts "$BASE_PKG" > /tmp/supply-chain-report.md
+        npx ts-node scripts/supply-chain-check-runner.ts /tmp/base-package.json > /tmp/supply-chain-report.md
 
     - name: Claude supply chain analysis
       uses: anthropics/claude-code-action@88c168b39e7e64da0286d812b6e9fbebb6708185 # v1.0.82

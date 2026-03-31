@@ -18,7 +18,13 @@ export interface PackageMetadata {
 }
 
 export interface RiskSignal {
-  type: 'very-new-version' | 'low-downloads' | 'single-maintainer' | 'no-repository' | 'no-license';
+  type:
+    | 'very-new-version'
+    | 'low-downloads'
+    | 'single-maintainer'
+    | 'no-repository'
+    | 'no-license'
+    | 'metadata-fetch-failed';
   severity: 'high' | 'medium' | 'low';
   message: string;
 }
@@ -75,16 +81,19 @@ export function findDependencyChanges(
 export function analyzePackageRisk(metadata: PackageMetadata): RiskSignal[] {
   const risks: RiskSignal[] = [];
 
-  const publishedDate = new Date(metadata.publishedAt);
-  const daysSincePublish = Math.floor(
-    (Date.now() - publishedDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  if (daysSincePublish <= NEW_VERSION_DAYS) {
-    risks.push({
-      type: 'very-new-version',
-      severity: 'high',
-      message: `Package version published ${daysSincePublish} days ago`,
-    });
+  const publishedTime = new Date(metadata.publishedAt).getTime();
+  if (!Number.isNaN(publishedTime)) {
+    const diffMs = Date.now() - publishedTime;
+    if (diffMs >= 0) {
+      const daysSincePublish = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (daysSincePublish <= NEW_VERSION_DAYS) {
+        risks.push({
+          type: 'very-new-version',
+          severity: 'high',
+          message: `Package version published ${daysSincePublish} days ago`,
+        });
+      }
+    }
   }
 
   if (metadata.weeklyDownloads < DOWNLOAD_THRESHOLD_LOW) {
@@ -199,6 +208,30 @@ export function generateReport(
   return lines.join('\n');
 }
 
+export function parseNpmAuditJson(json: string): NpmAuditResult | null {
+  try {
+    const result = JSON.parse(json);
+    const vuln = result.metadata?.vulnerabilities ?? {};
+    return {
+      vulnerabilities: {
+        total: (vuln.critical ?? 0) + (vuln.high ?? 0) + (vuln.moderate ?? 0) + (vuln.low ?? 0),
+        critical: vuln.critical,
+        high: vuln.high,
+        moderate: vuln.moderate,
+        low: vuln.low,
+      },
+      advisories: Object.values(result.advisories ?? {}).map((a: Record<string, unknown>) => ({
+        severity: a.severity as string,
+        title: a.title as string,
+        module_name: a.module_name as string,
+        url: a.url as string,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchPackageMetadata(
   packageName: string,
   version: string
@@ -245,49 +278,19 @@ export async function runNpmAudit(): Promise<NpmAuditResult> {
       encoding: 'utf-8',
       timeout: 60000,
     });
-    const result = JSON.parse(output);
-    const vuln = result.metadata?.vulnerabilities ?? {};
-    return {
-      vulnerabilities: {
-        total: (vuln.critical ?? 0) + (vuln.high ?? 0) + (vuln.moderate ?? 0) + (vuln.low ?? 0),
-        critical: vuln.critical,
-        high: vuln.high,
-        moderate: vuln.moderate,
-        low: vuln.low,
-      },
-      advisories: Object.values(result.advisories ?? {}).map((a: Record<string, unknown>) => ({
-        severity: a.severity as string,
-        title: a.title as string,
-        module_name: a.module_name as string,
-        url: a.url as string,
-      })),
-    };
+    const parsed = parseNpmAuditJson(output);
+    if (parsed) {
+      return parsed;
+    }
   } catch (error: unknown) {
     // npm audit exits with non-zero when vulnerabilities are found
     const err = error as { stdout?: string };
     if (err.stdout) {
-      try {
-        const result = JSON.parse(err.stdout);
-        const vuln = result.metadata?.vulnerabilities ?? {};
-        return {
-          vulnerabilities: {
-            total: (vuln.critical ?? 0) + (vuln.high ?? 0) + (vuln.moderate ?? 0) + (vuln.low ?? 0),
-            critical: vuln.critical,
-            high: vuln.high,
-            moderate: vuln.moderate,
-            low: vuln.low,
-          },
-          advisories: Object.values(result.advisories ?? {}).map((a: Record<string, unknown>) => ({
-            severity: a.severity as string,
-            title: a.title as string,
-            module_name: a.module_name as string,
-            url: a.url as string,
-          })),
-        };
-      } catch {
-        // Parse failure
+      const parsed = parseNpmAuditJson(err.stdout);
+      if (parsed) {
+        return parsed;
       }
     }
-    return { vulnerabilities: { total: 0 } };
   }
+  return { vulnerabilities: { total: 0 } };
 }

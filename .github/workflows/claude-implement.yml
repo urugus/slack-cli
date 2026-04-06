@@ -64,7 +64,7 @@ jobs:
 
       - name: Implement Feature
         id: implement_feature
-        uses: anthropics/claude-code-action@88c168b39e7e64da0286d812b6e9fbebb6708185 # v1.0.82
+        uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de # v1.0.89
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowedTools Read,Write,Edit,Glob,Grep,Bash(npm:*),Bash(git:*),Bash(gh:*),Bash(ls:*)'

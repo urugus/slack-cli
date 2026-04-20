@@ -29,7 +29,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@slack/web-api": "7.15.0",
+    "@slack/web-api": "7.15.1",
     "chalk": "5.6.2",
     "commander": "14.0.3",
     "p-limit": "7.3.0",

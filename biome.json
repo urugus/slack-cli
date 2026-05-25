@@ -186,6 +186,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["scripts/**/*.cjs"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noCommonJs": "off"
+          }
+        }
+      }
     }
   ],
   "assist": {

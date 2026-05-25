@@ -1,0 +1,178 @@
+name: Dependabot Auto Release
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  risk-assessment:
+    if: >
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Checkout base branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+
+      - name: List changed files
+        id: changed-files
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          {
+            echo "files<<EOF"
+            gh pr diff "$PR_URL" --name-only
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Evaluate Dependabot risk
+        id: risk
+        continue-on-error: true
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+          DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
+          DEPENDENCY_TYPE: ${{ steps.metadata.outputs.dependency-type }}
+          MAINTAINER_CHANGES: ${{ steps.metadata.outputs.maintainer-changes }}
+          PACKAGE_ECOSYSTEM: ${{ steps.metadata.outputs.package-ecosystem }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+        run: node scripts/dependabot-risk.cjs
+
+      - name: Mark unsafe PR
+        if: steps.risk.outputs.status != 'safe'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          RISK_REASON: ${{ steps.risk.outputs.reason }}
+        run: |
+          gh label create dependabot-needs-review --color D93F0B --description "Dependabot update requires human review" || true
+          gh pr edit "$PR_URL" --add-label dependabot-needs-review
+          gh pr comment "$PR_URL" --body "Dependabot auto-release stopped: $RISK_REASON"
+          echo "::error::$RISK_REASON"
+          exit 1
+
+      - name: Bump package version
+        id: bump-version
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh api --method GET "repos/$REPOSITORY/contents/package.json" -f ref="$HEAD_REF" > /tmp/package-response.json
+          gh api --method GET "repos/$REPOSITORY/contents/package-lock.json" -f ref="$HEAD_REF" > /tmp/package-lock-response.json
+          jq -r ".content" /tmp/package-response.json | base64 -d > /tmp/package.json
+          jq -r ".content" /tmp/package-lock-response.json | base64 -d > /tmp/package-lock.json
+
+          BASE_VERSION=$(git show "$BASE_SHA:package.json" | node -e "const fs = require('node:fs'); console.log(JSON.parse(fs.readFileSync(0, 'utf8')).version);")
+          CURRENT_VERSION=$(node -e "const fs = require('node:fs'); console.log(JSON.parse(fs.readFileSync('/tmp/package.json', 'utf8')).version);")
+
+          if [ "$CURRENT_VERSION" != "$BASE_VERSION" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version already bumped: $BASE_VERSION -> $CURRENT_VERSION"
+            exit 0
+          fi
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+
+          const bumpPatch = (version) => {
+            const parts = version.split('.').map(Number);
+            if (parts.length !== 3 || parts.some((part) => !Number.isInteger(part))) {
+              throw new Error(`Unsupported package version: ${version}`);
+            }
+            parts[2] += 1;
+            return parts.join('.');
+          };
+
+          const packageJsonRaw = fs.readFileSync('/tmp/package.json', 'utf8');
+          const packageJson = JSON.parse(packageJsonRaw);
+          const currentVersion = packageJson.version;
+          const nextVersion = bumpPatch(currentVersion);
+          const nextPackageJsonRaw = packageJsonRaw.replace(
+            `"version": "${currentVersion}"`,
+            `"version": "${nextVersion}"`
+          );
+          fs.writeFileSync('/tmp/package.json', nextPackageJsonRaw);
+
+          const packageLock = JSON.parse(fs.readFileSync('/tmp/package-lock.json', 'utf8'));
+          packageLock.version = nextVersion;
+          if (packageLock.packages && packageLock.packages['']) {
+            packageLock.packages[''].version = nextVersion;
+          }
+          fs.writeFileSync('/tmp/package-lock.json', `${JSON.stringify(packageLock, null, 2)}\n`);
+          fs.writeFileSync('/tmp/next-version', nextVersion);
+          NODE
+
+          PACKAGE_SHA=$(jq -r ".sha" /tmp/package-response.json)
+          PACKAGE_LOCK_SHA=$(jq -r ".sha" /tmp/package-lock-response.json)
+          PACKAGE_CONTENT=$(base64 -w0 /tmp/package.json)
+          PACKAGE_LOCK_CONTENT=$(base64 -w0 /tmp/package-lock.json)
+          NEXT_VERSION=$(cat /tmp/next-version)
+
+          gh api \
+            --method PUT \
+            "repos/$REPOSITORY/contents/package.json" \
+            -f branch="$HEAD_REF" \
+            -f content="$PACKAGE_CONTENT" \
+            -f message="chore: bump version to $NEXT_VERSION" \
+            -f sha="$PACKAGE_SHA"
+
+          gh api \
+            --method PUT \
+            "repos/$REPOSITORY/contents/package-lock.json" \
+            -f branch="$HEAD_REF" \
+            -f content="$PACKAGE_LOCK_CONTENT" \
+            -f message="chore: sync lockfile version to $NEXT_VERSION" \
+            -f sha="$PACKAGE_LOCK_SHA"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Mark safe PR
+        if: steps.bump-version.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          RISK_REASON: ${{ steps.risk.outputs.reason }}
+        run: |
+          gh label create dependabot-safe --color 0E8A16 --description "Dependabot update passed auto-release risk checks" || true
+          gh pr edit "$PR_URL" --add-label dependabot-safe --remove-label dependabot-needs-review || true
+          gh pr comment "$PR_URL" --body "Dependabot auto-release approved: $RISK_REASON"
+
+      - name: Approve PR
+        if: steps.bump-version.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr review "$PR_URL" --approve --body "Approved by Dependabot auto-release risk assessment."
+
+      - name: Enable auto-merge
+        if: steps.bump-version.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge "$PR_URL" --auto --squash

@@ -48,6 +48,25 @@ export interface NpmAuditResult {
 const DOWNLOAD_THRESHOLD_LOW = 100;
 const NEW_VERSION_DAYS = 7;
 
+type JsonRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getRecord(value: JsonRecord, key: string): JsonRecord {
+  const nested = value[key];
+  return isRecord(nested) ? nested : {};
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getNumber(value: unknown): number | undefined {
+  return typeof value === 'number' ? value : undefined;
+}
+
 export function findDependencyChanges(
   baseDeps: Record<string, string> | undefined,
   headDeps: Record<string, string> | undefined
@@ -210,22 +229,32 @@ export function generateReport(
 
 export function parseNpmAuditJson(json: string): NpmAuditResult | null {
   try {
-    const result = JSON.parse(json);
-    const vuln = result.metadata?.vulnerabilities ?? {};
+    const result: unknown = JSON.parse(json);
+    const resultRecord = isRecord(result) ? result : {};
+    const metadata = getRecord(resultRecord, 'metadata');
+    const vuln = getRecord(metadata, 'vulnerabilities');
+    const advisories = getRecord(resultRecord, 'advisories');
+
     return {
       vulnerabilities: {
-        total: (vuln.critical ?? 0) + (vuln.high ?? 0) + (vuln.moderate ?? 0) + (vuln.low ?? 0),
-        critical: vuln.critical,
-        high: vuln.high,
-        moderate: vuln.moderate,
-        low: vuln.low,
+        total:
+          (getNumber(vuln.critical) ?? 0) +
+          (getNumber(vuln.high) ?? 0) +
+          (getNumber(vuln.moderate) ?? 0) +
+          (getNumber(vuln.low) ?? 0),
+        critical: getNumber(vuln.critical),
+        high: getNumber(vuln.high),
+        moderate: getNumber(vuln.moderate),
+        low: getNumber(vuln.low),
       },
-      advisories: Object.values(result.advisories ?? {}).map((a: Record<string, unknown>) => ({
-        severity: a.severity as string,
-        title: a.title as string,
-        module_name: a.module_name as string,
-        url: a.url as string,
-      })),
+      advisories: Object.values(advisories)
+        .filter(isRecord)
+        .map((advisory) => ({
+          severity: getString(advisory.severity) ?? '',
+          title: getString(advisory.title) ?? '',
+          module_name: getString(advisory.module_name) ?? '',
+          url: getString(advisory.url) ?? '',
+        })),
     };
   } catch {
     return null;
@@ -242,9 +271,12 @@ export async function fetchPackageMetadata(
     throw new Error(`Failed to fetch metadata for ${packageName}: ${response.status}`);
   }
   const data = await response.json();
+  const registryData = isRecord(data) ? data : {};
 
-  const versionData = data.versions?.[version] ?? {};
-  const timeData = data.time ?? {};
+  const versions = getRecord(registryData, 'versions');
+  const versionValue = versions[version];
+  const versionData = isRecord(versionValue) ? versionValue : {};
+  const timeData = getRecord(registryData, 'time');
 
   const downloadsUrl = `https://api.npmjs.org/downloads/point/last-week/${encodeURIComponent(packageName)}`;
   let weeklyDownloads = 0;
@@ -252,22 +284,28 @@ export async function fetchPackageMetadata(
     const dlResponse = await fetch(downloadsUrl);
     if (dlResponse.ok) {
       const dlData = await dlResponse.json();
-      weeklyDownloads = dlData.downloads ?? 0;
+      const downloadsData = isRecord(dlData) ? dlData : {};
+      weeklyDownloads = getNumber(downloadsData.downloads) ?? 0;
     }
   } catch {
     // Ignore download count fetch failures
   }
 
+  const maintainers = registryData.maintainers;
+  const versionRepository = getRecord(versionData, 'repository');
+  const packageRepository = getRecord(registryData, 'repository');
+
   return {
     name: packageName,
     version,
-    publishedAt: timeData[version] ?? timeData.created ?? new Date().toISOString(),
-    maintainerCount: (data.maintainers ?? []).length,
+    publishedAt:
+      getString(timeData[version]) ?? getString(timeData.created) ?? new Date().toISOString(),
+    maintainerCount: Array.isArray(maintainers) ? maintainers.length : 0,
     weeklyDownloads,
-    hasTypes: !!versionData.types || !!versionData.typings,
-    license: versionData.license ?? data.license,
-    repositoryUrl: versionData.repository?.url ?? data.repository?.url,
-    description: data.description,
+    hasTypes: typeof versionData.types === 'string' || typeof versionData.typings === 'string',
+    license: getString(versionData.license) ?? getString(registryData.license),
+    repositoryUrl: getString(versionRepository.url) ?? getString(packageRepository.url),
+    description: getString(registryData.description),
   };
 }
 

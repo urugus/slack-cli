@@ -4,6 +4,10 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
 
+concurrency:
+  group: dependabot-auto-release-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   pull-requests: read
@@ -37,6 +41,7 @@ jobs:
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3
         with:
           github-token: ${{ steps.app-token.outputs.token }}
+          skip-commit-verification: true
 
       - name: List changed files
         id: changed-files
@@ -81,6 +86,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           REPOSITORY: ${{ github.repository }}
         run: |
           gh api --method GET "repos/$REPOSITORY/contents/package.json" -f ref="$HEAD_REF" > /tmp/package-response.json
@@ -90,12 +96,7 @@ jobs:
 
           BASE_VERSION=$(git show "$BASE_SHA:package.json" | node -e "const fs = require('node:fs'); console.log(JSON.parse(fs.readFileSync(0, 'utf8')).version);")
           CURRENT_VERSION=$(node -e "const fs = require('node:fs'); console.log(JSON.parse(fs.readFileSync('/tmp/package.json', 'utf8')).version);")
-
-          if [ "$CURRENT_VERSION" != "$BASE_VERSION" ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Version already bumped: $BASE_VERSION -> $CURRENT_VERSION"
-            exit 0
-          fi
+          export BASE_VERSION
 
           node - <<'NODE'
           const fs = require('node:fs');
@@ -112,43 +113,86 @@ jobs:
           const packageJsonRaw = fs.readFileSync('/tmp/package.json', 'utf8');
           const packageJson = JSON.parse(packageJsonRaw);
           const currentVersion = packageJson.version;
-          const nextVersion = bumpPatch(currentVersion);
-          const nextPackageJsonRaw = packageJsonRaw.replace(
-            `"version": "${currentVersion}"`,
-            `"version": "${nextVersion}"`
-          );
-          fs.writeFileSync('/tmp/package.json', nextPackageJsonRaw);
+          const baseVersion = process.env.BASE_VERSION;
 
           const packageLock = JSON.parse(fs.readFileSync('/tmp/package-lock.json', 'utf8'));
-          packageLock.version = nextVersion;
-          if (packageLock.packages && packageLock.packages['']) {
-            packageLock.packages[''].version = nextVersion;
+          const lockVersion = packageLock.version;
+          const lockRootVersion = packageLock.packages?.['']?.version;
+
+          let nextVersion = currentVersion;
+          let nextPackageJsonRaw = packageJsonRaw;
+
+          if (currentVersion === baseVersion) {
+            nextVersion = bumpPatch(currentVersion);
+            nextPackageJsonRaw = packageJsonRaw.replace(
+              `"version": "${currentVersion}"`,
+              `"version": "${nextVersion}"`
+            );
+          } else if (lockVersion === currentVersion && lockRootVersion === currentVersion) {
+            fs.writeFileSync('/tmp/version-change-needed', 'false');
+            fs.writeFileSync('/tmp/next-version', currentVersion);
+            process.exit(0);
           }
+
+          packageLock.version = nextVersion;
+          packageLock.packages ??= {};
+          packageLock.packages[''] ??= {};
+          packageLock.packages[''].version = nextVersion;
+          fs.writeFileSync('/tmp/package.json', nextPackageJsonRaw);
           fs.writeFileSync('/tmp/package-lock.json', `${JSON.stringify(packageLock, null, 2)}\n`);
+          fs.writeFileSync('/tmp/version-change-needed', 'true');
           fs.writeFileSync('/tmp/next-version', nextVersion);
           NODE
 
-          PACKAGE_SHA=$(jq -r ".sha" /tmp/package-response.json)
-          PACKAGE_LOCK_SHA=$(jq -r ".sha" /tmp/package-lock-response.json)
-          PACKAGE_CONTENT=$(base64 -w0 /tmp/package.json)
-          PACKAGE_LOCK_CONTENT=$(base64 -w0 /tmp/package-lock.json)
+          if [ "$(cat /tmp/version-change-needed)" != "true" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version already bumped and lockfile is in sync: $CURRENT_VERSION"
+            exit 0
+          fi
+
           NEXT_VERSION=$(cat /tmp/next-version)
+          TREE_SHA=$(gh api "repos/$REPOSITORY/git/commits/$HEAD_SHA" --jq ".tree.sha")
+          PACKAGE_BLOB_SHA=$(
+            gh api \
+              --method POST \
+              "repos/$REPOSITORY/git/blobs" \
+              -f content="$(base64 -w0 /tmp/package.json)" \
+              -f encoding="base64" \
+              --jq ".sha"
+          )
+          PACKAGE_LOCK_BLOB_SHA=$(
+            gh api \
+              --method POST \
+              "repos/$REPOSITORY/git/blobs" \
+              -f content="$(base64 -w0 /tmp/package-lock.json)" \
+              -f encoding="base64" \
+              --jq ".sha"
+          )
 
-          gh api \
-            --method PUT \
-            "repos/$REPOSITORY/contents/package.json" \
-            -f branch="$HEAD_REF" \
-            -f content="$PACKAGE_CONTENT" \
-            -f message="chore: bump version to $NEXT_VERSION" \
-            -f sha="$PACKAGE_SHA"
-
-          gh api \
-            --method PUT \
-            "repos/$REPOSITORY/contents/package-lock.json" \
-            -f branch="$HEAD_REF" \
-            -f content="$PACKAGE_LOCK_CONTENT" \
-            -f message="chore: sync lockfile version to $NEXT_VERSION" \
-            -f sha="$PACKAGE_LOCK_SHA"
+          NEXT_TREE_SHA=$(
+            jq -n \
+              --arg base_tree "$TREE_SHA" \
+              --arg package_blob "$PACKAGE_BLOB_SHA" \
+              --arg lock_blob "$PACKAGE_LOCK_BLOB_SHA" \
+              '{
+                base_tree: $base_tree,
+                tree: [
+                  { path: "package.json", mode: "100644", type: "blob", sha: $package_blob },
+                  { path: "package-lock.json", mode: "100644", type: "blob", sha: $lock_blob }
+                ]
+              }' |
+              gh api --method POST "repos/$REPOSITORY/git/trees" --input - --jq ".sha"
+          )
+          NEXT_COMMIT_SHA=$(
+            jq -n \
+              --arg message "chore: bump version to $NEXT_VERSION" \
+              --arg tree "$NEXT_TREE_SHA" \
+              --arg parent "$HEAD_SHA" \
+              '{ message: $message, tree: $tree, parents: [$parent] }' |
+              gh api --method POST "repos/$REPOSITORY/git/commits" --input - --jq ".sha"
+          )
+          jq -n --arg sha "$NEXT_COMMIT_SHA" '{ sha: $sha, force: false }' |
+            gh api --method PATCH "repos/$REPOSITORY/git/refs/heads/$HEAD_REF" --input -
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
 

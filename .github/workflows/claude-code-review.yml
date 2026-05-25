@@ -49,8 +49,12 @@ jobs:
         if: steps.changed-files.outputs.workflow_changes == 'true'
         run: echo "Workflow changes detected. Skipping Claude Code Review to avoid GitHub App workflow validation failure."
 
+      - name: Skip Claude Code Review for Dependabot PRs
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        run: echo "Dependabot PR detected. Skipping Claude Code Review because Dependabot risk is handled by the dedicated auto-release workflow."
+
       - name: Run Claude Code Review
-        if: steps.changed-files.outputs.workflow_changes != 'true'
+        if: steps.changed-files.outputs.workflow_changes != 'true' && github.event.pull_request.user.login != 'dependabot[bot]'
         id: claude-review
         uses: anthropics/claude-code-action@567fe954a4527e81f132d87d1bdbcc94f7737434 # v1.0.107
         with:

@@ -253,6 +253,25 @@ slack-cli upload -c general --content 'console.log("hello")' --filename snippet.
 slack-cli upload -c general -f ./logs.txt -t 1234567890.123456
 ```
 
+### Download Files
+
+```bash
+# Download every file attached to a thread
+slack-cli download -c general -t 1234567890.123456
+
+# Download to a specific directory
+slack-cli download -c general -t 1234567890.123456 -o ./downloads
+
+# Only download files attached to one message in the thread
+slack-cli download -c general -t 1234567890.123456 --ts 1234567899.654321
+
+# List attached files without downloading
+slack-cli download -c general -t 1234567890.123456 --list
+
+# List attached files as JSON
+slack-cli download -c general -t 1234567890.123456 --list --format json
+```
+
 ### Reactions
 
 ```bash
@@ -448,6 +467,17 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 | --filetype |       | Snippet type (e.g. python, javascript, csv)      |
 | --thread   | -t    | Thread timestamp to upload as reply              |
 
+### download command
+
+| Option    | Short | Description                                                  |
+| --------- | ----- | ------------------------------------------------------------ |
+| --channel | -c    | Channel name or ID (required)                                |
+| --thread  | -t    | Thread timestamp, the root ts of the thread (required)       |
+| --ts      |       | Only download files attached to the message with this ts     |
+| --output  | -o    | Output directory (default: current directory)                |
+| --list    |       | List attached files without downloading                      |
+| --format  |       | Output format for --list: table, simple, json (default: table) |
+
 ### reaction command
 
 | Option      | Short | Description                              |
@@ -558,7 +588,7 @@ Your Slack API token needs the following scopes:
 - `pins:read` - List pinned items in a channel
 - `pins:write` - Pin and unpin messages
 - `files:write` - Upload files and snippets
-- `files:read` - List canvases linked to a channel
+- `files:read` - Download files attached to messages and list canvases linked to a channel
 - `canvases:read` - Read Canvas sections
 
 ## Advanced Features

@@ -240,6 +240,16 @@ export const optionValidators = {
   },
 
   /**
+   * Validates the optional message timestamp (--ts) for the download command
+   */
+  downloadMessageTs: (options: Record<string, unknown>): string | null => {
+    if (options.ts) {
+      return formatValidators.threadTimestamp(options.ts as string);
+    }
+    return null;
+  },
+
+  /**
    * Validates edit message timestamp if provided
    */
   editTimestamp: (options: Record<string, unknown>): string | null => {

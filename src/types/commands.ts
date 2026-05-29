@@ -79,6 +79,16 @@ export interface UploadOptions {
   profile?: string;
 }
 
+export interface DownloadOptions {
+  channel: string;
+  thread: string;
+  ts?: string;
+  output?: string;
+  list?: boolean;
+  format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
 export interface EditOptions {
   channel: string;
   ts: string;

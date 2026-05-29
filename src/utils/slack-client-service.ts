@@ -27,7 +27,12 @@ import type {
 import { createSlackClientContext } from './slack-operations/base-client';
 import { CanvasOperations } from './slack-operations/canvas-operations';
 import { ChannelOperations } from './slack-operations/channel-operations';
-import type { UploadFileOptions } from './slack-operations/file-operations';
+import type {
+  DownloadedFile,
+  ListThreadFilesOptions,
+  ThreadFile,
+  UploadFileOptions,
+} from './slack-operations/file-operations';
 import { FileOperations } from './slack-operations/file-operations';
 import { MessageOperations } from './slack-operations/message-operations';
 import { PinOperations } from './slack-operations/pin-operations';
@@ -53,7 +58,7 @@ export class SlackApiClient {
     const sharedContext = createSlackClientContext(token);
     this.channelOps = new ChannelOperations(sharedContext);
     this.messageOps = new MessageOperations(sharedContext, this.channelOps);
-    this.fileOps = new FileOperations(sharedContext, this.channelOps);
+    this.fileOps = new FileOperations(sharedContext, this.channelOps, token);
     this.reactionOps = new ReactionOperations(sharedContext, this.channelOps);
     this.pinOps = new PinOperations(sharedContext, this.channelOps);
     this.userOps = new UserOperations(sharedContext);
@@ -156,6 +161,18 @@ export class SlackApiClient {
 
   async uploadFile(options: UploadFileOptions): Promise<void> {
     return this.fileOps.uploadFile(options);
+  }
+
+  async listThreadFiles(
+    channel: string,
+    threadTs: string,
+    options?: ListThreadFilesOptions
+  ): Promise<ThreadFile[]> {
+    return this.fileOps.listThreadFiles(channel, threadTs, options);
+  }
+
+  async downloadFile(file: ThreadFile, destDir: string): Promise<DownloadedFile> {
+    return this.fileOps.downloadFile(file, destDir);
   }
 
   async addReaction(channel: string, timestamp: string, emoji: string): Promise<void> {

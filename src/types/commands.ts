@@ -79,6 +79,18 @@ export interface UploadOptions {
   profile?: string;
 }
 
+export interface FileDownloadOptions {
+  id?: string;
+  url?: string;
+  channel?: string;
+  timestamp?: string;
+  thread?: string;
+  index?: string;
+  output?: string;
+  dir?: string;
+  profile?: string;
+}
+
 export interface EditOptions {
   channel: string;
   ts: string;

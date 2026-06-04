@@ -183,6 +183,18 @@ export interface Message {
   reply_count?: number;
   attachments?: unknown[];
   blocks?: unknown[];
+  files?: SlackFile[];
+}
+
+export interface SlackFile {
+  id?: string;
+  name?: string;
+  title?: string;
+  mimetype?: string;
+  filetype?: string;
+  size?: number;
+  url_private?: string;
+  url_private_download?: string;
 }
 
 export interface ScheduledMessage {

@@ -9,6 +9,7 @@ import { setupChannelsCommand } from './commands/channels';
 import { setupConfigCommand } from './commands/config';
 import { setupDeleteCommand } from './commands/delete';
 import { setupEditCommand } from './commands/edit';
+import { setupFileCommand } from './commands/file';
 import { setupHistoryCommand } from './commands/history';
 import { setupInviteCommand } from './commands/invite';
 import { setupJoinCommand } from './commands/join';
@@ -56,6 +57,7 @@ export function createProgram(): Command {
   program.addCommand(setupEditCommand());
   program.addCommand(setupDeleteCommand());
   program.addCommand(setupUploadCommand());
+  program.addCommand(setupFileCommand());
   program.addCommand(setupReactionCommand());
   program.addCommand(setupPinCommand());
   program.addCommand(setupUsersCommand());

@@ -253,6 +253,19 @@ slack-cli upload -c general --content 'console.log("hello")' --filename snippet.
 slack-cli upload -c general -f ./logs.txt -t 1234567890.123456
 ```
 
+### Download Files
+
+```bash
+# Download the first file attached to a Slack message URL
+slack-cli file download --url "https://example.slack.com/archives/C123/p1780530261218279?thread_ts=1780527015.228619" --dir ./downloads
+
+# Download by Slack file ID
+slack-cli file download --id F012ABCDEF --output ./image.png
+
+# Download a file from a message timestamp
+slack-cli file download -c C123 -t 1780530261.218279 --thread 1780527015.228619 --index 1
+```
+
 ### Reactions
 
 ```bash
@@ -448,6 +461,19 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 | --filetype |       | Snippet type (e.g. python, javascript, csv)      |
 | --thread   | -t    | Thread timestamp to upload as reply              |
 
+### file download command
+
+| Option      | Short | Description                                      |
+| ----------- | ----- | ------------------------------------------------ |
+| --id        |       | Slack file ID                                    |
+| --url       |       | Slack message permalink containing the file      |
+| --channel   | -c    | Channel name or ID                               |
+| --timestamp | -t    | Message timestamp containing the file            |
+| --thread    |       | Thread timestamp when downloading from a reply   |
+| --index     |       | 1-based file index for messages with many files  |
+| --output    | -o    | Output file path                                 |
+| --dir       | -d    | Output directory                                 |
+
 ### reaction command
 
 | Option      | Short | Description                              |
@@ -558,7 +584,7 @@ Your Slack API token needs the following scopes:
 - `pins:read` - List pinned items in a channel
 - `pins:write` - Pin and unpin messages
 - `files:write` - Upload files and snippets
-- `files:read` - List canvases linked to a channel
+- `files:read` - Download Slack files and list canvases linked to a channel
 - `canvases:read` - Read Canvas sections
 
 ## Advanced Features

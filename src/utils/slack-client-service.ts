@@ -27,7 +27,11 @@ import type {
 import { createSlackClientContext } from './slack-operations/base-client';
 import { CanvasOperations } from './slack-operations/canvas-operations';
 import { ChannelOperations } from './slack-operations/channel-operations';
-import type { UploadFileOptions } from './slack-operations/file-operations';
+import type {
+  DownloadFileOptions,
+  DownloadFileResult,
+  UploadFileOptions,
+} from './slack-operations/file-operations';
 import { FileOperations } from './slack-operations/file-operations';
 import { MessageOperations } from './slack-operations/message-operations';
 import { PinOperations } from './slack-operations/pin-operations';
@@ -156,6 +160,10 @@ export class SlackApiClient {
 
   async uploadFile(options: UploadFileOptions): Promise<void> {
     return this.fileOps.uploadFile(options);
+  }
+
+  async downloadFile(options: DownloadFileOptions): Promise<DownloadFileResult> {
+    return this.fileOps.downloadFile(options);
   }
 
   async addReaction(channel: string, timestamp: string, emoji: string): Promise<void> {

@@ -39,7 +39,7 @@
     "@biomejs/biome": "2.4.16",
     "@types/node": "25.9.1",
     "@types/semver": "7.7.1",
-    "@vitest/coverage-v8": "4.1.2",
+    "@vitest/coverage-v8": "4.1.7",
     "ts-node": "10.9.2",
     "typescript": "6.0.3",
     "vitest": "4.1.2"

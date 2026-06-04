@@ -5,6 +5,7 @@ import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { FileError } from '../utils/errors';
 import { parseProfile } from '../utils/option-parsers';
+import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
 
 interface ParsedSlackMessageUrl {
   channel: string;
@@ -26,6 +27,7 @@ export function setupFileCommand(): Command {
     .option('--index <index>', '1-based file index when the message has multiple files', '1')
     .option('-o, --output <path>', 'Output file path')
     .option('-d, --dir <directory>', 'Output directory', '.')
+    .option('--force', 'Overwrite the output file if it already exists', false)
     .option('--profile <profile>', 'Use specific workspace profile')
     .action(
       wrapCommand(async (options: FileDownloadOptions) => {
@@ -42,10 +44,14 @@ export function setupFileCommand(): Command {
           fileIndex,
           outputPath: options.output,
           outputDir: options.output ? undefined : options.dir,
+          force: options.force ?? false,
         });
 
-        const name = result.file.name || result.file.title || result.file.id || 'Slack file';
-        console.log(chalk.green(`✓ Downloaded ${name} to ${result.path} (${result.bytes} bytes)`));
+        const name = sanitizeTerminalText(
+          result.file.name || result.file.title || result.file.id || 'Slack file'
+        );
+        const outputPath = sanitizeTerminalText(result.path);
+        console.log(chalk.green(`✓ Downloaded ${name} to ${outputPath} (${result.bytes} bytes)`));
       })
     );
 

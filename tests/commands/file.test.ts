@@ -66,10 +66,31 @@ describe('file command', () => {
         fileIndex: 1,
         outputPath: undefined,
         outputDir: '/tmp',
+        force: false,
       });
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining('Downloaded image.png to /tmp/image.png')
       );
+    });
+
+    it('should sanitize downloaded file names and paths in output', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.downloadFile).mockResolvedValue({
+        file: { id: 'F123', name: '\u001b[31mimage.png\u001b[0m' },
+        path: '/tmp/\u001b]8;;https://example.com\u0007image.png\u001b]8;;\u0007',
+        bytes: 1234,
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'file', 'download', '--id', 'F123']);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Downloaded image.png to /tmp/image.png')
+      );
+      expect(mockConsole.logSpy.mock.calls[0][0]).not.toContain('\u001b');
+      expect(mockConsole.logSpy.mock.calls[0][0]).not.toContain('\u0007');
     });
 
     it('should download by file id', async () => {
@@ -102,7 +123,40 @@ describe('file command', () => {
         fileIndex: 1,
         outputPath: 'image.png',
         outputDir: undefined,
+        force: false,
       });
+    });
+
+    it('should pass force option when overwriting is explicitly requested', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.downloadFile).mockResolvedValue({
+        file: { id: 'F123', name: 'image.png' },
+        path: 'image.png',
+        bytes: 1234,
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'file',
+        'download',
+        '--id',
+        'F123',
+        '--output',
+        'image.png',
+        '--force',
+      ]);
+
+      expect(mockSlackClient.downloadFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileId: 'F123',
+          outputPath: 'image.png',
+          force: true,
+        })
+      );
     });
 
     it('should download from channel and message timestamp', async () => {
@@ -139,6 +193,7 @@ describe('file command', () => {
         fileIndex: 2,
         outputPath: undefined,
         outputDir: '.',
+        force: false,
       });
     });
   });

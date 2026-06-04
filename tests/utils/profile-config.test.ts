@@ -10,6 +10,17 @@ import { TokenCryptoService } from '../../src/utils/token-crypto-service';
 vi.mock('fs/promises');
 vi.mock('os');
 
+function createLegacyEncryptedToken(token: string): string {
+  const fixedSalt = 'slack-cli-salt-v1';
+  const legacyKey = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', legacyKey, iv);
+  let encrypted = cipher.update(token, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  return `${iv.toString('hex')}:${encrypted}`;
+}
+
 describe('ProfileConfigManager', () => {
   let configManager: ProfileConfigManager;
   let cryptoService: TokenCryptoService;
@@ -153,6 +164,7 @@ describe('ProfileConfigManager', () => {
 
     it('should decrypt token when reading encrypted config', async () => {
       const encryptedToken = cryptoService.encrypt('my-secret-token');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const mockStore = {
         profiles: {
           default: {
@@ -168,6 +180,9 @@ describe('ProfileConfigManager', () => {
 
       expect(config).not.toBeNull();
       expect(config!.token).toBe('my-secret-token');
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
     });
 
     it('should return plaintext token as-is for backward compatibility', async () => {
@@ -192,6 +207,7 @@ describe('ProfileConfigManager', () => {
     });
 
     it('should re-encrypt plaintext token and persist to disk on read', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const mockStore = {
         profiles: {
           default: {
@@ -217,17 +233,18 @@ describe('ProfileConfigManager', () => {
       expect(storedToken).not.toBe('xoxb-legacy-plaintext-token');
       expect(cryptoService.isEncrypted(storedToken)).toBe(true);
       expect(cryptoService.decrypt(storedToken)).toBe('xoxb-legacy-plaintext-token');
+
+      // Plaintext legacy storage is migrated to encrypted v2, but it was not encrypted
+      // with the legacy CBC format, so the rotation warning is reserved for CBC migration.
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
     });
 
     it('should re-encrypt legacy encrypted token and persist current format on read', async () => {
       const plainToken = 'legacy-cbc-token';
-      const fixedSalt = 'slack-cli-salt-v1';
-      const legacyKey = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
-      const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv('aes-256-cbc', legacyKey, iv);
-      let encrypted = cipher.update(plainToken, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
-      const legacyEncryptedToken = `${iv.toString('hex')}:${encrypted}`;
+      const legacyEncryptedToken = createLegacyEncryptedToken(plainToken);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       const mockStore = {
         profiles: {
@@ -253,6 +270,13 @@ describe('ProfileConfigManager', () => {
       const storedToken = savedData.profiles.default.token;
       expect(cryptoService.isCurrentFormat(storedToken)).toBe(true);
       expect(cryptoService.decrypt(storedToken)).toBe(plainToken);
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Legacy Slack token encryption was migrated')
+      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('rotate your Slack token'));
+
+      warnSpy.mockRestore();
     });
 
     it('should not re-write store when token is already encrypted', async () => {

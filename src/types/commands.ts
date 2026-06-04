@@ -88,6 +88,7 @@ export interface FileDownloadOptions {
   index?: string;
   output?: string;
   dir?: string;
+  force?: boolean;
   profile?: string;
 }
 

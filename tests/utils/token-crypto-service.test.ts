@@ -6,6 +6,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ConfigurationError, ValidationError } from '../../src/utils/errors';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
 
+function createLegacyEncryptedToken(token: string): string {
+  const fixedSalt = 'slack-cli-salt-v1';
+  const key = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+
+  let encrypted = cipher.update(token, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  return `${iv.toString('hex')}:${encrypted}`;
+}
+
 describe('TokenCryptoService', () => {
   let service: TokenCryptoService;
   const originalMasterKey = process.env.SLACK_CLI_MASTER_KEY;
@@ -79,15 +91,7 @@ describe('TokenCryptoService', () => {
 
     it('should decrypt legacy AES-256-CBC encrypted token', () => {
       const token = 'legacy-token-value';
-      const fixedSalt = 'slack-cli-salt-v1';
-      const key = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
-      const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-
-      let encrypted = cipher.update(token, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
-
-      const legacyEncryptedToken = `${iv.toString('hex')}:${encrypted}`;
+      const legacyEncryptedToken = createLegacyEncryptedToken(token);
 
       expect(service.isEncrypted(legacyEncryptedToken)).toBe(true);
       expect(service.isCurrentFormat(legacyEncryptedToken)).toBe(false);
@@ -269,6 +273,18 @@ describe('TokenCryptoService', () => {
 
     it('should return false for empty string', () => {
       expect(service.isEncrypted('')).toBe(false);
+    });
+  });
+
+  describe('isLegacyEncrypted', () => {
+    it('should return true only for legacy AES-256-CBC encrypted tokens', () => {
+      const legacyEncryptedToken = createLegacyEncryptedToken('legacy-token-value');
+      const currentEncryptedToken = service.encrypt('current-token-value');
+
+      expect(service.isLegacyEncrypted(legacyEncryptedToken)).toBe(true);
+      expect(service.isLegacyEncrypted(currentEncryptedToken)).toBe(false);
+      expect(service.isLegacyEncrypted('xoxb-plain-token')).toBe(false);
+      expect(service.isLegacyEncrypted('')).toBe(false);
     });
   });
 });

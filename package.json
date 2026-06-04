@@ -36,7 +36,7 @@
     "semver": "7.8.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.10",
+    "@biomejs/biome": "2.4.16",
     "@types/node": "25.9.1",
     "@types/semver": "7.7.1",
     "@vitest/coverage-v8": "4.1.2",

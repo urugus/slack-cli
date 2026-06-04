@@ -11,6 +11,7 @@ import { wrapCommand } from '../utils/command-wrapper';
 import { createReminderFormatter } from '../utils/formatters/reminder-formatters';
 import { parseFormat, parseProfile } from '../utils/option-parsers';
 import { resolvePostAt } from '../utils/schedule-utils';
+import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
 import { createValidationHook, optionValidators } from '../utils/validators';
 
 export function setupReminderCommand(): Command {
@@ -37,7 +38,9 @@ export function setupReminderCommand(): Command {
 
         const reminder = await client.addReminder(options.text, time);
         const timeStr = new Date(reminder.time * 1000).toISOString();
-        console.log(chalk.green(`✓ Reminder created: "${reminder.text}" at ${timeStr}`));
+        console.log(
+          chalk.green(`✓ Reminder created: "${sanitizeTerminalText(reminder.text)}" at ${timeStr}`)
+        );
       })
     );
 
@@ -73,7 +76,7 @@ export function setupReminderCommand(): Command {
         const client = await createSlackClient(profile);
 
         await client.deleteReminder(options.id);
-        console.log(chalk.green(`✓ Reminder deleted: ${options.id}`));
+        console.log(chalk.green(`✓ Reminder deleted: ${sanitizeTerminalText(options.id)}`));
       })
     );
 
@@ -87,7 +90,7 @@ export function setupReminderCommand(): Command {
         const client = await createSlackClient(profile);
 
         await client.completeReminder(options.id);
-        console.log(chalk.green(`✓ Reminder completed: ${options.id}`));
+        console.log(chalk.green(`✓ Reminder completed: ${sanitizeTerminalText(options.id)}`));
       })
     );
 

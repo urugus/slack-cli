@@ -233,7 +233,7 @@ export class TokenCryptoService {
     );
   }
 
-  private isLegacyEncrypted(value: string): boolean {
+  isLegacyEncrypted(value: string): boolean {
     if (!value) {
       return false;
     }

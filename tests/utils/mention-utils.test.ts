@@ -21,6 +21,12 @@ describe('mention-utils', () => {
       expect(userIds).toEqual(['U123456789', 'U123456789']);
     });
 
+    it('should extract valid Slack user ID shapes only', () => {
+      const text = 'Hello <@U07L5D50RAL>, <@U12345678>, and <@W1234567890>';
+      const userIds = extractUserIdsFromMentions(text);
+      expect(userIds).toEqual(['U07L5D50RAL', 'U12345678', 'W1234567890']);
+    });
+
     it('should return empty array for text without mentions', () => {
       const text = 'No mentions here';
       const userIds = extractUserIdsFromMentions(text);
@@ -34,6 +40,12 @@ describe('mention-utils', () => {
 
     it('should ignore malformed mentions', () => {
       const text = 'Invalid <@> mention and <@lowercase> mention';
+      const userIds = extractUserIdsFromMentions(text);
+      expect(userIds).toEqual([]);
+    });
+
+    it('should ignore mention-like values that are not Slack user IDs', () => {
+      const text = 'Ignore <@C123456789>, <@B123456789>, <@U123>, and <@U1234567>';
       const userIds = extractUserIdsFromMentions(text);
       expect(userIds).toEqual([]);
     });

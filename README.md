@@ -27,6 +27,8 @@ Token storage security:
 - A local master key is created at `~/.slack-cli-secrets/master.key` with owner-only permissions.
 - Existing `~/.slack-cli/master.key` files are migrated automatically on first use.
 - For ephemeral environments, you can supply `SLACK_CLI_MASTER_KEY` to override the local key.
+- Local encryption is defense in depth for token-at-rest storage. It does not protect tokens from compromise of the same local user account, because that user can read the config and key material needed to decrypt them.
+- If a legacy encrypted token is migrated, the CLI will warn you to rotate the Slack token because the old stored value may have been copied, backed up, or exposed before migration.
 
 ## Usage
 

@@ -174,7 +174,9 @@ describe('FileOperations', () => {
           redirect: 'manual',
         }
       );
-      expect(fs.writeFile).toHaveBeenCalledWith('/tmp/image.png', Buffer.from('file-bytes'));
+      expect(fs.writeFile).toHaveBeenCalledWith('/tmp/image.png', Buffer.from('file-bytes'), {
+        flag: 'wx',
+      });
       expect(result).toEqual({
         file: {
           id: 'F123',
@@ -220,7 +222,49 @@ describe('FileOperations', () => {
         ts: '1780527015.228619',
         cursor: undefined,
       });
-      expect(fs.writeFile).toHaveBeenCalledWith('/tmp/custom.png', Buffer.from('file-bytes'));
+      expect(fs.writeFile).toHaveBeenCalledWith('/tmp/custom.png', Buffer.from('file-bytes'), {
+        flag: 'wx',
+      });
+    });
+
+    it('should allow overwrite when force is true', async () => {
+      mockClient.files.info.mockResolvedValue({
+        file: {
+          id: 'F123',
+          name: 'image.png',
+          url_private_download: 'https://files.slack.com/files-pri/T123-F123/image.png',
+        },
+      });
+
+      await fileOps.downloadFile({
+        fileId: 'F123',
+        outputPath: '/tmp/image.png',
+        force: true,
+      });
+
+      expect(fs.writeFile).toHaveBeenCalledWith('/tmp/image.png', Buffer.from('file-bytes'));
+    });
+
+    it('should show a clear error when the output file already exists', async () => {
+      mockClient.files.info.mockResolvedValue({
+        file: {
+          id: 'F123',
+          name: 'image.png',
+          url_private_download: 'https://files.slack.com/files-pri/T123-F123/image.png',
+        },
+      });
+      vi.mocked(fs.writeFile).mockRejectedValueOnce(
+        Object.assign(new Error('exists'), {
+          code: 'EEXIST',
+        })
+      );
+
+      await expect(
+        fileOps.downloadFile({
+          fileId: 'F123',
+          outputPath: '/tmp/image.png',
+        })
+      ).rejects.toThrow('Output file already exists: /tmp/image.png');
     });
 
     it('should reject HTML responses', async () => {

@@ -24,6 +24,7 @@ export interface DownloadFileOptions {
   fileIndex?: number;
   outputPath?: string;
   outputDir?: string;
+  force?: boolean;
 }
 
 export interface DownloadFileResult {
@@ -92,7 +93,18 @@ export class FileOperations extends BaseSlackClient {
 
     const bytes = Buffer.from(await response.arrayBuffer());
     await fs.mkdir(dirname(outputPath), { recursive: true });
-    await fs.writeFile(outputPath, bytes);
+    try {
+      if (options.force) {
+        await fs.writeFile(outputPath, bytes);
+      } else {
+        await fs.writeFile(outputPath, bytes, { flag: 'wx' });
+      }
+    } catch (error: unknown) {
+      if (this.isFileExistsError(error)) {
+        throw new FileError(`Output file already exists: ${outputPath}. Use --force to overwrite.`);
+      }
+      throw error;
+    }
 
     return { file, path: outputPath, bytes: bytes.length };
   }
@@ -222,5 +234,11 @@ export class FileOperations extends BaseSlackClient {
 
   private isRedirect(status: number): boolean {
     return [301, 302, 303, 307, 308].includes(status);
+  }
+
+  private isFileExistsError(error: unknown): error is NodeJS.ErrnoException {
+    return Boolean(
+      error && typeof error === 'object' && 'code' in error && error.code === 'EEXIST'
+    );
   }
 }

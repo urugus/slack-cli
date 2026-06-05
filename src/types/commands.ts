@@ -49,12 +49,15 @@ export interface ChannelsOptions {
 }
 
 export interface HistoryOptions {
-  channel: string;
+  channel?: string;
+  url?: string;
   number?: string;
   since?: string;
   thread?: string;
   withLink?: boolean;
   format?: 'table' | 'simple' | 'json';
+  tables?: boolean;
+  tableFormat?: 'markdown' | 'json' | 'tsv';
   profile?: string;
 }
 

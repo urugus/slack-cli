@@ -1,9 +1,10 @@
 import * as fs from 'fs/promises';
 import { basename, dirname, join } from 'path';
-import { Message, SlackFile } from '../../types/slack';
+import { SlackFile } from '../../types/slack';
 import { FileError } from '../errors';
-import { BaseSlackClient, SlackClientDependency } from './base-client';
+import { BaseSlackClient, createSlackClientContext, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
+import { MessageHistoryOperations } from './message-history-operations';
 
 export interface UploadFileOptions {
   channel: string;
@@ -35,10 +36,15 @@ export interface DownloadFileResult {
 
 export class FileOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
+  private historyOps: MessageHistoryOperations;
 
   constructor(dependency: SlackClientDependency, channelOps?: ChannelOperations) {
-    super(dependency);
-    this.channelOps = channelOps ?? new ChannelOperations(dependency);
+    const sharedDependency =
+      typeof dependency === 'string' ? createSlackClientContext(dependency) : dependency;
+
+    super(sharedDependency);
+    this.channelOps = channelOps ?? new ChannelOperations(sharedDependency);
+    this.historyOps = new MessageHistoryOperations(sharedDependency, this.channelOps);
   }
 
   async uploadFile(options: UploadFileOptions): Promise<void> {
@@ -127,7 +133,11 @@ export class FileOperations extends BaseSlackClient {
       );
     }
 
-    const message = await this.getMessage(options.channel, options.messageTs, options.threadTs);
+    const message = await this.historyOps.getMessage(
+      options.channel,
+      options.messageTs,
+      options.threadTs
+    );
     const files = message.files || [];
 
     if (files.length === 0) {
@@ -144,46 +154,6 @@ export class FileOperations extends BaseSlackClient {
     }
 
     return file;
-  }
-
-  private async getMessage(
-    channel: string,
-    messageTs: string,
-    threadTs?: string
-  ): Promise<Message> {
-    const channelId = await this.channelOps.resolveChannelId(channel);
-
-    if (threadTs) {
-      let cursor: string | undefined;
-      do {
-        const response = await this.client.conversations.replies({
-          channel: channelId,
-          ts: threadTs,
-          cursor,
-        });
-        const messages = (response.messages || []) as Message[];
-        const message = messages.find((item) => item.ts === messageTs);
-        if (message) return message;
-        cursor = response.response_metadata?.next_cursor || undefined;
-      } while (cursor);
-
-      throw new FileError(`Message ${messageTs} was not found in thread ${threadTs}`);
-    }
-
-    const response = await this.client.conversations.history({
-      channel: channelId,
-      latest: messageTs,
-      inclusive: true,
-      limit: 1,
-    });
-    const messages = (response.messages || []) as Message[];
-    const message = messages.find((item) => item.ts === messageTs);
-
-    if (!message) {
-      throw new FileError(`Message ${messageTs} was not found in channel ${channel}`);
-    }
-
-    return message;
   }
 
   private async resolveOutputPath(file: SlackFile, options: DownloadFileOptions): Promise<string> {

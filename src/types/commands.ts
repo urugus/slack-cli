@@ -263,3 +263,13 @@ export interface CanvasListOptions {
   format?: 'table' | 'simple' | 'json';
   profile?: string;
 }
+
+export type CanvasPosition = 'end' | 'start' | 'replace';
+
+export interface CanvasWriteOptions {
+  id: string;
+  message: string;
+  position?: CanvasPosition;
+  yes?: boolean;
+  profile?: string;
+}

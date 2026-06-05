@@ -367,4 +367,192 @@ describe('canvas command', () => {
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
   });
+
+  describe('write subcommand', () => {
+    it('should append markdown to a canvas by default', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.writeCanvas).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'write',
+        '-i',
+        'F0AJ4852CQN',
+        '-m',
+        '追記する内容',
+      ]);
+
+      expect(mockSlackClient.writeCanvas).toHaveBeenCalledWith(
+        'F0AJ4852CQN',
+        '追記する内容',
+        'end'
+      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('Canvas updated');
+    });
+
+    it('should write markdown at the start when --position start is provided', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.writeCanvas).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'write',
+        '-i',
+        'F0AJ4852CQN',
+        '-m',
+        '先頭に追加',
+        '--position',
+        'start',
+      ]);
+
+      expect(mockSlackClient.writeCanvas).toHaveBeenCalledWith(
+        'F0AJ4852CQN',
+        '先頭に追加',
+        'start'
+      );
+    });
+
+    it('should require --yes when replacing the whole canvas', async () => {
+      const canvasCommand = setupCanvasCommand();
+      canvasCommand.exitOverride();
+
+      const writeCommand = canvasCommand.commands.find((c) => c.name() === 'write')!;
+      writeCommand.exitOverride();
+
+      await expect(
+        writeCommand.parseAsync(
+          ['-i', 'F0AJ4852CQN', '-m', '全体を置換', '--position', 'replace'],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('Error: --yes is required when --position replace is used');
+    });
+
+    it('should replace the whole canvas when --position replace and --yes are provided', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.writeCanvas).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'write',
+        '-i',
+        'F0AJ4852CQN',
+        '-m',
+        '全体を置換',
+        '--position',
+        'replace',
+        '--yes',
+      ]);
+
+      expect(mockSlackClient.writeCanvas).toHaveBeenCalledWith(
+        'F0AJ4852CQN',
+        '全体を置換',
+        'replace'
+      );
+    });
+
+    it('should use specified profile', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'work-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.writeCanvas).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'write',
+        '-i',
+        'F0AJ4852CQN',
+        '-m',
+        '追記する内容',
+        '--profile',
+        'work',
+      ]);
+
+      expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
+      expect(SlackApiClient).toHaveBeenCalledWith('work-token');
+    });
+
+    it('should reject an empty markdown message', async () => {
+      const canvasCommand = setupCanvasCommand();
+      canvasCommand.exitOverride();
+
+      const writeCommand = canvasCommand.commands.find((c) => c.name() === 'write')!;
+      writeCommand.exitOverride();
+
+      await expect(
+        writeCommand.parseAsync(['-i', 'F0AJ4852CQN', '-m', ''], { from: 'user' })
+      ).rejects.toThrow('Error: --message is required');
+    });
+
+    it('should reject an invalid position', async () => {
+      const canvasCommand = setupCanvasCommand();
+      canvasCommand.exitOverride();
+
+      const writeCommand = canvasCommand.commands.find((c) => c.name() === 'write')!;
+      writeCommand.exitOverride();
+
+      await expect(
+        writeCommand.parseAsync(
+          ['-i', 'F0AJ4852CQN', '-m', '追記する内容', '--position', 'middle'],
+          { from: 'user' }
+        )
+      ).rejects.toThrow("Error: Invalid position 'middle'. Must be one of: end, start, replace");
+    });
+
+    it('should reject an empty position', async () => {
+      const canvasCommand = setupCanvasCommand();
+      canvasCommand.exitOverride();
+
+      const writeCommand = canvasCommand.commands.find((c) => c.name() === 'write')!;
+      writeCommand.exitOverride();
+
+      await expect(
+        writeCommand.parseAsync(['-i', 'F0AJ4852CQN', '-m', '追記する内容', '--position', ''], {
+          from: 'user',
+        })
+      ).rejects.toThrow("Error: Invalid position ''. Must be one of: end, start, replace");
+    });
+
+    it('should handle Slack API errors', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.writeCanvas).mockRejectedValue(new Error('canvas_not_found'));
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'canvas',
+        'write',
+        '-i',
+        'invalid-id',
+        '-m',
+        '追記する内容',
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.any(String)
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+  });
 });

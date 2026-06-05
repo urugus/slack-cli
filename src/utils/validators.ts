@@ -393,6 +393,29 @@ export const optionValidators = {
   },
 
   /**
+   * Validates Canvas write position option
+   */
+  canvasPosition: (options: Record<string, unknown>): string | null => {
+    if (options.position !== undefined) {
+      const validPositions = ['end', 'start', 'replace'];
+      if (typeof options.position !== 'string' || !validPositions.includes(options.position)) {
+        return `Invalid position '${options.position}'. Must be one of: ${validPositions.join(', ')}`;
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Requires explicit confirmation for destructive Canvas replacement
+   */
+  canvasReplaceConfirmation: (options: Record<string, unknown>): string | null => {
+    if (options.position === 'replace' && !options.yes) {
+      return '--yes is required when --position replace is used';
+    }
+    return null;
+  },
+
+  /**
    * Validates sort option for search command
    */
   searchSort: (options: Record<string, unknown>): string | null => {

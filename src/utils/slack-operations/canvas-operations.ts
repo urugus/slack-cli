@@ -1,6 +1,17 @@
+import type { CanvasesEditArguments } from '@slack/web-api';
+import type { CanvasPosition } from '../../types/commands';
 import type { CanvasFile, CanvasSection } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
+
+const CANVAS_POSITION_OPERATIONS: Record<
+  CanvasPosition,
+  'insert_at_end' | 'insert_at_start' | 'replace'
+> = {
+  end: 'insert_at_end',
+  start: 'insert_at_start',
+  replace: 'replace',
+};
 
 export class CanvasOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
@@ -25,5 +36,23 @@ export class CanvasOperations extends BaseSlackClient {
       types: 'spaces',
     });
     return (response.files || []) as CanvasFile[];
+  }
+
+  async writeCanvas(canvasId: string, markdown: string, position: CanvasPosition): Promise<void> {
+    const operation = CANVAS_POSITION_OPERATIONS[position];
+    const args: CanvasesEditArguments = {
+      canvas_id: canvasId,
+      changes: [
+        {
+          operation,
+          document_content: {
+            type: 'markdown',
+            markdown,
+          },
+        },
+      ],
+    };
+
+    await this.client.canvases.edit(args);
   }
 }

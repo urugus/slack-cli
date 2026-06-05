@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { CanvasListOptions, CanvasReadOptions } from '../types/commands';
+import { CanvasListOptions, CanvasReadOptions, CanvasWriteOptions } from '../types/commands';
 import { CanvasFile, CanvasSection, CanvasSectionElement } from '../types/slack';
 import { renderByFormat, withSlackClient } from '../utils/command-support';
 import { wrapCommand } from '../utils/command-wrapper';
@@ -102,8 +102,33 @@ export function setupCanvasCommand(): Command {
       })
     );
 
+  const writeCommand = new Command('write')
+    .description('Write markdown to an existing Canvas')
+    .requiredOption('-i, --id <canvas-id>', 'Canvas ID')
+    .requiredOption('-m, --message <markdown>', 'Markdown content to write')
+    .option('--position <position>', 'Write position: end, start, replace', 'end')
+    .option('--yes', 'Confirm replacing the whole Canvas when --position replace is used')
+    .option('--profile <profile>', 'Use specific workspace profile')
+    .hook(
+      'preAction',
+      createValidationHook([
+        optionValidators.requiredMessage,
+        optionValidators.canvasPosition,
+        optionValidators.canvasReplaceConfirmation,
+      ])
+    )
+    .action(
+      wrapCommand(async (options: CanvasWriteOptions) => {
+        await withSlackClient(options, async (client) => {
+          await client.writeCanvas(options.id, options.message, options.position ?? 'end');
+          console.log('Canvas updated');
+        });
+      })
+    );
+
   canvasCommand.addCommand(readCommand);
   canvasCommand.addCommand(listCommand);
+  canvasCommand.addCommand(writeCommand);
 
   return canvasCommand;
 }

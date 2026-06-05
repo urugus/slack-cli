@@ -4,6 +4,7 @@ import {
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
+import type { CanvasPosition } from '../types/commands';
 import type {
   CanvasFile,
   CanvasSection,
@@ -284,6 +285,10 @@ export class SlackApiClient {
 
   async listCanvases(channel: string): Promise<CanvasFile[]> {
     return this.canvasOps.listCanvases(channel);
+  }
+
+  async writeCanvas(canvasId: string, markdown: string, position: CanvasPosition): Promise<void> {
+    return this.canvasOps.writeCanvas(canvasId, markdown, position);
   }
 }
 

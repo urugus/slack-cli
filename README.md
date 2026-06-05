@@ -364,9 +364,20 @@ slack-cli canvas list -c general
 slack-cli canvas list -c general --format json
 slack-cli canvas list -c general --format simple
 
+# Append markdown to an existing Canvas
+slack-cli canvas write -i F01234567890 -m "追記する内容"
+
+# Insert markdown at the start of an existing Canvas
+slack-cli canvas write -i F01234567890 -m "先頭に追加" --position start
+
+# Replace the entire Canvas content
+# This discards the current Canvas content and requires --yes.
+slack-cli canvas write -i F01234567890 -m "全体を置換" --position replace --yes
+
 # Use specific profile
 slack-cli canvas read -i F01234567890 --profile work
 slack-cli canvas list -c general --profile work
+slack-cli canvas write -i F01234567890 -m "追記する内容" --profile work
 ```
 
 ### Other Commands
@@ -562,7 +573,7 @@ Subcommands: `list`, `cancel`
 
 ### canvas command
 
-Subcommands: `read`, `list`
+Subcommands: `read`, `list`, `write`
 
 #### canvas read
 
@@ -577,6 +588,18 @@ Subcommands: `read`, `list`
 | --------- | ----- | --------------------------------------------------- |
 | --channel | -c    | Channel name or ID (required)                       |
 | --format  |       | Output format: table, simple, json (default: table) |
+
+#### canvas write
+
+Writes markdown to an existing Canvas. It does not create a new Canvas.
+
+| Option     | Short | Description                                                       |
+| ---------- | ----- | ----------------------------------------------------------------- |
+| --id       | -i    | Canvas ID (required)                                              |
+| --message  | -m    | Markdown content to write (required)                              |
+| --position |       | Write position: end, start, replace (default: end)                |
+| --yes      |       | Required when --position replace discards the whole Canvas content |
+| --profile  |       | Use specific workspace profile                                    |
 
 ## Required Permissions
 
@@ -600,6 +623,7 @@ Your Slack API token needs the following scopes:
 - `files:write` - Upload files and snippets
 - `files:read` - Download Slack files and list canvases linked to a channel
 - `canvases:read` - Read Canvas sections
+- `canvases:write` - Write Canvas content
 
 ## Advanced Features
 

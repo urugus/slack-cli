@@ -396,9 +396,9 @@ export const optionValidators = {
    * Validates Canvas write position option
    */
   canvasPosition: (options: Record<string, unknown>): string | null => {
-    if (options.position) {
+    if (options.position !== undefined) {
       const validPositions = ['end', 'start', 'replace'];
-      if (!validPositions.includes(options.position as string)) {
+      if (typeof options.position !== 'string' || !validPositions.includes(options.position)) {
         return `Invalid position '${options.position}'. Must be one of: ${validPositions.join(', ')}`;
       }
     }

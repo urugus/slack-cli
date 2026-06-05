@@ -516,6 +516,20 @@ describe('canvas command', () => {
       ).rejects.toThrow("Error: Invalid position 'middle'. Must be one of: end, start, replace");
     });
 
+    it('should reject an empty position', async () => {
+      const canvasCommand = setupCanvasCommand();
+      canvasCommand.exitOverride();
+
+      const writeCommand = canvasCommand.commands.find((c) => c.name() === 'write')!;
+      writeCommand.exitOverride();
+
+      await expect(
+        writeCommand.parseAsync(['-i', 'F0AJ4852CQN', '-m', '追記する内容', '--position', ''], {
+          from: 'user',
+        })
+      ).rejects.toThrow("Error: Invalid position ''. Must be one of: end, start, replace");
+    });
+
     it('should handle Slack API errors', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

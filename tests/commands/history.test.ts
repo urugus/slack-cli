@@ -143,11 +143,19 @@ describe('history command', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
-        type: 'message',
-        text: 'Linked message',
-        user: 'U123456',
-        ts: '1780638511.660849',
+      vi.mocked(mockSlackClient.getMessageWithUsers).mockResolvedValue({
+        messages: [
+          {
+            type: 'message',
+            text: 'Linked message for <@U789012>',
+            user: 'U123456',
+            ts: '1780638511.660849',
+          },
+        ],
+        users: new Map([
+          ['U123456', 'john.doe'],
+          ['U789012', 'jane.smith'],
+        ]),
       });
 
       await program.parseAsync([
@@ -158,12 +166,16 @@ describe('history command', () => {
         'https://example.slack.com/archives/C123/p1780638511660849',
       ]);
 
-      expect(mockSlackClient.getMessage).toHaveBeenCalledWith(
+      expect(mockSlackClient.getMessageWithUsers).toHaveBeenCalledWith(
         'C123',
         '1780638511.660849',
         undefined
       );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('john.doe'));
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Linked message'));
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Linked message for @jane.smith')
+      );
     });
 
     it('should fetch a single thread reply from a Slack message URL with thread_ts', async () => {
@@ -172,12 +184,17 @@ describe('history command', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
-        type: 'message',
-        text: 'Linked reply',
-        user: 'U123456',
-        ts: '1780638511.660849',
-        thread_ts: '1780527015.228619',
+      vi.mocked(mockSlackClient.getMessageWithUsers).mockResolvedValue({
+        messages: [
+          {
+            type: 'message',
+            text: 'Linked reply',
+            user: 'U123456',
+            ts: '1780638511.660849',
+            thread_ts: '1780527015.228619',
+          },
+        ],
+        users: new Map([['U123456', 'john.doe']]),
       });
 
       await program.parseAsync([
@@ -188,7 +205,7 @@ describe('history command', () => {
         'https://example.slack.com/archives/C123/p1780638511660849?thread_ts=1780527015.228619',
       ]);
 
-      expect(mockSlackClient.getMessage).toHaveBeenCalledWith(
+      expect(mockSlackClient.getMessageWithUsers).toHaveBeenCalledWith(
         'C123',
         '1780638511.660849',
         '1780527015.228619'

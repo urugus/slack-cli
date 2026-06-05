@@ -365,6 +365,33 @@ describe('MessageOperations', () => {
       });
       expect(result.text).toBe('Target reply');
     });
+
+    it('should fetch user info for a single message and its mentions', async () => {
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+      mockClient.conversations.history.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: 'Target message for <@U222222222>',
+            user: 'U111111111',
+            ts: '1234567890.000100',
+          },
+        ],
+      });
+
+      mockClient.users.info.mockImplementation(({ user }: { user: string }) => {
+        if (user === 'U111111111') return Promise.resolve({ ok: true, user: { name: 'alice' } });
+        if (user === 'U222222222') return Promise.resolve({ ok: true, user: { name: 'bob' } });
+        return Promise.resolve({ ok: false });
+      });
+
+      const result = await messageOps.getMessageWithUsers('general', '1234567890.000100');
+
+      expect(result.messages).toHaveLength(1);
+      expect(result.users.get('U111111111')).toBe('alice');
+      expect(result.users.get('U222222222')).toBe('bob');
+    });
   });
 
   describe('getChannelUnread', () => {

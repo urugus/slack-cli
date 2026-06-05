@@ -53,8 +53,18 @@ export function setupHistoryCommand(): Command {
 
           if (options.url) {
             const source = parseSlackMessageUrl(options.url);
-            messages = [await client.getMessage(source.channel, source.messageTs, source.threadTs)];
-            users = new Map();
+            if (options.tables) {
+              messages = [
+                await client.getMessage(source.channel, source.messageTs, source.threadTs),
+              ];
+              users = new Map();
+            } else {
+              ({ messages, users } = await client.getMessageWithUsers(
+                source.channel,
+                source.messageTs,
+                source.threadTs
+              ));
+            }
             channelName = source.channel;
             preserveOrder = true;
           } else if (options.thread) {

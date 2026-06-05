@@ -8,6 +8,7 @@ import type {
   ChannelUnreadResult,
   HistoryOptions,
   HistoryResult,
+  Message,
   ScheduledMessage,
 } from '../../types/slack';
 import { BaseSlackClient, createSlackClientContext, SlackClientDependency } from './base-client';
@@ -87,6 +88,10 @@ export class MessageOperations extends BaseSlackClient {
 
   async getThreadHistory(channel: string, threadTs: string): Promise<HistoryResult> {
     return await this.historyOps.getThreadHistory(channel, threadTs);
+  }
+
+  async getMessage(channel: string, messageTs: string, threadTs?: string): Promise<Message> {
+    return await this.historyOps.getMessage(channel, messageTs, threadTs);
   }
 
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {

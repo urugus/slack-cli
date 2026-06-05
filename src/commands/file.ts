@@ -5,13 +5,8 @@ import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
 import { FileError } from '../utils/errors';
 import { parseProfile } from '../utils/option-parsers';
+import { parseSlackMessageUrl } from '../utils/slack-message-url';
 import { sanitizeTerminalText } from '../utils/terminal-sanitizer';
-
-interface ParsedSlackMessageUrl {
-  channel: string;
-  messageTs: string;
-  threadTs?: string;
-}
 
 export function setupFileCommand(): Command {
   const fileCommand = new Command('file').description('Manage Slack files');
@@ -99,34 +94,6 @@ function resolveDownloadSource(options: FileDownloadOptions): {
     messageTs: options.timestamp,
     threadTs: options.thread,
   };
-}
-
-function parseSlackMessageUrl(value: string): ParsedSlackMessageUrl {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new FileError(`Invalid Slack message URL: ${value}`);
-  }
-
-  const match = url.pathname.match(/\/archives\/([^/]+)\/p(\d+)/);
-  if (!match) {
-    throw new FileError(`Invalid Slack message URL: ${value}`);
-  }
-
-  return {
-    channel: match[1],
-    messageTs: permalinkTimestampToSlackTs(match[2]),
-    threadTs: url.searchParams.get('thread_ts') || undefined,
-  };
-}
-
-function permalinkTimestampToSlackTs(value: string): string {
-  if (value.length <= 10) {
-    throw new FileError(`Invalid Slack permalink timestamp: ${value}`);
-  }
-
-  return `${value.slice(0, 10)}.${value.slice(10)}`;
 }
 
 function parseFileIndex(value?: string): number {

@@ -302,6 +302,71 @@ describe('MessageOperations', () => {
     });
   });
 
+  describe('getMessage', () => {
+    it('should fetch a single channel message by timestamp', async () => {
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+      mockClient.conversations.history.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: 'Target message',
+            user: 'U111',
+            ts: '1234567890.000100',
+          },
+        ],
+      });
+
+      const result = await messageOps.getMessage('general', '1234567890.000100');
+
+      expect(mockClient.conversations.history).toHaveBeenCalledWith({
+        channel: 'C123456789',
+        latest: '1234567890.000100',
+        inclusive: true,
+        limit: 1,
+      });
+      expect(result.text).toBe('Target message');
+    });
+
+    it('should fetch a single thread reply by timestamp', async () => {
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+      mockClient.conversations.replies.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: 'Parent',
+            user: 'U111',
+            ts: '1234567890.000100',
+          },
+          {
+            type: 'message',
+            text: 'Target reply',
+            user: 'U222',
+            ts: '1234567891.000200',
+            thread_ts: '1234567890.000100',
+          },
+        ],
+        response_metadata: {
+          next_cursor: '',
+        },
+      });
+
+      const result = await messageOps.getMessage(
+        'general',
+        '1234567891.000200',
+        '1234567890.000100'
+      );
+
+      expect(mockClient.conversations.replies).toHaveBeenCalledWith({
+        channel: 'C123456789',
+        ts: '1234567890.000100',
+        cursor: undefined,
+      });
+      expect(result.text).toBe('Target reply');
+    });
+  });
+
   describe('getChannelUnread', () => {
     it('should cap user info lookups and keep skipped unread message IDs displayable', async () => {
       const mentionedUserIds = Array.from(

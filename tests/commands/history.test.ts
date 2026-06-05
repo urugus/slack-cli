@@ -137,6 +137,65 @@ describe('history command', () => {
       expect(mockSlackClient.getHistory).not.toHaveBeenCalled();
     });
 
+    it('should fetch a single message from a Slack message URL', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
+        type: 'message',
+        text: 'Linked message',
+        user: 'U123456',
+        ts: '1780638511.660849',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '--url',
+        'https://example.slack.com/archives/C123/p1780638511660849',
+      ]);
+
+      expect(mockSlackClient.getMessage).toHaveBeenCalledWith(
+        'C123',
+        '1780638511.660849',
+        undefined
+      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Linked message'));
+    });
+
+    it('should fetch a single thread reply from a Slack message URL with thread_ts', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
+        type: 'message',
+        text: 'Linked reply',
+        user: 'U123456',
+        ts: '1780638511.660849',
+        thread_ts: '1780527015.228619',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '--url',
+        'https://example.slack.com/archives/C123/p1780638511660849?thread_ts=1780527015.228619',
+      ]);
+
+      expect(mockSlackClient.getMessage).toHaveBeenCalledWith(
+        'C123',
+        '1780638511.660849',
+        '1780527015.228619'
+      );
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Linked reply'));
+    });
+
     it('should show warning when --number is used with --thread', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
@@ -880,6 +939,196 @@ describe('history command', () => {
       await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'general']);
 
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('No messages found'));
+    });
+
+    it('should render table blocks from a Slack message URL as Markdown by default', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
+        type: 'message',
+        text: 'Message with table',
+        user: 'U123456',
+        ts: '1780638511.660849',
+        blocks: [
+          {
+            type: 'table',
+            rows: [
+              [
+                { type: 'raw_text', text: 'Name' },
+                { type: 'raw_number', value: 42 },
+              ],
+              [
+                {
+                  type: 'rich_text',
+                  elements: [
+                    {
+                      type: 'rich_text_section',
+                      elements: [{ type: 'text', text: 'Alice' }],
+                    },
+                  ],
+                },
+                { type: 'raw_text', text: 'Done' },
+              ],
+            ],
+          },
+        ],
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '--url',
+        'https://example.slack.com/archives/C123/p1780638511660849',
+        '--tables',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('| Name | 42 |');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('| --- | --- |');
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('| Alice | Done |');
+    });
+
+    it('should preserve multiple table block order', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
+        type: 'message',
+        text: 'Multiple tables',
+        user: 'U123456',
+        ts: '1780638511.660849',
+        blocks: [
+          {
+            type: 'table',
+            rows: [[{ type: 'raw_text', text: 'First' }]],
+          },
+          {
+            type: 'table',
+            rows: [[{ type: 'raw_text', text: 'Second' }]],
+          },
+        ],
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '--url',
+        'https://example.slack.com/archives/C123/p1780638511660849',
+        '--tables',
+      ]);
+
+      const output = mockConsole.logSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(output.indexOf('| First |')).toBeLessThan(output.indexOf('| Second |'));
+    });
+
+    it('should render table blocks as JSON when --table-format json is specified', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
+        type: 'message',
+        text: 'Message with table',
+        user: 'U123456',
+        ts: '1780638511.660849',
+        blocks: [
+          {
+            type: 'table',
+            rows: [
+              [
+                { type: 'raw_text', text: 'Name' },
+                { type: 'raw_text', text: 'Status' },
+              ],
+              [
+                { type: 'raw_text', text: 'Alice' },
+                { type: 'raw_text', text: 'Done' },
+              ],
+            ],
+          },
+        ],
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '--url',
+        'https://example.slack.com/archives/C123/p1780638511660849',
+        '--tables',
+        '--table-format',
+        'json',
+      ]);
+
+      const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
+      expect(output.tables[0].rows).toEqual([
+        ['Name', 'Status'],
+        ['Alice', 'Done'],
+      ]);
+    });
+
+    it('should show a message when no table blocks are found', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
+        type: 'message',
+        text: 'No tables here',
+        user: 'U123456',
+        ts: '1780638511.660849',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '--url',
+        'https://example.slack.com/archives/C123/p1780638511660849',
+        '--tables',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('No tables found');
+    });
+
+    it('should reject invalid Slack message URLs', async () => {
+      const historyCommand = setupHistoryCommand();
+      historyCommand.exitOverride();
+
+      await expect(
+        historyCommand.parseAsync(['--url', 'https://example.com/not-a-message'], { from: 'user' })
+      ).rejects.toThrow();
+    });
+
+    it('should reject --url with channel based options', async () => {
+      const historyCommand = setupHistoryCommand();
+      historyCommand.exitOverride();
+
+      await expect(
+        historyCommand.parseAsync(
+          ['--url', 'https://example.slack.com/archives/C123/p1780638511660849', '-c', 'general'],
+          { from: 'user' }
+        )
+      ).rejects.toThrow();
+    });
+
+    it('should reject --url with range options', async () => {
+      const historyCommand = setupHistoryCommand();
+      historyCommand.exitOverride();
+
+      await expect(
+        historyCommand.parseAsync(
+          ['--url', 'https://example.slack.com/archives/C123/p1780638511660849', '-n', '20'],
+          { from: 'user' }
+        )
+      ).rejects.toThrow();
     });
   });
 });

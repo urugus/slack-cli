@@ -15,6 +15,7 @@ import type {
   HistoryOptions,
   HistoryResult,
   ListChannelsOptions,
+  Message,
   PinnedItem,
   Reminder,
   ScheduledMessage,
@@ -131,6 +132,10 @@ export class SlackApiClient {
 
   async getThreadHistory(channel: string, threadTs: string): Promise<HistoryResult> {
     return this.messageOps.getThreadHistory(channel, threadTs);
+  }
+
+  async getMessage(channel: string, messageTs: string, threadTs?: string): Promise<Message> {
+    return this.messageOps.getMessage(channel, messageTs, threadTs);
   }
 
   async listUnreadChannels(): Promise<Channel[]> {

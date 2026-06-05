@@ -153,6 +153,15 @@ slack-cli history -c general --since "2024-01-01 00:00:00"
 # Get complete conversation of a thread
 slack-cli history -c general --thread 1719207629.000100
 
+# Get a single message from a Slack permalink
+slack-cli history --url "https://example.slack.com/archives/C123/p1780638511660849"
+
+# Extract table blocks from a Slack permalink
+slack-cli history --url "https://example.slack.com/archives/C123/p1780638511660849" --tables
+
+# Extract table blocks as JSON
+slack-cli history --url "https://example.slack.com/archives/C123/p1780638511660849" --tables --table-format json
+
 # Output in different formats
 slack-cli history -c general --format json
 slack-cli history -c general --format simple
@@ -406,13 +415,16 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 
 ### history command
 
-| Option    | Short | Description                                            |
-| --------- | ----- | ------------------------------------------------------ |
-| --channel | -c    | Target channel name or ID (required)                   |
-| --number  | -n    | Number of messages to retrieve (default: 10)           |
-| --since   |       | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
-| --thread  | -t    | Thread timestamp to retrieve complete thread messages   |
-| --format  |       | Output format: table, simple, json (default: table)    |
+| Option         | Short | Description                                            |
+| -------------- | ----- | ------------------------------------------------------ |
+| --url          |       | Slack message permalink to retrieve                    |
+| --channel      | -c    | Target channel name or ID                              |
+| --number       | -n    | Number of messages to retrieve (default: 10)           |
+| --since        |       | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
+| --thread       | -t    | Thread timestamp to retrieve complete thread messages   |
+| --format       |       | Output format: table, simple, json (default: table)    |
+| --tables       |       | Extract table blocks from retrieved messages           |
+| --table-format |       | Table output format: markdown, json, tsv               |
 
 ### unread command
 

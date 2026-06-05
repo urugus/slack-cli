@@ -5,6 +5,7 @@ import type {
   Message,
 } from '../../types/slack';
 import { DEFAULTS, RATE_LIMIT } from '../constants';
+import { ApiError } from '../errors';
 import { extractAllUserIds } from '../mention-utils';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
@@ -58,6 +59,42 @@ export class MessageHistoryOperations extends BaseSlackClient {
     const users = await this.userResolver.fetchUserInfo(extractAllUserIds(messages));
 
     return { messages, users };
+  }
+
+  async getMessage(channel: string, messageTs: string, threadTs?: string): Promise<Message> {
+    const channelId = await this.channelOps.resolveChannelId(channel);
+
+    if (threadTs) {
+      let cursor: string | undefined;
+      do {
+        const response = await this.client.conversations.replies({
+          channel: channelId,
+          ts: threadTs,
+          cursor,
+        });
+        const messages = (response.messages || []) as Message[];
+        const message = messages.find((item) => item.ts === messageTs);
+        if (message) return message;
+        cursor = response.response_metadata?.next_cursor || undefined;
+      } while (cursor);
+
+      throw new ApiError(`Message ${messageTs} was not found in thread ${threadTs}`);
+    }
+
+    const response = await this.client.conversations.history({
+      channel: channelId,
+      latest: messageTs,
+      inclusive: true,
+      limit: 1,
+    });
+    const messages = (response.messages || []) as Message[];
+    const message = messages.find((item) => item.ts === messageTs);
+
+    if (!message) {
+      throw new ApiError(`Message ${messageTs} was not found in channel ${channel}`);
+    }
+
+    return message;
   }
 
   async getChannelUnread(channelNameOrId: string): Promise<ChannelUnreadResult> {

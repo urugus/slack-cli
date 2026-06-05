@@ -991,6 +991,83 @@ describe('history command', () => {
       expect(mockConsole.logSpy).toHaveBeenCalledWith('| Alice | Done |');
     });
 
+    it('should render table blocks from message attachments', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getMessage).mockResolvedValue({
+        type: 'message',
+        text: 'Message with attachment table',
+        user: 'U123456',
+        ts: '1780638511.660849',
+        attachments: [
+          {
+            blocks: [
+              {
+                type: 'table',
+                rows: [[{ type: 'raw_text', text: 'Attachment table' }]],
+              },
+            ],
+          },
+        ],
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'history',
+        '--url',
+        'https://example.slack.com/archives/C123/p1780638511660849',
+        '--tables',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith('| Attachment table |');
+    });
+
+    it('should render channel history table blocks in chronological order', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+
+      vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+        messages: [
+          {
+            type: 'message',
+            text: 'Newer table',
+            user: 'U123456',
+            ts: '1780638520.000000',
+            blocks: [
+              {
+                type: 'table',
+                rows: [[{ type: 'raw_text', text: 'Newer' }]],
+              },
+            ],
+          },
+          {
+            type: 'message',
+            text: 'Older table',
+            user: 'U123456',
+            ts: '1780638511.660849',
+            blocks: [
+              {
+                type: 'table',
+                rows: [[{ type: 'raw_text', text: 'Older' }]],
+              },
+            ],
+          },
+        ],
+        users: new Map(),
+      });
+
+      await program.parseAsync(['node', 'slack-cli', 'history', '-c', 'general', '--tables']);
+
+      const output = mockConsole.logSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(output.indexOf('| Older |')).toBeLessThan(output.indexOf('| Newer |'));
+    });
+
     it('should preserve multiple table block order', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',

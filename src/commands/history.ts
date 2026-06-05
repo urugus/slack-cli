@@ -82,7 +82,8 @@ export function setupHistoryCommand(): Command {
           }
 
           if (options.tables) {
-            displaySlackTables(messages, parseTableOutputFormat(options.tableFormat));
+            const orderedMessages = preserveOrder ? messages : [...messages].reverse();
+            displaySlackTables(orderedMessages, parseTableOutputFormat(options.tableFormat));
             return;
           }
 

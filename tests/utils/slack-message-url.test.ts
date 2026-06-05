@@ -29,4 +29,18 @@ describe('slack-message-url', () => {
       'Invalid Slack message URL'
     );
   });
+
+  it('should reject invalid Slack permalink timestamps', () => {
+    expect(() => parseSlackMessageUrl('https://example.slack.com/archives/C123/p123')).toThrow(
+      'Invalid Slack permalink timestamp'
+    );
+  });
+
+  it('should reject invalid thread_ts query parameters', () => {
+    expect(() =>
+      parseSlackMessageUrl(
+        'https://example.slack.com/archives/C123/p1780638511660849?thread_ts=invalid'
+      )
+    ).toThrow('Invalid thread timestamp format');
+  });
 });

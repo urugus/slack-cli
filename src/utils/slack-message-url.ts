@@ -19,17 +19,26 @@ export function parseSlackMessageUrl(value: string): ParsedSlackMessageUrl {
     throw new ValidationError(`Invalid Slack message URL: ${value}`);
   }
 
+  const threadTs = url.searchParams.get('thread_ts') || undefined;
+  if (threadTs && !isSlackTimestamp(threadTs)) {
+    throw new ValidationError('Invalid thread timestamp format');
+  }
+
   return {
     channel: match[1],
     messageTs: permalinkTimestampToSlackTs(match[2]),
-    threadTs: url.searchParams.get('thread_ts') || undefined,
+    threadTs,
   };
 }
 
 export function permalinkTimestampToSlackTs(value: string): string {
-  if (value.length <= 10) {
+  if (!/^\d{16}$/.test(value)) {
     throw new ValidationError(`Invalid Slack permalink timestamp: ${value}`);
   }
 
   return `${value.slice(0, 10)}.${value.slice(10)}`;
+}
+
+function isSlackTimestamp(value: string): boolean {
+  return /^\d{10}\.\d{6}$/.test(value);
 }

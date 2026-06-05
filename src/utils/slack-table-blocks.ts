@@ -18,7 +18,7 @@ export function extractSlackTables(messages: Message[]): ExtractedSlackTable[] {
   const tables: ExtractedSlackTable[] = [];
 
   messages.forEach((message) => {
-    const blocks = Array.isArray(message.blocks) ? message.blocks : [];
+    const blocks = getMessageBlocks(message);
 
     blocks.forEach((block) => {
       if (!isTableBlock(block)) {
@@ -34,6 +34,19 @@ export function extractSlackTables(messages: Message[]): ExtractedSlackTable[] {
   });
 
   return tables;
+}
+
+function getMessageBlocks(message: Message): unknown[] {
+  const blocks = Array.isArray(message.blocks) ? [...message.blocks] : [];
+  const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+
+  attachments.forEach((attachment) => {
+    if (isRecord(attachment) && Array.isArray(attachment.blocks)) {
+      blocks.push(...attachment.blocks);
+    }
+  });
+
+  return blocks;
 }
 
 export function displaySlackTables(messages: Message[], format: TableOutputFormat): void {

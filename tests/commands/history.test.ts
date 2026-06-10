@@ -628,6 +628,80 @@ describe('history command', () => {
         expect(normalMessage.reply_count).toBeUndefined();
       });
 
+      it('should include file metadata in JSON format when message has files', async () => {
+        vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+          token: 'test-token',
+          updatedAt: new Date().toISOString(),
+        });
+
+        vi.mocked(mockSlackClient.getHistory).mockResolvedValue({
+          messages: [
+            {
+              type: 'message',
+              text: '',
+              user: 'U123456',
+              ts: '1609459200.000100',
+              files: [
+                {
+                  id: 'F123456',
+                  name: 'screenshot.png',
+                  title: 'Screenshot',
+                  mimetype: 'image/png',
+                  filetype: 'png',
+                  size: 12345,
+                  url_private: 'https://files.slack.com/files-pri/T123-F123456/screenshot.png',
+                  url_private_download:
+                    'https://files.slack.com/files-pri/T123-F123456/download/screenshot.png',
+                },
+              ],
+            },
+            {
+              type: 'message',
+              text: 'No file',
+              user: 'U789012',
+              ts: '1609459100.000100',
+            },
+          ],
+          users: new Map([
+            ['U123456', 'john.doe'],
+            ['U789012', 'jane.smith'],
+          ]),
+        });
+
+        await program.parseAsync([
+          'node',
+          'slack-cli',
+          'history',
+          '-c',
+          'general',
+          '--format',
+          'json',
+        ]);
+
+        const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0]);
+        const fileMessage = output.messages.find((message: { ts: string }) => {
+          return message.ts === '1609459200.000100';
+        });
+        const textOnlyMessage = output.messages.find((message: { ts: string }) => {
+          return message.ts === '1609459100.000100';
+        });
+
+        expect(fileMessage.files).toEqual([
+          {
+            id: 'F123456',
+            name: 'screenshot.png',
+            title: 'Screenshot',
+            mimetype: 'image/png',
+            filetype: 'png',
+            size: 12345,
+            url_private: 'https://files.slack.com/files-pri/T123-F123456/screenshot.png',
+            url_private_download:
+              'https://files.slack.com/files-pri/T123-F123456/download/screenshot.png',
+          },
+        ]);
+        expect(textOnlyMessage.files).toBeUndefined();
+      });
+
       it('should display messages in simple format when --format simple is specified', async () => {
         vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
           token: 'test-token',

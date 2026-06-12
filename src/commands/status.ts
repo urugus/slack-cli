@@ -1,10 +1,13 @@
 import chalk from 'chalk';
+import { spawn } from 'child_process';
 import { Command } from 'commander';
 import * as fs from 'fs';
+import * as path from 'path';
 import type {
   StatusClearOptions,
   StatusKeepAliveOptions,
   StatusSetOptions,
+  StatusStopOptions,
 } from '../types/commands';
 import { createSlackClient } from '../utils/client-factory';
 import { wrapCommand } from '../utils/command-wrapper';
@@ -14,6 +17,9 @@ import { createValidationHook, formatValidators } from '../utils/validators';
 
 const DEFAULT_KEEP_ALIVE_INTERVAL_SECONDS = 80;
 const DEFAULT_KEEP_ALIVE_MAX_DURATION_SECONDS = 600;
+const DEFAULT_STOP_TIMEOUT_SECONDS = 5;
+const STOP_FILE_POLL_INTERVAL_MS = 5000;
+const STOP_PROCESS_POLL_INTERVAL_MS = 100;
 const MAX_LOADING_MESSAGES = 10;
 
 type StatusCommandOptions = {
@@ -22,6 +28,9 @@ type StatusCommandOptions = {
   text?: string;
   interval?: string;
   maxDuration?: string;
+  timeout?: string;
+  detach?: boolean;
+  pidFile?: string;
   loadingMessage?: string[];
 };
 
@@ -59,7 +68,7 @@ function validateLoadingMessages(options: StatusCommandOptions): string | null {
 
 function validatePositiveIntegerOption(
   options: StatusCommandOptions,
-  optionName: 'interval' | 'maxDuration',
+  optionName: 'interval' | 'maxDuration' | 'timeout',
   label: string
 ): string | null {
   const value = options[optionName];
@@ -74,6 +83,14 @@ function validatePositiveIntegerOption(
   const parsed = Number.parseInt(value, 10);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     return `${label} must be a positive integer`;
+  }
+
+  return null;
+}
+
+function validateDetachOptions(options: StatusCommandOptions): string | null {
+  if (options.detach && !options.pidFile) {
+    return '--pid-file is required when --detach is used';
   }
 
   return null;
@@ -110,6 +127,31 @@ function createInterruptibleDelay(
   });
 }
 
+async function createStopFileAwareDelay(
+  ms: number,
+  isStopped: () => boolean,
+  registerWake: (wake: (() => void) | undefined) => void,
+  stopFile?: string
+): Promise<void> {
+  const deadline = Date.now() + ms;
+
+  while (!isStopped() && Date.now() < deadline) {
+    if (stopFile && fs.existsSync(stopFile)) {
+      return;
+    }
+
+    await createInterruptibleDelay(
+      Math.min(STOP_FILE_POLL_INTERVAL_MS, deadline - Date.now()),
+      isStopped,
+      registerWake
+    );
+  }
+}
+
+function warn(message: string): void {
+  console.error(chalk.yellow('Warning:'), message);
+}
+
 async function clearStatusIgnoringErrors(
   client: Awaited<ReturnType<typeof createSlackClient>>,
   channel: string,
@@ -122,7 +164,115 @@ async function clearStatusIgnoringErrors(
   }
 }
 
+function removeFileIgnoringErrors(filePath: string | undefined): void {
+  if (!filePath) {
+    return;
+  }
+
+  try {
+    fs.unlinkSync(filePath);
+  } catch {
+    // Cleanup is best-effort for lifecycle files.
+  }
+}
+
+function writePidFile(pidFile: string, pid: number): void {
+  const directory = path.dirname(pidFile);
+  if (directory && directory !== '.') {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+
+  fs.writeFileSync(pidFile, `${pid}\n`);
+}
+
+function createDetachedArgs(): string[] {
+  return process.argv.slice(1).filter((arg) => arg !== '--detach');
+}
+
+function runDetachedKeepAlive(options: StatusKeepAliveOptions): void {
+  const child = spawn(process.execPath, createDetachedArgs(), {
+    detached: true,
+    stdio: 'ignore',
+  });
+
+  if (child.pid === undefined) {
+    throw new Error('Failed to start detached keep-alive process');
+  }
+
+  writePidFile(options.pidFile!, child.pid);
+  child.unref();
+}
+
+function touchStopFile(stopFile: string): void {
+  const directory = path.dirname(stopFile);
+  if (directory && directory !== '.') {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+
+  const handle = fs.openSync(stopFile, 'a');
+  fs.closeSync(handle);
+  fs.utimesSync(stopFile, new Date(), new Date());
+}
+
+function parsePid(pidFile: string): number | undefined {
+  const content = fs.readFileSync(pidFile, 'utf8').trim();
+  if (!/^\d+$/.test(content)) {
+    return undefined;
+  }
+
+  const pid = Number.parseInt(content, 10);
+  if (!Number.isSafeInteger(pid) || pid <= 0) {
+    return undefined;
+  }
+
+  return pid;
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      return (error as { code?: string }).code === 'EPERM';
+    }
+
+    return false;
+  }
+}
+
+function sendSignal(pid: number, signal: NodeJS.Signals): boolean {
+  try {
+    process.kill(pid, signal);
+    return true;
+  } catch (error) {
+    warn(`Failed to send ${signal} to process ${pid}: ${extractErrorMessage(error)}`);
+    return false;
+  }
+}
+
+async function waitForProcessExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (!isProcessAlive(pid)) {
+      return true;
+    }
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(STOP_PROCESS_POLL_INTERVAL_MS, deadline - Date.now()))
+    );
+  }
+
+  return !isProcessAlive(pid);
+}
+
 async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
+  if (options.detach) {
+    runDetachedKeepAlive(options);
+    return;
+  }
+
   const intervalSeconds = parsePositiveSeconds(
     options.interval,
     DEFAULT_KEEP_ALIVE_INTERVAL_SECONDS
@@ -148,6 +298,10 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   process.once('SIGTERM', requestStop);
 
   try {
+    if (options.pidFile) {
+      writePidFile(options.pidFile, process.pid);
+    }
+
     await client.setAssistantThreadStatus({
       channel: options.channel,
       threadTs: options.thread,
@@ -162,12 +316,13 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
         break;
       }
 
-      await createInterruptibleDelay(
+      await createStopFileAwareDelay(
         Math.min(intervalMs, remainingMs),
         () => stopRequested,
         (wake) => {
           wakeDelay = wake;
-        }
+        },
+        options.stopFile
       );
 
       if (stopRequested) {
@@ -197,7 +352,68 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
     process.off('SIGINT', requestStop);
     process.off('SIGTERM', requestStop);
     await clearStatusIgnoringErrors(client, options.channel, options.thread);
+    removeFileIgnoringErrors(options.pidFile);
   }
+}
+
+async function clearStatusWithWarning(options: StatusStopOptions): Promise<void> {
+  try {
+    const profile = parseProfile(options.profile);
+    const client = await createSlackClient(profile);
+    await client.clearAssistantThreadStatus(options.channel, options.thread);
+  } catch (error) {
+    warn(`Failed to clear status: ${extractErrorMessage(error)}`);
+  }
+}
+
+async function stopProcessFromPidFile(pidFile: string, timeoutMs: number): Promise<void> {
+  let pid: number | undefined;
+
+  try {
+    pid = parsePid(pidFile);
+  } catch (error) {
+    warn(`Failed to read pid-file ${pidFile}: ${extractErrorMessage(error)}`);
+    removeFileIgnoringErrors(pidFile);
+    return;
+  }
+
+  if (pid === undefined) {
+    warn(`Invalid pid-file ${pidFile}`);
+    removeFileIgnoringErrors(pidFile);
+    return;
+  }
+
+  if (!isProcessAlive(pid)) {
+    warn(`Process ${pid} is not running`);
+    removeFileIgnoringErrors(pidFile);
+    return;
+  }
+
+  if (sendSignal(pid, 'SIGTERM')) {
+    const exited = await waitForProcessExit(pid, timeoutMs);
+    if (!exited && isProcessAlive(pid)) {
+      sendSignal(pid, 'SIGKILL');
+    }
+  }
+
+  removeFileIgnoringErrors(pidFile);
+}
+
+async function runStop(options: StatusStopOptions): Promise<void> {
+  if (options.stopFile) {
+    try {
+      touchStopFile(options.stopFile);
+    } catch (error) {
+      warn(`Failed to create stop-file ${options.stopFile}: ${extractErrorMessage(error)}`);
+    }
+  }
+
+  if (options.pidFile) {
+    const timeoutSeconds = parsePositiveSeconds(options.timeout, DEFAULT_STOP_TIMEOUT_SECONDS);
+    await stopProcessFromPidFile(options.pidFile, timeoutSeconds * 1000);
+  }
+
+  await clearStatusWithWarning(options);
 }
 
 export function setupStatusCommand(): Command {
@@ -283,13 +499,38 @@ export function setupStatusCommand(): Command {
         validateLoadingMessages,
         (options) => validatePositiveIntegerOption(options, 'interval', '--interval'),
         (options) => validatePositiveIntegerOption(options, 'maxDuration', '--max-duration'),
+        validateDetachOptions,
       ])
     )
+    .option('--detach', 'Run keep-alive in a detached background process')
+    .option('--pid-file <path>', 'Write the keep-alive process ID to this file')
     .action(wrapCommand(runKeepAlive));
+
+  const stopCommand = new Command('stop')
+    .description('Stop a keep-alive process and clear assistant status')
+    .option('-c, --channel <channel>', 'Target channel name or ID')
+    .option('-t, --thread <thread>', 'Thread parent timestamp')
+    .option('--stop-file <path>', 'Create this stop file before stopping')
+    .option('--pid-file <path>', 'Read and stop the process ID from this file')
+    .option(
+      '--timeout <seconds>',
+      'Seconds to wait after SIGTERM before SIGKILL',
+      DEFAULT_STOP_TIMEOUT_SECONDS.toString()
+    )
+    .option('--profile <profile>', 'Use specific workspace profile')
+    .hook(
+      'preAction',
+      createValidationHook([
+        validateStatusBase,
+        (options) => validatePositiveIntegerOption(options, 'timeout', '--timeout'),
+      ])
+    )
+    .action(wrapCommand(runStop));
 
   statusCommand.addCommand(setCommand);
   statusCommand.addCommand(clearCommand);
   statusCommand.addCommand(keepAliveCommand);
+  statusCommand.addCommand(stopCommand);
 
   return statusCommand;
 }

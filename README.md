@@ -115,6 +115,19 @@ slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working
   --interval 80 \
   --max-duration 600 \
   --stop-file /tmp/slack-cli-status.stop
+
+# Run keep-alive in the background and record its PID
+slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --interval 80 \
+  --max-duration 600 \
+  --stop-file /tmp/slack-cli-status.stop \
+  --detach \
+  --pid-file /tmp/slack-cli-status.pid
+
+# Stop a background keep-alive process and clear status as a backstop
+slack-cli status stop -c channel-name -t 1719207629.000100 \
+  --stop-file /tmp/slack-cli-status.stop \
+  --pid-file /tmp/slack-cli-status.pid
 ```
 
 ### List Channels
@@ -442,7 +455,7 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 
 ### status command
 
-Subcommands: `set`, `clear`, `keep-alive`
+Subcommands: `set`, `clear`, `keep-alive`, `stop`
 
 #### status set
 
@@ -466,8 +479,13 @@ Subcommands: `set`, `clear`, `keep-alive`
 
 Refreshes status immediately and then every `--interval` seconds because Slack clears assistant
 thread status after roughly two minutes. It stops when `--max-duration` elapses, `--stop-file`
-exists at a tick, or SIGINT/SIGTERM is received. Every exit path sends a final clear request;
-clear failures are ignored.
+exists, or SIGINT/SIGTERM is received. Stop-file checks run at least every 5 seconds even when
+the refresh interval is longer. Every exit path sends a final clear request; clear failures are
+ignored.
+
+With `--detach`, the CLI starts the same keep-alive command in a detached child process without
+`--detach`, writes the child PID to `--pid-file`, and exits immediately. Without `--detach`,
+`--pid-file` writes the foreground process PID and is removed when keep-alive exits.
 
 | Option            | Short | Description                                           |
 | ----------------- | ----- | ----------------------------------------------------- |
@@ -477,8 +495,25 @@ clear failures are ignored.
 | --interval        |       | Refresh interval in seconds (default: 80)             |
 | --max-duration    |       | Maximum duration in seconds (default: 600)            |
 | --stop-file       |       | Stop when this path exists                            |
+| --detach          |       | Run keep-alive in a detached background process       |
+| --pid-file        |       | Write the keep-alive process ID to this file          |
 | --loading-message |       | Optional loading message; repeatable up to 10         |
 | --profile         |       | Use specific workspace profile                        |
+
+#### status stop
+
+Creates the optional stop-file, terminates the optional pid-file process with SIGTERM and then
+SIGKILL after `--timeout`, removes the pid-file, and finally clears status as a backstop. Missing
+files, dead processes, kill failures, and clear failures only print warnings; the command exits 0.
+
+| Option      | Short | Description                                   |
+| ----------- | ----- | --------------------------------------------- |
+| --channel   | -c    | Target channel name or ID (required)          |
+| --thread    | -t    | Thread parent timestamp (required)            |
+| --stop-file |       | Create this stop file before stopping         |
+| --pid-file  |       | Read and stop the process ID from this file   |
+| --timeout   |       | Seconds before SIGKILL after SIGTERM (default: 5) |
+| --profile   |       | Use specific workspace profile                |
 
 ### channels command
 

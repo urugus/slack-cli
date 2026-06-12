@@ -48,7 +48,18 @@ export interface StatusKeepAliveOptions {
   interval?: string;
   maxDuration?: string;
   stopFile?: string;
+  detach?: boolean;
+  pidFile?: string;
   loadingMessage?: string[];
+  profile?: string;
+}
+
+export interface StatusStopOptions {
+  channel: string;
+  thread: string;
+  stopFile?: string;
+  pidFile?: string;
+  timeout?: string;
   profile?: string;
 }
 

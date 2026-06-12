@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.1] - 2026-06-12
+
+### Added
+- Add `status keep-alive --detach` and `--pid-file` for CLI-managed background keep-alive processes
+- Add `status stop` to touch stop files, terminate keep-alive PIDs, and clear status as a backstop
+- Check keep-alive stop files at least every 5 seconds even when refresh intervals are longer
+
 ## [0.23.0] - 2026-06-12
 
 ### Added

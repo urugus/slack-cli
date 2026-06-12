@@ -396,11 +396,6 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   let stopReason: string | undefined;
 
   try {
-    log(
-      `keep-alive started (pid=${process.pid}, channel=${options.channel}, ` +
-        `thread=${options.thread}, interval=${intervalSeconds}s, max-duration=${maxDurationSeconds}s)`
-    );
-
     if (options.pidFile) {
       writePidFile(options.pidFile, process.pid);
     }

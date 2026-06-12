@@ -224,6 +224,195 @@ describe('status command', () => {
       );
     });
 
+    it('should fall back to --text when text-file is empty', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const textFile = tempPath('status.txt');
+      fs.writeFileSync(textFile, '\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Fallback',
+        '--text-file',
+        textFile,
+        '--interval',
+        '10',
+        '--max-duration',
+        '10',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Fallback',
+        loadingMessages: [],
+      });
+
+      await vi.advanceTimersByTimeAsync(10000);
+      await keepAlivePromise;
+      fs.unlinkSync(textFile);
+    });
+
+    it('should resend immediately when text-file content changes', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const textFile = tempPath('status.txt');
+      fs.writeFileSync(textFile, 'Phase 1\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Fallback',
+        '--text-file',
+        textFile,
+        '--interval',
+        '30',
+        '--max-duration',
+        '30',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledTimes(1);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenLastCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Phase 1',
+        loadingMessages: [],
+      });
+
+      fs.writeFileSync(textFile, 'Phase 2\n');
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledTimes(2);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenLastCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Phase 2',
+        loadingMessages: [],
+      });
+
+      await vi.advanceTimersByTimeAsync(25000);
+      await keepAlivePromise;
+      fs.unlinkSync(textFile);
+    });
+
+    it('should not resend immediately when text-file content is unchanged', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const textFile = tempPath('status.txt');
+      fs.writeFileSync(textFile, 'Working\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Fallback',
+        '--text-file',
+        textFile,
+        '--interval',
+        '30',
+        '--max-duration',
+        '30',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledTimes(1);
+
+      fs.writeFileSync(textFile, 'Working\n');
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(25000);
+      await keepAlivePromise;
+      fs.unlinkSync(textFile);
+    });
+
+    it('should continue with fallback text when text-file disappears', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const textFile = tempPath('status.txt');
+      fs.writeFileSync(textFile, 'Phase 1\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Fallback',
+        '--text-file',
+        textFile,
+        '--interval',
+        '30',
+        '--max-duration',
+        '35',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledTimes(1);
+
+      fs.unlinkSync(textFile);
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledTimes(2);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenLastCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Fallback',
+        loadingMessages: [],
+      });
+
+      await vi.advanceTimersByTimeAsync(25000);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledTimes(3);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenLastCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Fallback',
+        loadingMessages: [],
+      });
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await keepAlivePromise;
+    });
+
     it('should spawn a detached copy without --detach and write child pid', async () => {
       const pidFile = tempPath('detached.pid');
       const originalArgv = process.argv;

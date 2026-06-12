@@ -26,6 +26,7 @@ type StatusCommandOptions = {
   channel?: string;
   thread?: string;
   text?: string;
+  textFile?: string;
   interval?: string;
   maxDuration?: string;
   timeout?: string;
@@ -131,12 +132,19 @@ async function createStopFileAwareDelay(
   ms: number,
   isStopped: () => boolean,
   registerWake: (wake: (() => void) | undefined) => void,
-  stopFile?: string
+  stopFile?: string,
+  onPoll?: () => Promise<void>
 ): Promise<void> {
   const deadline = Date.now() + ms;
 
   while (!isStopped() && Date.now() < deadline) {
     if (stopFile && fs.existsSync(stopFile)) {
+      return;
+    }
+
+    await onPoll?.();
+
+    if (isStopped() || (stopFile && fs.existsSync(stopFile))) {
       return;
     }
 
@@ -150,6 +158,23 @@ async function createStopFileAwareDelay(
 
 function warn(message: string): void {
   console.error(chalk.yellow('Warning:'), message);
+}
+
+function resolveStatusText(text: string, textFile: string | undefined): string {
+  if (!textFile) {
+    return text;
+  }
+
+  try {
+    const content = fs.readFileSync(textFile, 'utf8').trim();
+    if (content === '') {
+      return text;
+    }
+
+    return content.replace(/[\r\n]+/g, '');
+  } catch {
+    return text;
+  }
 }
 
 async function clearStatusIgnoringErrors(
@@ -288,10 +313,41 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   const startedAt = Date.now();
   let stopRequested = false;
   let wakeDelay: (() => void) | undefined;
+  let lastSentStatus: string | undefined;
 
   const requestStop = () => {
     stopRequested = true;
     wakeDelay?.();
+  };
+
+  const setCurrentStatus = async (): Promise<void> => {
+    const status = resolveStatusText(options.text, options.textFile);
+    await client.setAssistantThreadStatus({
+      channel: options.channel,
+      threadTs: options.thread,
+      status,
+      loadingMessages: options.loadingMessage,
+    });
+    lastSentStatus = status;
+  };
+
+  const resendIfStatusTextChanged = async (): Promise<void> => {
+    const status = resolveStatusText(options.text, options.textFile);
+    if (status === lastSentStatus) {
+      return;
+    }
+
+    try {
+      await client.setAssistantThreadStatus({
+        channel: options.channel,
+        threadTs: options.thread,
+        status,
+        loadingMessages: options.loadingMessage,
+      });
+      lastSentStatus = status;
+    } catch (error) {
+      console.error(chalk.yellow('Warning:'), extractErrorMessage(error));
+    }
   };
 
   process.once('SIGINT', requestStop);
@@ -302,12 +358,7 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
       writePidFile(options.pidFile, process.pid);
     }
 
-    await client.setAssistantThreadStatus({
-      channel: options.channel,
-      threadTs: options.thread,
-      status: options.text,
-      loadingMessages: options.loadingMessage,
-    });
+    await setCurrentStatus();
 
     while (!stopRequested) {
       const elapsedMs = Date.now() - startedAt;
@@ -322,7 +373,8 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
         (wake) => {
           wakeDelay = wake;
         },
-        options.stopFile
+        options.stopFile,
+        options.textFile ? resendIfStatusTextChanged : undefined
       );
 
       if (stopRequested) {
@@ -338,12 +390,7 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
       }
 
       try {
-        await client.setAssistantThreadStatus({
-          channel: options.channel,
-          threadTs: options.thread,
-          status: options.text,
-          loadingMessages: options.loadingMessage,
-        });
+        await setCurrentStatus();
       } catch (error) {
         console.error(chalk.yellow('Warning:'), extractErrorMessage(error));
       }
@@ -473,6 +520,7 @@ export function setupStatusCommand(): Command {
     .option('-c, --channel <channel>', 'Target channel name or ID')
     .option('-t, --thread <thread>', 'Thread parent timestamp')
     .requiredOption('--text <text>', 'Status text')
+    .option('--text-file <path>', 'Read status text from this file with --text as fallback')
     .option(
       '--interval <seconds>',
       'Seconds between status refreshes',

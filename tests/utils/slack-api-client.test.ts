@@ -6,6 +6,12 @@ vi.mock('@slack/web-api');
 
 describe('SlackApiClient', () => {
   type MockWebClient = {
+    assistant: {
+      threads: {
+        setStatus: ReturnType<typeof vi.fn>;
+      };
+    };
+    apiCall: ReturnType<typeof vi.fn>;
     chat: {
       postMessage: ReturnType<typeof vi.fn>;
       scheduleMessage: ReturnType<typeof vi.fn>;
@@ -33,6 +39,12 @@ describe('SlackApiClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWebClient = {
+      assistant: {
+        threads: {
+          setStatus: vi.fn(),
+        },
+      },
+      apiCall: vi.fn(),
       chat: {
         postMessage: vi.fn(),
         scheduleMessage: vi.fn(),
@@ -148,6 +160,28 @@ describe('SlackApiClient', () => {
 
       expect(mockWebClient.chat.scheduledMessages.list).toHaveBeenCalledWith({ limit: 50 });
       expect(result).toEqual(mockResponse.scheduled_messages);
+    });
+  });
+
+  describe('setAssistantThreadStatus', () => {
+    it('should set assistant status for a thread', async () => {
+      const mockResponse = { ok: true };
+      vi.mocked(mockWebClient.assistant.threads.setStatus).mockResolvedValue(mockResponse as never);
+
+      const result = await client.setAssistantThreadStatus({
+        channel: 'C1234567890',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['Reading context'],
+      });
+
+      expect(mockWebClient.assistant.threads.setStatus).toHaveBeenCalledWith({
+        channel_id: 'C1234567890',
+        thread_ts: '1234567890.123456',
+        status: 'Working',
+        loading_messages: ['Reading context'],
+      });
+      expect(result).toEqual(mockResponse);
     });
   });
 

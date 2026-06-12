@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.0] - 2026-06-12
+
+### Added
+- Add `status keep-alive --text-file` for dynamic status text with `--text` fallback
+- Refresh keep-alive status immediately when text-file content changes during the 5-second poll loop
+
 ## [0.23.1] - 2026-06-12
 
 ### Added

@@ -116,6 +116,13 @@ slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working
   --max-duration 600 \
   --stop-file /tmp/slack-cli-status.stop
 
+# Keep status alive with dynamic status text from a file
+slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --text-file /tmp/slack-cli-status.txt \
+  --interval 80 \
+  --max-duration 600 \
+  --stop-file /tmp/slack-cli-status.stop
+
 # Run keep-alive in the background and record its PID
 slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
   --interval 80 \
@@ -483,6 +490,11 @@ exists, or SIGINT/SIGTERM is received. Stop-file checks run at least every 5 sec
 the refresh interval is longer. Every exit path sends a final clear request; clear failures are
 ignored.
 
+With `--text-file`, the CLI reads status text from the file on each 5-second poll. Non-empty
+file content overrides `--text`; missing, empty, or unreadable files fall back to `--text`.
+When the resolved text changes, keep-alive sends the new status immediately instead of waiting
+for the next `--interval` refresh.
+
 With `--detach`, the CLI starts the same keep-alive command in a detached child process without
 `--detach`, writes the child PID to `--pid-file`, and exits immediately. Without `--detach`,
 `--pid-file` writes the foreground process PID and is removed when keep-alive exits.
@@ -492,6 +504,7 @@ With `--detach`, the CLI starts the same keep-alive command in a detached child 
 | --channel         | -c    | Target channel name or ID (required)                  |
 | --thread          | -t    | Thread parent timestamp (required)                    |
 | --text            |       | Status text (required)                                |
+| --text-file       |       | Read dynamic status text from this file               |
 | --interval        |       | Refresh interval in seconds (default: 80)             |
 | --max-duration    |       | Maximum duration in seconds (default: 600)            |
 | --stop-file       |       | Stop when this path exists                            |

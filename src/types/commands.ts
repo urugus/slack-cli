@@ -45,6 +45,7 @@ export interface StatusKeepAliveOptions {
   channel: string;
   thread: string;
   text: string;
+  textFile?: string;
   interval?: string;
   maxDuration?: string;
   stopFile?: string;

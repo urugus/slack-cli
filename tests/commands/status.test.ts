@@ -843,6 +843,34 @@ describe('status command', () => {
       expect(content).toContain('detached keep-alive started (pid=4321)');
     });
 
+    it('should log startup failures when the Slack client cannot be created', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockRejectedValue(new Error('No configuration found'));
+      const logFile = tempPath('keepalive-startup-failure.log');
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--log-file',
+        logFile,
+      ]);
+
+      const content = fs.readFileSync(logFile, 'utf8');
+      fs.unlinkSync(logFile);
+
+      expect(content).toContain('keep-alive started (pid=');
+      expect(content).toContain('keep-alive startup failed: No configuration found');
+      expect(mockSlackClient.setAssistantThreadStatus).not.toHaveBeenCalled();
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+
     it('should not create a log file when --log-file is omitted', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));

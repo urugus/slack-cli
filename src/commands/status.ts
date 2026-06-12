@@ -335,7 +335,20 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   const intervalMs = intervalSeconds * 1000;
   const maxDurationMs = maxDurationSeconds * 1000;
   const profile = parseProfile(options.profile);
-  const client = await createSlackClient(profile);
+
+  log(
+    `keep-alive started (pid=${process.pid}, channel=${options.channel}, ` +
+      `thread=${options.thread}, interval=${intervalSeconds}s, max-duration=${maxDurationSeconds}s)`
+  );
+
+  let client: Awaited<ReturnType<typeof createSlackClient>>;
+  try {
+    client = await createSlackClient(profile);
+  } catch (error) {
+    log(`keep-alive startup failed: ${extractErrorMessage(error)}`);
+    throw error;
+  }
+
   const startedAt = Date.now();
   let stopRequested = false;
   let wakeDelay: (() => void) | undefined;
@@ -383,11 +396,6 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   let stopReason: string | undefined;
 
   try {
-    log(
-      `keep-alive started (pid=${process.pid}, channel=${options.channel}, ` +
-        `thread=${options.thread}, interval=${intervalSeconds}s, max-duration=${maxDurationSeconds}s)`
-    );
-
     if (options.pidFile) {
       writePidFile(options.pidFile, process.pid);
     }
@@ -433,7 +441,7 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
       }
     }
 
-    if (stopRequested) {
+    if (stopRequested && stopReason === undefined) {
       stopReason = 'stop signal received';
     }
   } finally {

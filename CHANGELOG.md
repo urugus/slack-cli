@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.0] - 2026-06-12
+
+### Added
+- Add `status` command for Slack `assistant.threads.setStatus`
+- Support `status set`, `status clear`, and `status keep-alive`
+- Support repeated `--loading-message` values, up to Slack's 10 message limit
+
 ## [0.4.4] - 2026-02-22
 
 ### Changed

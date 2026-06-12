@@ -22,6 +22,7 @@ import { setupScheduledCommand } from './commands/scheduled';
 import { setupSearchCommand } from './commands/search';
 import { setupSendCommand } from './commands/send';
 import { setupSendEphemeralCommand } from './commands/send-ephemeral';
+import { setupStatusCommand } from './commands/status';
 import { setupUnreadCommand } from './commands/unread';
 import { setupUploadCommand } from './commands/upload';
 import { setupUsersCommand } from './commands/users';
@@ -70,6 +71,7 @@ export function createProgram(): Command {
   program.addCommand(setupReminderCommand());
   program.addCommand(setupBookmarkCommand());
   program.addCommand(setupCanvasCommand());
+  program.addCommand(setupStatusCommand());
 
   return program;
 }

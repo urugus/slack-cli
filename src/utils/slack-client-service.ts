@@ -26,6 +26,11 @@ import type {
   StarListResult,
   UserPresence,
 } from '../types/slack';
+import {
+  AssistantOperations,
+  type AssistantThreadStatusOptions,
+  type AssistantThreadStatusResponse,
+} from './slack-operations/assistant-operations';
 import { createSlackClientContext } from './slack-operations/base-client';
 import { CanvasOperations } from './slack-operations/canvas-operations';
 import { ChannelOperations } from './slack-operations/channel-operations';
@@ -54,6 +59,7 @@ export class SlackApiClient {
   private reminderOps: ReminderOperations;
   private starOps: StarOperations;
   private canvasOps: CanvasOperations;
+  private assistantOps: AssistantOperations;
 
   constructor(token: string) {
     const sharedContext = createSlackClientContext(token);
@@ -67,6 +73,7 @@ export class SlackApiClient {
     this.reminderOps = new ReminderOperations(sharedContext);
     this.starOps = new StarOperations(sharedContext);
     this.canvasOps = new CanvasOperations(sharedContext, this.channelOps);
+    this.assistantOps = new AssistantOperations(sharedContext, this.channelOps);
   }
 
   async sendMessage(
@@ -257,6 +264,19 @@ export class SlackApiClient {
 
   async listReminders(): Promise<Reminder[]> {
     return this.reminderOps.listReminders();
+  }
+
+  async setAssistantThreadStatus(
+    options: AssistantThreadStatusOptions
+  ): Promise<AssistantThreadStatusResponse> {
+    return this.assistantOps.setThreadStatus(options);
+  }
+
+  async clearAssistantThreadStatus(
+    channel: string,
+    threadTs: string
+  ): Promise<AssistantThreadStatusResponse> {
+    return this.assistantOps.clearThreadStatus(channel, threadTs);
   }
 
   async deleteReminder(reminderId: string): Promise<void> {

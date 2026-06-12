@@ -27,6 +27,31 @@ export interface SendOptions {
   profile?: string;
 }
 
+export interface StatusSetOptions {
+  channel: string;
+  thread: string;
+  text: string;
+  loadingMessage?: string[];
+  profile?: string;
+}
+
+export interface StatusClearOptions {
+  channel: string;
+  thread: string;
+  profile?: string;
+}
+
+export interface StatusKeepAliveOptions {
+  channel: string;
+  thread: string;
+  text: string;
+  interval?: string;
+  maxDuration?: string;
+  stopFile?: string;
+  loadingMessage?: string[];
+  profile?: string;
+}
+
 export interface ScheduledListOptions {
   channel?: string;
   limit?: string;

@@ -92,6 +92,31 @@ slack-cli send --user @john -m "Hello via DM!"
 slack-cli send --email john@example.com -m "Hello via DM!"
 ```
 
+### Assistant Thread Status
+
+Slack's `assistant.threads.setStatus` API can show a temporary loading status such as
+`<App name> is thinking...` on a normal channel thread. Since Slack's 2026-03-05
+change, this works with the `chat:write` scope.
+
+```bash
+# Set status on a thread
+slack-cli status set -c channel-name -t 1719207629.000100 --text "Working on it"
+
+# Set status with rotating loading messages
+slack-cli status set -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --loading-message "Reading context" \
+  --loading-message "Calling tools"
+
+# Clear status
+slack-cli status clear -c channel-name -t 1719207629.000100
+
+# Keep status alive until max duration, stop file, or SIGINT/SIGTERM
+slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --interval 80 \
+  --max-duration 600 \
+  --stop-file /tmp/slack-cli-status.stop
+```
+
 ### List Channels
 
 ```bash
@@ -415,6 +440,46 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 | --at      |       | Schedule time (Unix seconds or ISO 8601) |
 | --after   |       | Schedule message after N minutes         |
 
+### status command
+
+Subcommands: `set`, `clear`, `keep-alive`
+
+#### status set
+
+| Option            | Short | Description                                      |
+| ----------------- | ----- | ------------------------------------------------ |
+| --channel         | -c    | Target channel name or ID (required)             |
+| --thread          | -t    | Thread parent timestamp (required)               |
+| --text            |       | Status text (required)                           |
+| --loading-message |       | Optional loading message; repeatable up to 10    |
+| --profile         |       | Use specific workspace profile                   |
+
+#### status clear
+
+| Option    | Short | Description                          |
+| --------- | ----- | ------------------------------------ |
+| --channel | -c    | Target channel name or ID (required) |
+| --thread  | -t    | Thread parent timestamp (required)   |
+| --profile |       | Use specific workspace profile       |
+
+#### status keep-alive
+
+Refreshes status immediately and then every `--interval` seconds because Slack clears assistant
+thread status after roughly two minutes. It stops when `--max-duration` elapses, `--stop-file`
+exists at a tick, or SIGINT/SIGTERM is received. Every exit path sends a final clear request;
+clear failures are ignored.
+
+| Option            | Short | Description                                           |
+| ----------------- | ----- | ----------------------------------------------------- |
+| --channel         | -c    | Target channel name or ID (required)                  |
+| --thread          | -t    | Thread parent timestamp (required)                    |
+| --text            |       | Status text (required)                                |
+| --interval        |       | Refresh interval in seconds (default: 80)             |
+| --max-duration    |       | Maximum duration in seconds (default: 600)            |
+| --stop-file       |       | Stop when this path exists                            |
+| --loading-message |       | Optional loading message; repeatable up to 10         |
+| --profile         |       | Use specific workspace profile                        |
+
 ### channels command
 
 | Option             | Short | Description                                                    |
@@ -605,7 +670,7 @@ Writes markdown to an existing Canvas. It does not create a new Canvas.
 
 Your Slack API token needs the following scopes:
 
-- `chat:write` - Send and edit messages
+- `chat:write` - Send and edit messages; also required for `status` commands using Slack's `assistant.threads.setStatus` API
 - `channels:read` - List public channels and get channel info
 - `channels:write` - Set topic/purpose for public channels
 - `groups:read` - List private channels and get channel info

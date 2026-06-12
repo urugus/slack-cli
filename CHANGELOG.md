@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0] - 2026-06-12
+
+### Added
+- Add `status keep-alive --log-file` to append timestamped activity logs (start, setStatus success/failure, text changes, stop reason) for observability of detached keep-alive processes
+
 ## [0.24.0] - 2026-06-12
 
 ### Added

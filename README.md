@@ -123,13 +123,14 @@ slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working
   --max-duration 600 \
   --stop-file /tmp/slack-cli-status.stop
 
-# Run keep-alive in the background and record its PID
+# Run keep-alive in the background, record its PID, and log activity to a file
 slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
   --interval 80 \
   --max-duration 600 \
   --stop-file /tmp/slack-cli-status.stop \
   --detach \
-  --pid-file /tmp/slack-cli-status.pid
+  --pid-file /tmp/slack-cli-status.pid \
+  --log-file /tmp/slack-cli-status.log
 
 # Stop a background keep-alive process and clear status as a backstop
 slack-cli status stop -c channel-name -t 1719207629.000100 \
@@ -499,6 +500,12 @@ With `--detach`, the CLI starts the same keep-alive command in a detached child 
 `--detach`, writes the child PID to `--pid-file`, and exits immediately. Without `--detach`,
 `--pid-file` writes the foreground process PID and is removed when keep-alive exits.
 
+With `--log-file`, keep-alive appends timestamped activity logs to the file: startup parameters,
+each `setStatus` success or failure with the error message, status text changes detected from
+`--text-file`, and the stop reason. The option is passed through to the detached child, so
+`--detach` runs stay traceable even though the child runs with `stdio: 'ignore'`. Log writes are
+best-effort and never interrupt keep-alive.
+
 | Option            | Short | Description                                           |
 | ----------------- | ----- | ----------------------------------------------------- |
 | --channel         | -c    | Target channel name or ID (required)                  |
@@ -510,6 +517,7 @@ With `--detach`, the CLI starts the same keep-alive command in a detached child 
 | --stop-file       |       | Stop when this path exists                            |
 | --detach          |       | Run keep-alive in a detached background process       |
 | --pid-file        |       | Write the keep-alive process ID to this file          |
+| --log-file        |       | Append timestamped activity logs to this file         |
 | --loading-message |       | Optional loading message; repeatable up to 10         |
 | --profile         |       | Use specific workspace profile                        |
 

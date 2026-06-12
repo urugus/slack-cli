@@ -51,6 +51,7 @@ export interface StatusKeepAliveOptions {
   stopFile?: string;
   detach?: boolean;
   pidFile?: string;
+  logFile?: string;
   loadingMessage?: string[];
   profile?: string;
 }

@@ -160,6 +160,29 @@ function warn(message: string): void {
   console.error(chalk.yellow('Warning:'), message);
 }
 
+type KeepAliveLogger = (message: string) => void;
+
+function createKeepAliveLogger(logFile: string | undefined): KeepAliveLogger {
+  if (!logFile) {
+    return () => {
+      // No-op when --log-file is not specified.
+    };
+  }
+
+  return (message) => {
+    try {
+      const directory = path.dirname(logFile);
+      if (directory && directory !== '.') {
+        fs.mkdirSync(directory, { recursive: true });
+      }
+
+      fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${message}\n`);
+    } catch {
+      // Logging is best-effort and must not break keep-alive.
+    }
+  };
+}
+
 function resolveStatusText(text: string, textFile: string | undefined): string {
   if (!textFile) {
     return text;
@@ -214,7 +237,7 @@ function createDetachedArgs(): string[] {
   return process.argv.slice(1).filter((arg) => arg !== '--detach');
 }
 
-function runDetachedKeepAlive(options: StatusKeepAliveOptions): void {
+function runDetachedKeepAlive(options: StatusKeepAliveOptions, log: KeepAliveLogger): void {
   const child = spawn(process.execPath, createDetachedArgs(), {
     detached: true,
     stdio: 'ignore',
@@ -226,6 +249,7 @@ function runDetachedKeepAlive(options: StatusKeepAliveOptions): void {
 
   writePidFile(options.pidFile!, child.pid);
   child.unref();
+  log(`detached keep-alive started (pid=${child.pid})`);
 }
 
 function touchStopFile(stopFile: string): void {
@@ -293,8 +317,10 @@ async function waitForProcessExit(pid: number, timeoutMs: number): Promise<boole
 }
 
 async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
+  const log = createKeepAliveLogger(options.logFile);
+
   if (options.detach) {
-    runDetachedKeepAlive(options);
+    runDetachedKeepAlive(options, log);
     return;
   }
 
@@ -322,21 +348,6 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
 
   const setCurrentStatus = async (): Promise<void> => {
     const status = resolveStatusText(options.text, options.textFile);
-    await client.setAssistantThreadStatus({
-      channel: options.channel,
-      threadTs: options.thread,
-      status,
-      loadingMessages: options.loadingMessage,
-    });
-    lastSentStatus = status;
-  };
-
-  const resendIfStatusTextChanged = async (): Promise<void> => {
-    const status = resolveStatusText(options.text, options.textFile);
-    if (status === lastSentStatus) {
-      return;
-    }
-
     try {
       await client.setAssistantThreadStatus({
         channel: options.channel,
@@ -345,6 +356,22 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
         loadingMessages: options.loadingMessage,
       });
       lastSentStatus = status;
+      log(`setStatus succeeded: "${status}"`);
+    } catch (error) {
+      log(`setStatus failed: ${extractErrorMessage(error)}`);
+      throw error;
+    }
+  };
+
+  const resendIfStatusTextChanged = async (): Promise<void> => {
+    const status = resolveStatusText(options.text, options.textFile);
+    if (status === lastSentStatus) {
+      return;
+    }
+
+    log(`status text changed: "${lastSentStatus}" -> "${status}"`);
+    try {
+      await setCurrentStatus();
     } catch (error) {
       console.error(chalk.yellow('Warning:'), extractErrorMessage(error));
     }
@@ -353,7 +380,14 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   process.once('SIGINT', requestStop);
   process.once('SIGTERM', requestStop);
 
+  let stopReason: string | undefined;
+
   try {
+    log(
+      `keep-alive started (pid=${process.pid}, channel=${options.channel}, ` +
+        `thread=${options.thread}, interval=${intervalSeconds}s, max-duration=${maxDurationSeconds}s)`
+    );
+
     if (options.pidFile) {
       writePidFile(options.pidFile, process.pid);
     }
@@ -364,6 +398,7 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
       const elapsedMs = Date.now() - startedAt;
       const remainingMs = maxDurationMs - elapsedMs;
       if (remainingMs <= 0) {
+        stopReason = 'max-duration reached';
         break;
       }
 
@@ -382,10 +417,12 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
       }
 
       if (options.stopFile && fs.existsSync(options.stopFile)) {
+        stopReason = 'stop-file detected';
         break;
       }
 
       if (Date.now() - startedAt >= maxDurationMs) {
+        stopReason = 'max-duration reached';
         break;
       }
 
@@ -395,11 +432,16 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
         console.error(chalk.yellow('Warning:'), extractErrorMessage(error));
       }
     }
+
+    if (stopRequested) {
+      stopReason = 'stop signal received';
+    }
   } finally {
     process.off('SIGINT', requestStop);
     process.off('SIGTERM', requestStop);
     await clearStatusIgnoringErrors(client, options.channel, options.thread);
     removeFileIgnoringErrors(options.pidFile);
+    log(`keep-alive stopped (${stopReason ?? 'error'})`);
   }
 }
 
@@ -552,6 +594,7 @@ export function setupStatusCommand(): Command {
     )
     .option('--detach', 'Run keep-alive in a detached background process')
     .option('--pid-file <path>', 'Write the keep-alive process ID to this file')
+    .option('--log-file <path>', 'Append timestamped keep-alive activity logs to this file')
     .action(wrapCommand(runKeepAlive));
 
   const stopCommand = new Command('stop')

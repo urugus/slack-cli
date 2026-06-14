@@ -179,6 +179,28 @@ describe('channels command', () => {
 
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('"name": "general"'));
     });
+
+    it('should output null created value in JSON when Slack omits created', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue([
+        {
+          id: 'C1234567890',
+          name: 'general',
+          is_channel: true,
+          is_private: false,
+          num_members: 250,
+          purpose: { value: 'Company announcements' },
+        },
+      ]);
+
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--format', 'json']);
+
+      const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0] as string);
+      expect(output[0].created).toBeNull();
+    });
   });
 
   describe('additional options', () => {

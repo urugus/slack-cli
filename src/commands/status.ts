@@ -32,6 +32,7 @@ type StatusCommandOptions = {
   timeout?: string;
   detach?: boolean;
   pidFile?: string;
+  logFile?: string;
   loadingMessage?: string[];
 };
 
@@ -92,6 +93,18 @@ function validatePositiveIntegerOption(
 function validateDetachOptions(options: StatusCommandOptions): string | null {
   if (options.detach && !options.pidFile) {
     return '--pid-file is required when --detach is used';
+  }
+
+  return null;
+}
+
+function validateDistinctLifecycleFiles(options: StatusCommandOptions): string | null {
+  if (!options.pidFile || !options.logFile) {
+    return null;
+  }
+
+  if (path.resolve(options.pidFile) === path.resolve(options.logFile)) {
+    return '--pid-file and --log-file must be different paths';
   }
 
   return null;
@@ -598,6 +611,7 @@ export function setupStatusCommand(): Command {
         (options) => validatePositiveIntegerOption(options, 'interval', '--interval'),
         (options) => validatePositiveIntegerOption(options, 'maxDuration', '--max-duration'),
         validateDetachOptions,
+        validateDistinctLifecycleFiles,
       ])
     )
     .option('--detach', 'Run keep-alive in a detached background process')

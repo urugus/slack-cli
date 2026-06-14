@@ -1310,6 +1310,34 @@ describe('status command', () => {
       ).rejects.toThrow('--pid-file is required when --detach is used');
     });
 
+    it('should reject using the same path for pid-file and log-file', async () => {
+      const statusCommand = setupStatusCommand();
+      statusCommand.exitOverride();
+      const keepAliveCommand = statusCommand.commands.find(
+        (command) => command.name() === 'keep-alive'
+      )!;
+      keepAliveCommand.exitOverride();
+      const sharedPath = tempPath('shared-lifecycle-file');
+
+      await expect(
+        keepAliveCommand.parseAsync(
+          [
+            '-c',
+            'general',
+            '-t',
+            '1234567890.123456',
+            '--text',
+            'Working',
+            '--pid-file',
+            sharedPath,
+            '--log-file',
+            sharedPath,
+          ],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('--pid-file and --log-file must be different paths');
+    });
+
     it('should reject invalid stop timeout', async () => {
       const statusCommand = setupStatusCommand();
       statusCommand.exitOverride();

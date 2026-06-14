@@ -30,6 +30,8 @@ describe('channel-formatter', () => {
     expect(mapChannelToInfo({ id: 'M1', is_mpim: true }).type).toBe('mpim');
     expect(mapChannelToInfo({ id: 'X1' }).type).toBe('unknown');
     expect(mapChannelToInfo({ id: 'X1' }).name).toBe('unnamed');
+    expect(mapChannelToInfo({ id: 'X1' }).created).toBe('');
+    expect(mapChannelToInfo({ id: 'X1', created: 0 }).created).toBe('1970-01-01');
   });
 
   it('formats channel names safely', () => {

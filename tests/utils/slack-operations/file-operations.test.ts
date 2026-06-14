@@ -286,5 +286,155 @@ describe('FileOperations', () => {
         'Slack returned HTML instead of the file'
       );
     });
+
+    it('should reject missing file metadata and missing download URLs', async () => {
+      mockClient.files.info.mockResolvedValueOnce({});
+
+      await expect(fileOps.downloadFile({ fileId: 'missing' })).rejects.toThrow(
+        'Slack file not found: missing'
+      );
+
+      mockClient.files.info.mockResolvedValueOnce({
+        file: { id: 'F123', name: 'image.png' },
+      });
+
+      await expect(fileOps.downloadFile({ fileId: 'F123' })).rejects.toThrow(
+        'Selected Slack file does not include a private download URL'
+      );
+    });
+
+    it('should reject non-successful file download responses', async () => {
+      mockClient.files.info.mockResolvedValue({
+        file: {
+          id: 'F123',
+          name: 'image.png',
+          url_private: 'https://files.slack.com/files-pri/T123-F123/image.png',
+        },
+      });
+      fetchMock.mockResolvedValueOnce(
+        new Response('missing', {
+          status: 404,
+          statusText: 'Not Found',
+        })
+      );
+
+      await expect(fileOps.downloadFile({ fileId: 'F123' })).rejects.toThrow(
+        'Failed to download Slack file: 404 Not Found'
+      );
+    });
+
+    it('should validate message file selection inputs', async () => {
+      await expect(fileOps.downloadFile({ messageTs: '1.2' })).rejects.toThrow(
+        'Channel and message timestamp are required'
+      );
+
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+      mockClient.conversations.history.mockResolvedValueOnce({
+        messages: [{ type: 'message', ts: '1.2', files: [] }],
+      });
+
+      await expect(fileOps.downloadFile({ channel: 'general', messageTs: '1.2' })).rejects.toThrow(
+        'No files found on message 1.2'
+      );
+
+      mockClient.conversations.history.mockResolvedValueOnce({
+        messages: [
+          {
+            type: 'message',
+            ts: '1.2',
+            files: [
+              {
+                id: 'F123',
+                name: 'image.png',
+                url_private_download: 'https://files.slack.com/files-pri/T123-F123/image.png',
+              },
+            ],
+          },
+        ],
+      });
+
+      await expect(
+        fileOps.downloadFile({ channel: 'general', messageTs: '1.2', fileIndex: 2 })
+      ).rejects.toThrow('File index 2 is out of range');
+    });
+
+    it('should require a token before downloading private files', async () => {
+      mockClient.files.info.mockResolvedValue({
+        file: {
+          id: 'F123',
+          name: 'image.png',
+          url_private_download: 'https://files.slack.com/files-pri/T123-F123/image.png',
+        },
+      });
+      (fileOps as unknown as { token?: string }).token = undefined;
+
+      await expect(fileOps.downloadFile({ fileId: 'F123' })).rejects.toThrow(
+        'Slack token is required to download private files'
+      );
+    });
+
+    it('should follow redirects and stop sending Slack auth off-domain', async () => {
+      mockClient.files.info.mockResolvedValue({
+        file: {
+          id: 'F123',
+          name: 'image.png',
+          url_private_download: 'https://files.slack.com/files-pri/T123-F123/image.png',
+        },
+      });
+      fetchMock
+        .mockResolvedValueOnce(
+          new Response(null, {
+            status: 302,
+            headers: { location: 'https://downloads.example.com/image.png' },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(Buffer.from('redirected'), {
+            status: 200,
+            headers: { 'content-type': 'image/png' },
+          })
+        );
+
+      await expect(
+        fileOps.downloadFile({ fileId: 'F123', outputPath: '/tmp/image.png' })
+      ).resolves.toMatchObject({ bytes: 10 });
+
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        'https://files.slack.com/files-pri/T123-F123/image.png',
+        {
+          headers: { Authorization: 'Bearer test-token' },
+          redirect: 'manual',
+        }
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://downloads.example.com/image.png', {
+        headers: undefined,
+        redirect: 'manual',
+      });
+    });
+
+    it('should reject redirects without a location or with too many hops', async () => {
+      mockClient.files.info.mockResolvedValue({
+        file: {
+          id: 'F123',
+          name: 'image.png',
+          url_private_download: 'https://files.slack.com/files-pri/T123-F123/image.png',
+        },
+      });
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 302 }));
+
+      await expect(fileOps.downloadFile({ fileId: 'F123' })).rejects.toThrow(
+        'redirected without a Location header'
+      );
+
+      fetchMock.mockResolvedValue(
+        new Response(null, {
+          status: 302,
+          headers: { location: '/next' },
+        })
+      );
+
+      await expect(fileOps.downloadFile({ fileId: 'F123' })).rejects.toThrow('Too many redirects');
+    });
   });
 });

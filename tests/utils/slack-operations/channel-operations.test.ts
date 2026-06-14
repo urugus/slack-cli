@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelOperations } from '../../../src/utils/slack-operations/channel-operations';
 
 vi.mock('@slack/web-api', () => ({
@@ -65,6 +65,10 @@ describe('ChannelOperations', () => {
     channelOps = new ChannelOperations('test-token');
     // Replace the client with our mock
     (channelOps as unknown as { client: MockClient }).client = mockClient;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('fetchUserChannels', () => {
@@ -269,6 +273,14 @@ describe('ChannelOperations', () => {
       expect(mockClient.conversations.list).toHaveBeenCalledTimes(1);
     });
 
+    it('should rethrow missing_scope when needed scopes do not map to channel lookup types', async () => {
+      const missingScopeError = createMissingScopeError('chat:write');
+      mockClient.conversations.list.mockRejectedValueOnce(missingScopeError);
+
+      await expect(channelOps.resolveChannelId('general')).rejects.toBe(missingScopeError);
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(1);
+    });
+
     it('should not retry on non-missing_scope errors', async () => {
       mockClient.conversations.list.mockRejectedValueOnce(new Error('invalid_auth'));
 
@@ -392,6 +404,61 @@ describe('ChannelOperations', () => {
       expect(result[0].id).toBe('C333');
     });
 
+    it('should skip channels whose unread info lookup fails after rate-limit handling', async () => {
+      vi.useFakeTimers();
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [{ id: 'C222' }],
+        response_metadata: { next_cursor: '' },
+      });
+      mockClient.conversations.info.mockRejectedValue(new Error('rate limit'));
+
+      const resultPromise = channelOps.listUnreadChannels();
+      await vi.advanceTimersByTimeAsync(20000);
+
+      await expect(resultPromise).resolves.toEqual([]);
+    });
+
+    it('should enrich unread channels but keep originals when enrichment fails', async () => {
+      vi.useFakeTimers();
+      const originalChannel = { id: 'C222', unread_count: 1 };
+      mockClient.conversations.info.mockRejectedValue(new Error('rate limit'));
+
+      const resultPromise = channelOps.enrichUnreadChannels([originalChannel]);
+      await vi.advanceTimersByTimeAsync(20000);
+
+      await expect(resultPromise).resolves.toEqual([originalChannel]);
+    });
+
+    it('should retry channel info lookups after transient rate limits', async () => {
+      vi.useFakeTimers();
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [{ id: 'C777' }],
+        response_metadata: { next_cursor: '' },
+      });
+      mockClient.conversations.info
+        .mockRejectedValueOnce(new Error('rate limit'))
+        .mockResolvedValueOnce({
+          channel: {
+            id: 'C777',
+            name: 'busy-channel',
+            unread_count: 3,
+            unread_count_display: 3,
+          },
+        });
+
+      const resultPromise = channelOps.listUnreadChannels();
+      await vi.advanceTimersByTimeAsync(5000);
+
+      await expect(resultPromise).resolves.toEqual([
+        expect.objectContaining({
+          id: 'C777',
+          name: 'busy-channel',
+          unread_count: 3,
+        }),
+      ]);
+      expect(mockClient.conversations.info).toHaveBeenCalledTimes(2);
+    });
+
     it('should avoid conversations.info when users.conversations already includes unread counters', async () => {
       mockClient.users.conversations.mockResolvedValue({
         channels: [
@@ -484,6 +551,52 @@ describe('ChannelOperations', () => {
       expect(mockClient.users.info).toHaveBeenCalledWith({ user: 'U999' });
     });
 
+    it('should fall back to user ID when DM user lookup fails', async () => {
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [
+          { id: 'D999', is_im: true, user: 'U999', unread_count: 2, unread_count_display: 2 },
+        ],
+        response_metadata: { next_cursor: '' },
+      });
+      mockClient.users.info.mockRejectedValue(new Error('missing_scope'));
+
+      const result = await channelOps.listUnreadChannels();
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: 'D999',
+          display_name: '@U999',
+        }),
+      ]);
+    });
+
+    it('should use MPIM purpose or channel ID as display name fallback', async () => {
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [
+          {
+            id: 'G123',
+            is_mpim: true,
+            unread_count: 1,
+            unread_count_display: 1,
+            purpose: { value: ' Project Group ' },
+          },
+          {
+            id: 'G456',
+            is_mpim: true,
+            unread_count: 1,
+            unread_count_display: 1,
+            purpose: { value: '  ' },
+          },
+        ],
+        response_metadata: { next_cursor: '' },
+      });
+
+      const result = await channelOps.listUnreadChannels();
+
+      expect(result[0]).toEqual(expect.objectContaining({ display_name: 'Project Group' }));
+      expect(result[1]).toEqual(expect.objectContaining({ display_name: 'G456' }));
+    });
+
     it('should sanitize resolved display names for unread conversations', async () => {
       mockClient.users.conversations.mockResolvedValue({
         channels: [
@@ -552,6 +665,26 @@ describe('ChannelOperations', () => {
 
       expect(result).toHaveLength(2);
       expect(mockClient.conversations.list).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getChannelInfo', () => {
+    it('should resolve names and fetch channel info without member counts', async () => {
+      mockClient.conversations.list.mockResolvedValue({
+        channels: [{ id: 'C123', name: 'general' }],
+        response_metadata: { next_cursor: '' },
+      });
+      mockClient.conversations.info.mockResolvedValue({
+        channel: { id: 'C123', name: 'general' },
+      });
+
+      await expect(channelOps.getChannelInfo('general')).resolves.toEqual({
+        id: 'C123',
+        name: 'general',
+      });
+      expect(mockClient.conversations.info).toHaveBeenCalledWith({
+        channel: 'C123',
+      });
     });
   });
 });

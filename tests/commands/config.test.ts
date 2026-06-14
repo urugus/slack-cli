@@ -96,6 +96,41 @@ describe('profile config command', () => {
       stdinSpy.mockRestore();
     });
 
+    it('should reject using --token and --token-stdin together', async () => {
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'config',
+        'set',
+        '--token',
+        'test-token-123',
+        '--token-stdin',
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.stringContaining('Cannot use --token and --token-stdin together')
+      );
+      expect(mockConfigManager.setToken).not.toHaveBeenCalled();
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('should reject empty stdin input', async () => {
+      const stdinSpy = vi
+        .spyOn(process, 'stdin', 'get')
+        .mockReturnValue(Readable.from(['\n']) as unknown as NodeJS.ReadStream);
+
+      await program.parseAsync(['node', 'slack-cli', 'config', 'set', '--token-stdin']);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.stringContaining('No token received from stdin')
+      );
+      expect(mockConfigManager.setToken).not.toHaveBeenCalled();
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+      stdinSpy.mockRestore();
+    });
+
     it('should show error when interactive prompt is unavailable', async () => {
       delete process.env.SLACK_CLI_TOKEN;
 
@@ -124,6 +159,17 @@ describe('profile config command', () => {
       expect(mockConfigManager.getConfig).toHaveBeenCalledWith('work');
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining('Configuration for profile "work":')
+      );
+    });
+
+    it('should show a setup hint when config is missing', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue(null);
+      vi.mocked(mockConfigManager.getCurrentProfile).mockResolvedValue('default');
+
+      await program.parseAsync(['node', 'slack-cli', 'config', 'get']);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(ERROR_MESSAGES.NO_CONFIG('default'))
       );
     });
   });

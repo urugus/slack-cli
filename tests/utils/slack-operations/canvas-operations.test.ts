@@ -28,6 +28,9 @@ describe('CanvasOperations', () => {
         lookup: ReturnType<typeof vi.fn>;
       };
     };
+    files: {
+      list: ReturnType<typeof vi.fn>;
+    };
   };
 
   let canvasOps: CanvasOperations;
@@ -123,6 +126,61 @@ describe('CanvasOperations', () => {
       await expect(canvasOps.writeCanvas('invalid-id', '追記する内容', 'end')).rejects.toThrow(
         'canvas_not_found'
       );
+    });
+  });
+
+  describe('readCanvas', () => {
+    it('should look up canvas header sections', async () => {
+      mockClient.canvases.sections.lookup.mockResolvedValue({
+        sections: [{ id: 'S1', type: 'h1', text: 'Title' }],
+      });
+
+      const result = await canvasOps.readCanvas('F0AJ4852CQN');
+
+      expect(mockClient.canvases.sections.lookup).toHaveBeenCalledWith({
+        canvas_id: 'F0AJ4852CQN',
+        criteria: { section_types: ['any_header'] },
+      });
+      expect(result).toEqual([{ id: 'S1', type: 'h1', text: 'Title' }]);
+    });
+
+    it('should return an empty list when the API omits sections', async () => {
+      mockClient.canvases.sections.lookup.mockResolvedValue({});
+
+      await expect(canvasOps.readCanvas('F0AJ4852CQN')).resolves.toEqual([]);
+    });
+  });
+
+  describe('listCanvases', () => {
+    it('should resolve channel names before listing canvas files', async () => {
+      const channelOps = {
+        resolveChannelId: vi.fn().mockResolvedValue('C1234567890'),
+      };
+      canvasOps = new CanvasOperations('test-token', channelOps as never);
+      mockClient = (canvasOps as unknown as { client: MockClient }).client;
+      mockClient.files.list.mockResolvedValue({
+        files: [{ id: 'F1', name: 'Project canvas' }],
+      });
+
+      const result = await canvasOps.listCanvases('general');
+
+      expect(channelOps.resolveChannelId).toHaveBeenCalledWith('general');
+      expect(mockClient.files.list).toHaveBeenCalledWith({
+        channel: 'C1234567890',
+        types: 'spaces',
+      });
+      expect(result).toEqual([{ id: 'F1', name: 'Project canvas' }]);
+    });
+
+    it('should return an empty list when the API omits files', async () => {
+      const channelOps = {
+        resolveChannelId: vi.fn().mockResolvedValue('C1234567890'),
+      };
+      canvasOps = new CanvasOperations('test-token', channelOps as never);
+      mockClient = (canvasOps as unknown as { client: MockClient }).client;
+      mockClient.files.list.mockResolvedValue({});
+
+      await expect(canvasOps.listCanvases('general')).resolves.toEqual([]);
     });
   });
 });

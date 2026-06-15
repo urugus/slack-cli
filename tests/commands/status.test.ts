@@ -477,6 +477,39 @@ describe('status command', () => {
       fs.unlinkSync(pidFile);
     });
 
+    it('should report an error when detached spawn does not return a pid', async () => {
+      const pidFile = tempPath('detached-missing-pid.pid');
+      vi.mocked(spawn).mockReturnValue({
+        pid: undefined,
+        unref: vi.fn(),
+      } as ReturnType<typeof spawn>);
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--detach',
+        '--pid-file',
+        pidFile,
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        expect.stringContaining('Failed to start detached keep-alive process')
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+      if (fs.existsSync(pidFile)) {
+        fs.unlinkSync(pidFile);
+      }
+    });
+
     it('should write and remove pid-file during foreground keep-alive', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
@@ -668,6 +701,44 @@ describe('status command', () => {
       expect(lines.at(-1)).toContain('keep-alive stopped (max-duration reached)');
     });
 
+    it('should create the log directory before writing entries', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const logDirectory = tempPath('keepalive-log-dir');
+      const logFile = path.join(logDirectory, 'keepalive.log');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--interval',
+        '5',
+        '--max-duration',
+        '5',
+        '--log-file',
+        logFile,
+      ]);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await keepAlivePromise;
+
+      const lines = fs.readFileSync(logFile, 'utf8').trim().split('\n');
+      expect(lines.length).toBeGreaterThan(1);
+      expect(lines[0]).toContain('keep-alive started');
+      expect(lines.at(-1)).toContain('keep-alive stopped (max-duration reached)');
+      fs.rmSync(logDirectory, { recursive: true, force: true });
+    });
+
     it('should log setStatus failures with the error message', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
@@ -792,6 +863,50 @@ describe('status command', () => {
 
       expect(content).toContain('status text changed: "Phase 1" -> "Phase 2"');
       expect(content).toContain('setStatus succeeded: "Phase 2"');
+    });
+
+    it('should warn when a text-file change refresh fails', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus)
+        .mockResolvedValueOnce({ ok: true })
+        .mockRejectedValueOnce(new Error('refresh failed'));
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const textFile = tempPath('warn-status.txt');
+      fs.writeFileSync(textFile, 'Phase 1\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Fallback',
+        '--text-file',
+        textFile,
+        '--interval',
+        '30',
+        '--max-duration',
+        '30',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      fs.writeFileSync(textFile, 'Phase 2\n');
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Warning:'),
+        'refresh failed'
+      );
+
+      await vi.advanceTimersByTimeAsync(25000);
+      await keepAlivePromise;
+      fs.unlinkSync(textFile);
     });
 
     it('should pass --log-file through to the detached child and log the spawn', async () => {
@@ -1020,9 +1135,151 @@ describe('status command', () => {
       );
       expect(mockConsole.exitSpy).not.toHaveBeenCalled();
     });
+
+    it('should warn and remove invalid pid-files', async () => {
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const pidFile = tempPath('invalid.pid');
+      fs.writeFileSync(pidFile, 'not-a-pid\n');
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'stop',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--pid-file',
+        pidFile,
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Warning:'),
+        expect.stringContaining('Invalid pid-file')
+      );
+      expect(fs.existsSync(pidFile)).toBe(false);
+    });
+
+    it('should warn and remove pid-files for non-running processes', async () => {
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const pidFile = tempPath('not-running.pid');
+      fs.writeFileSync(pidFile, '34567\n');
+      vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
+        if (pid === 34567 && signal === 0) {
+          throw notRunningError();
+        }
+        return true;
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'stop',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--pid-file',
+        pidFile,
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Warning:'),
+        expect.stringContaining('Process 34567 is not running')
+      );
+      expect(fs.existsSync(pidFile)).toBe(false);
+    });
+
+    it('should warn when sending SIGTERM fails', async () => {
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const pidFile = tempPath('signal-failure.pid');
+      fs.writeFileSync(pidFile, '45678\n');
+      vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
+        if (pid === 45678 && signal === 0) {
+          return true;
+        }
+        if (pid === 45678 && signal === 'SIGTERM') {
+          throw new Error('operation not permitted');
+        }
+        return true;
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'stop',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--pid-file',
+        pidFile,
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Warning:'),
+        expect.stringContaining('Failed to send SIGTERM to process 45678')
+      );
+      expect(fs.existsSync(pidFile)).toBe(false);
+    });
+
+    it('should warn when stop-file creation fails', async () => {
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const parentFile = tempPath('stop-parent');
+      fs.writeFileSync(parentFile, '');
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'stop',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--stop-file',
+        path.join(parentFile, 'stop'),
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Warning:'),
+        expect.stringContaining('Failed to create stop-file')
+      );
+      fs.unlinkSync(parentFile);
+    });
   });
 
   describe('validation', () => {
+    it('should require channel, thread, and text values', async () => {
+      const statusCommand = setupStatusCommand();
+      statusCommand.exitOverride();
+      const setCommand = statusCommand.commands.find((command) => command.name() === 'set')!;
+      setCommand.exitOverride();
+      const clearCommand = statusCommand.commands.find((command) => command.name() === 'clear')!;
+      clearCommand.exitOverride();
+
+      await expect(
+        setCommand.parseAsync(['-t', '1234567890.123456', '--text', 'Working'], { from: 'user' })
+      ).rejects.toThrow('--channel is required');
+
+      await expect(clearCommand.parseAsync(['-c', 'general'], { from: 'user' })).rejects.toThrow(
+        '--thread is required'
+      );
+
+      await expect(
+        setCommand.parseAsync(['-c', 'general', '-t', '1234567890.123456', '--text', ''], {
+          from: 'user',
+        })
+      ).rejects.toThrow('--text is required');
+    });
+
     it('should reject more than 10 loading messages', async () => {
       const statusCommand = setupStatusCommand();
       statusCommand.exitOverride();
@@ -1057,6 +1314,22 @@ describe('status command', () => {
           { from: 'user' }
         )
       ).rejects.toThrow('--interval must be a positive integer');
+
+      await expect(
+        keepAliveCommand.parseAsync(
+          [
+            '-c',
+            'general',
+            '-t',
+            '1234567890.123456',
+            '--text',
+            'Working',
+            '--max-duration',
+            'abc',
+          ],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('--max-duration must be a positive integer');
     });
 
     it('should require pid-file when keep-alive is detached', async () => {
@@ -1073,6 +1346,47 @@ describe('status command', () => {
           { from: 'user' }
         )
       ).rejects.toThrow('--pid-file is required when --detach is used');
+    });
+
+    it('should reject using the same path for pid-file and log-file', async () => {
+      const statusCommand = setupStatusCommand();
+      statusCommand.exitOverride();
+      const keepAliveCommand = statusCommand.commands.find(
+        (command) => command.name() === 'keep-alive'
+      )!;
+      keepAliveCommand.exitOverride();
+      const sharedPath = tempPath('shared-lifecycle-file');
+
+      await expect(
+        keepAliveCommand.parseAsync(
+          [
+            '-c',
+            'general',
+            '-t',
+            '1234567890.123456',
+            '--text',
+            'Working',
+            '--pid-file',
+            sharedPath,
+            '--log-file',
+            sharedPath,
+          ],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('--pid-file and --log-file must be different paths');
+    });
+
+    it('should reject invalid stop timeout', async () => {
+      const statusCommand = setupStatusCommand();
+      statusCommand.exitOverride();
+      const stopCommand = statusCommand.commands.find((command) => command.name() === 'stop')!;
+      stopCommand.exitOverride();
+
+      await expect(
+        stopCommand.parseAsync(['-c', 'general', '-t', '1234567890.123456', '--timeout', 'abc'], {
+          from: 'user',
+        })
+      ).rejects.toThrow('--timeout must be a positive integer');
     });
   });
 });

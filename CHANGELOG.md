@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.1] - 2026-06-14
+
+### Added
+- Expand test coverage across command validation, Slack operation wrappers, formatter helpers, update checks, token encryption, and Dependabot risk evaluation
+
+### Fixed
+- Preserve valid channel creation timestamps when `created` is `0`, and emit `null` in channels JSON output when Slack omits the creation timestamp
+- Reject using the same path for `status keep-alive --pid-file` and `--log-file`
+
 ## [0.25.0] - 2026-06-12
 
 ### Added

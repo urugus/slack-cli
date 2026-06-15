@@ -201,6 +201,29 @@ describe('channels command', () => {
       const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0] as string);
       expect(output[0].created).toBeNull();
     });
+
+    it('should preserve Unix epoch created value in JSON output', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue([
+        {
+          id: 'C1234567890',
+          name: 'general',
+          is_channel: true,
+          is_private: false,
+          num_members: 250,
+          created: 0,
+          purpose: { value: 'Company announcements' },
+        },
+      ]);
+
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--format', 'json']);
+
+      const output = JSON.parse(mockConsole.logSpy.mock.calls[0][0] as string);
+      expect(output[0].created).toBe('1970-01-01T00:00:00Z');
+    });
   });
 
   describe('additional options', () => {

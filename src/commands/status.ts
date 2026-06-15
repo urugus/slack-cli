@@ -182,13 +182,19 @@ function createKeepAliveLogger(logFile: string | undefined): KeepAliveLogger {
     };
   }
 
+  try {
+    const directory = path.dirname(logFile);
+    if (directory && directory !== '.') {
+      fs.mkdirSync(directory, { recursive: true });
+    }
+  } catch {
+    return () => {
+      // Logging is best-effort and must not break keep-alive.
+    };
+  }
+
   return (message) => {
     try {
-      const directory = path.dirname(logFile);
-      if (directory && directory !== '.') {
-        fs.mkdirSync(directory, { recursive: true });
-      }
-
       fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${message}\n`);
     } catch {
       // Logging is best-effort and must not break keep-alive.

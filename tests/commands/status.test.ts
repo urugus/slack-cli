@@ -701,6 +701,44 @@ describe('status command', () => {
       expect(lines.at(-1)).toContain('keep-alive stopped (max-duration reached)');
     });
 
+    it('should create the log directory before writing entries', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const logDirectory = tempPath('keepalive-log-dir');
+      const logFile = path.join(logDirectory, 'keepalive.log');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--interval',
+        '5',
+        '--max-duration',
+        '5',
+        '--log-file',
+        logFile,
+      ]);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await keepAlivePromise;
+
+      const lines = fs.readFileSync(logFile, 'utf8').trim().split('\n');
+      expect(lines.length).toBeGreaterThan(1);
+      expect(lines[0]).toContain('keep-alive started');
+      expect(lines.at(-1)).toContain('keep-alive stopped (max-duration reached)');
+      fs.rmSync(logDirectory, { recursive: true, force: true });
+    });
+
     it('should log setStatus failures with the error message', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));

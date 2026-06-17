@@ -209,13 +209,17 @@ function createKeepAliveLogger(logFile: string | undefined): KeepAliveLogger {
 }
 
 function readOptionalFileContent(filePath: string | undefined): OptionalFileContent {
-  if (!filePath || !fs.existsSync(filePath)) {
+  if (!filePath) {
     return { kind: 'absent' };
   }
 
   try {
     return { kind: 'readable', content: fs.readFileSync(filePath, 'utf8') };
   } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+      return { kind: 'absent' };
+    }
+
     return { kind: 'unreadable', error };
   }
 }

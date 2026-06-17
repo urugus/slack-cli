@@ -508,6 +508,47 @@ describe('status command', () => {
       fs.unlinkSync(loadingMessageFile);
     });
 
+    it('should fall back to loading-message arguments when loading-message-file is missing', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const loadingMessageFile = tempPath('missing-loading-message.txt');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--loading-message',
+        'Fallback',
+        '--loading-message-file',
+        loadingMessageFile,
+        '--interval',
+        '5',
+        '--max-duration',
+        '5',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['Fallback'],
+      });
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await keepAlivePromise;
+    });
+
     it('should prefer loading-message-file over multiple loading-message arguments', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));

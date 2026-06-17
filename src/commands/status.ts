@@ -34,6 +34,7 @@ type StatusCommandOptions = {
   pidFile?: string;
   logFile?: string;
   loadingMessage?: string[];
+  loadingMessageFile?: string;
 };
 
 function collectLoadingMessage(value: string, previous: string[] = []): string[] {
@@ -175,6 +176,11 @@ function warn(message: string): void {
 
 type KeepAliveLogger = (message: string) => void;
 
+type OptionalFileContent =
+  | { kind: 'absent' }
+  | { kind: 'readable'; content: string }
+  | { kind: 'unreadable'; error: unknown };
+
 function createKeepAliveLogger(logFile: string | undefined): KeepAliveLogger {
   if (!logFile) {
     return () => {
@@ -202,21 +208,50 @@ function createKeepAliveLogger(logFile: string | undefined): KeepAliveLogger {
   };
 }
 
-function resolveStatusText(text: string, textFile: string | undefined): string {
-  if (!textFile) {
-    return text;
+function readOptionalFileContent(filePath: string | undefined): OptionalFileContent {
+  if (!filePath) {
+    return { kind: 'absent' };
   }
 
   try {
-    const content = fs.readFileSync(textFile, 'utf8').trim();
-    if (content === '') {
-      return text;
+    return { kind: 'readable', content: fs.readFileSync(filePath, 'utf8') };
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+      return { kind: 'absent' };
     }
 
-    return content.replace(/[\r\n]+/g, '');
-  } catch {
+    return { kind: 'unreadable', error };
+  }
+}
+
+function normalizeFileBackedStatusValue(content: string): string {
+  return content.trim().replace(/[\r\n]+/g, '');
+}
+
+function readableFileContent(fileContent: OptionalFileContent): string | undefined {
+  return fileContent.kind === 'readable' ? fileContent.content : undefined;
+}
+
+function resolveLoadingMessages(
+  loadingMessages: string[] | undefined,
+  loadingMessageFileContent: string | undefined
+): string[] {
+  const fallback = loadingMessages ?? [];
+  if (loadingMessageFileContent === undefined) {
+    return fallback;
+  }
+
+  const content = normalizeFileBackedStatusValue(loadingMessageFileContent);
+  return content === '' ? fallback : [content];
+}
+
+function resolveStatusText(text: string, textFileContent: string | undefined): string {
+  if (textFileContent === undefined) {
     return text;
   }
+
+  const content = normalizeFileBackedStatusValue(textFileContent);
+  return content === '' ? text : content;
 }
 
 async function clearStatusIgnoringErrors(
@@ -379,13 +414,27 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   };
 
   const setCurrentStatus = async (): Promise<void> => {
-    const status = resolveStatusText(options.text, options.textFile);
+    const textFileContent = readOptionalFileContent(options.textFile);
+    const loadingMessageFileContent = readOptionalFileContent(options.loadingMessageFile);
+    if (options.loadingMessageFile && loadingMessageFileContent.kind === 'unreadable') {
+      log(
+        `failed to read loading-message-file ${options.loadingMessageFile}: ${extractErrorMessage(
+          loadingMessageFileContent.error
+        )}`
+      );
+    }
+
+    const status = resolveStatusText(options.text, readableFileContent(textFileContent));
+    const loadingMessages = resolveLoadingMessages(
+      options.loadingMessage,
+      readableFileContent(loadingMessageFileContent)
+    );
     try {
       await client.setAssistantThreadStatus({
         channel: options.channel,
         threadTs: options.thread,
         status,
-        loadingMessages: options.loadingMessage,
+        loadingMessages,
       });
       lastSentStatus = status;
       log(`setStatus succeeded: "${status}"`);
@@ -396,7 +445,8 @@ async function runKeepAlive(options: StatusKeepAliveOptions): Promise<void> {
   };
 
   const resendIfStatusTextChanged = async (): Promise<void> => {
-    const status = resolveStatusText(options.text, options.textFile);
+    const textFileContent = readOptionalFileContent(options.textFile);
+    const status = resolveStatusText(options.text, readableFileContent(textFileContent));
     if (status === lastSentStatus) {
       return;
     }
@@ -601,6 +651,10 @@ export function setupStatusCommand(): Command {
       DEFAULT_KEEP_ALIVE_MAX_DURATION_SECONDS.toString()
     )
     .option('--stop-file <path>', 'Stop when this file exists')
+    .option(
+      '--loading-message-file <path>',
+      'Read loading message from this file with --loading-message as fallback'
+    )
     .option(
       '--loading-message <message>',
       'Loading message shown by Slack; can be specified up to 10 times',

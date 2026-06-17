@@ -122,6 +122,7 @@ slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working
 # Keep status alive with dynamic status text from a file
 slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
   --text-file /tmp/slack-cli-status.txt \
+  --loading-message-file /tmp/slack-cli-loading-message.txt \
   --interval 80 \
   --max-duration 600 \
   --stop-file /tmp/slack-cli-status.stop
@@ -517,6 +518,11 @@ file content overrides `--text`; missing, empty, or unreadable files fall back t
 When the resolved text changes, keep-alive sends the new status immediately instead of waiting
 for the next `--interval` refresh.
 
+With `--loading-message-file`, the CLI reads a loading message from the file on each refresh.
+Non-empty file content is sent as one `loading_messages` entry and overrides any
+`--loading-message` arguments. Missing, empty, or unreadable files fall back to the repeatable
+`--loading-message` values.
+
 With `--detach`, the CLI starts the same keep-alive command in a detached child process without
 `--detach`, writes the child PID to `--pid-file`, and exits immediately. Without `--detach`,
 `--pid-file` writes the foreground process PID and is removed when keep-alive exits.
@@ -527,20 +533,21 @@ each `setStatus` success or failure with the error message, status text changes 
 `--detach` runs stay traceable even though the child runs with `stdio: 'ignore'`. Log writes are
 best-effort and never interrupt keep-alive.
 
-| Option            | Short | Description                                           |
-| ----------------- | ----- | ----------------------------------------------------- |
-| --channel         | -c    | Target channel name or ID (required)                  |
-| --thread          | -t    | Thread parent timestamp (required)                    |
-| --text            |       | Status text (required)                                |
-| --text-file       |       | Read dynamic status text from this file               |
-| --interval        |       | Refresh interval in seconds (default: 80)             |
-| --max-duration    |       | Maximum duration in seconds (default: 600)            |
-| --stop-file       |       | Stop when this path exists                            |
-| --detach          |       | Run keep-alive in a detached background process       |
-| --pid-file        |       | Write the keep-alive process ID to this file          |
-| --log-file        |       | Append timestamped activity logs to this file         |
-| --loading-message |       | Optional loading message; repeatable up to 10         |
-| --profile         |       | Use specific workspace profile                        |
+| Option                 | Short | Description                                           |
+| ---------------------- | ----- | ----------------------------------------------------- |
+| --channel              | -c    | Target channel name or ID (required)                  |
+| --thread               | -t    | Thread parent timestamp (required)                    |
+| --text                 |       | Status text (required)                                |
+| --text-file            |       | Read dynamic status text from this file               |
+| --interval             |       | Refresh interval in seconds (default: 80)             |
+| --max-duration         |       | Maximum duration in seconds (default: 600)            |
+| --stop-file            |       | Stop when this path exists                            |
+| --detach               |       | Run keep-alive in a detached background process       |
+| --pid-file             |       | Write the keep-alive process ID to this file          |
+| --log-file             |       | Append timestamped activity logs to this file         |
+| --loading-message      |       | Optional loading message; repeatable up to 10         |
+| --loading-message-file |       | Read dynamic loading message from this file           |
+| --profile              |       | Use specific workspace profile                        |
 
 #### status stop
 

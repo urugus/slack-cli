@@ -53,6 +53,7 @@ export interface StatusKeepAliveOptions {
   pidFile?: string;
   logFile?: string;
   loadingMessage?: string[];
+  loadingMessageFile?: string;
   profile?: string;
 }
 

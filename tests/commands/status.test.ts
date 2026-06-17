@@ -413,6 +413,146 @@ describe('status command', () => {
       await keepAlivePromise;
     });
 
+    it('should use loading-message-file content as one loading message on each refresh', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const loadingMessageFile = tempPath('loading-message.txt');
+      fs.writeFileSync(loadingMessageFile, 'Phase 1\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--loading-message-file',
+        loadingMessageFile,
+        '--interval',
+        '5',
+        '--max-duration',
+        '6',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenLastCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['Phase 1'],
+      });
+
+      fs.writeFileSync(loadingMessageFile, 'Phase 2\n');
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenLastCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['Phase 2'],
+      });
+
+      await vi.advanceTimersByTimeAsync(1000);
+      await keepAlivePromise;
+      fs.unlinkSync(loadingMessageFile);
+    });
+
+    it('should fall back to loading-message arguments when loading-message-file is empty', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const loadingMessageFile = tempPath('empty-loading-message.txt');
+      fs.writeFileSync(loadingMessageFile, '\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--loading-message',
+        'Fallback 1',
+        '--loading-message',
+        'Fallback 2',
+        '--loading-message-file',
+        loadingMessageFile,
+        '--interval',
+        '5',
+        '--max-duration',
+        '5',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['Fallback 1', 'Fallback 2'],
+      });
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await keepAlivePromise;
+      fs.unlinkSync(loadingMessageFile);
+    });
+
+    it('should prefer loading-message-file over multiple loading-message arguments', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const loadingMessageFile = tempPath('override-loading-message.txt');
+      fs.writeFileSync(loadingMessageFile, 'File phase\n');
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--loading-message',
+        'Fallback 1',
+        '--loading-message',
+        'Fallback 2',
+        '--loading-message-file',
+        loadingMessageFile,
+        '--interval',
+        '5',
+        '--max-duration',
+        '5',
+      ]);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['File phase'],
+      });
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await keepAlivePromise;
+      fs.unlinkSync(loadingMessageFile);
+    });
+
     it('should spawn a detached copy without --detach and write child pid', async () => {
       const pidFile = tempPath('detached.pid');
       const originalArgv = process.argv;
@@ -777,6 +917,56 @@ describe('status command', () => {
 
       expect(content).toContain('setStatus failed: timeout');
       expect(content).toContain('setStatus succeeded: "Working"');
+    });
+
+    it('should log loading-message-file read failures and continue with fallback messages', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-05T00:00:00Z'));
+      mockConfiguredClient();
+      vi.mocked(mockSlackClient.setAssistantThreadStatus).mockResolvedValue({ ok: true });
+      vi.mocked(mockSlackClient.clearAssistantThreadStatus).mockResolvedValue({ ok: true });
+      const loadingMessageFile = tempPath('loading-message-dir');
+      const logFile = tempPath('loading-message-read-failure.log');
+      fs.mkdirSync(loadingMessageFile);
+
+      const keepAlivePromise = program.parseAsync([
+        'node',
+        'slack-cli',
+        'status',
+        'keep-alive',
+        '-c',
+        'general',
+        '-t',
+        '1234567890.123456',
+        '--text',
+        'Working',
+        '--loading-message',
+        'Fallback',
+        '--loading-message-file',
+        loadingMessageFile,
+        '--interval',
+        '5',
+        '--max-duration',
+        '5',
+        '--log-file',
+        logFile,
+      ]);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await keepAlivePromise;
+
+      expect(mockSlackClient.setAssistantThreadStatus).toHaveBeenCalledWith({
+        channel: 'general',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['Fallback'],
+      });
+
+      const content = fs.readFileSync(logFile, 'utf8');
+      fs.rmSync(loadingMessageFile, { recursive: true, force: true });
+      fs.unlinkSync(logFile);
+
+      expect(content).toContain('failed to read loading-message-file');
     });
 
     it('should log stop-file detection as the stop reason', async () => {

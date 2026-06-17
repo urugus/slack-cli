@@ -1,5 +1,8 @@
 # Slack CLI
 
+[![npm version](https://img.shields.io/npm/v/@urugus/slack-cli)](https://www.npmjs.com/package/@urugus/slack-cli)
+[![npm downloads](https://img.shields.io/npm/dm/@urugus/slack-cli)](https://www.npmjs.com/package/@urugus/slack-cli)
+
 A command-line tool for sending messages to Slack using the Slack API.
 
 ## Installation
@@ -458,8 +461,26 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 | --message | -m    | Message to send                          |
 | --file    | -f    | File containing message content          |
 | --thread  | -t    | Thread timestamp to reply to             |
+| --blocks  |       | Block Kit blocks as a JSON array         |
+| --blocks-file |   | File containing Block Kit blocks JSON    |
 | --at      |       | Schedule time (Unix seconds or ISO 8601) |
 | --after   |       | Schedule message after N minutes         |
+### Block Kit メッセージ送信
+
+```bash
+# blocks を直接指定 (-m は通知用 fallback text になる)
+slack-cli send -c general --blocks '[{"type":"section","text":{"type":"mrkdwn","text":"*hello*"}}]' -m "hello"
+
+# ファイルから読み込み
+slack-cli send -c general --blocks-file ./blocks.json -m "fallback"
+
+# スレッド返信・予約送信とも併用可能
+slack-cli send -c general -t 1234567890.123456 --blocks '[{"type":"divider"}]'
+```
+
+- `--blocks` と `--blocks-file` は排他
+- blocks は「`type` を持つ object の JSON 配列」であることを送信前に検証する
+
 
 ### status command
 
@@ -780,3 +801,4 @@ Messages sent via the `send` command automatically support Slack's mrkdwn format
 ## License
 
 MIT
+

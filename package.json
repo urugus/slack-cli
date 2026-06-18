@@ -1,6 +1,6 @@
 {
   "name": "@urugus/slack-cli",
-  "version": "0.26.0",
+  "version": "0.26.1",
   "description": "A command-line tool for sending messages to Slack",
   "main": "dist/index.js",
   "bin": {
@@ -23,6 +23,14 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": ["slack", "cli", "command-line", "messaging", "api"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urugus/slack-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/urugus/slack-cli/issues"
+  },
+  "homepage": "https://github.com/urugus/slack-cli#readme",
   "author": "urugus",
   "publishConfig": {
     "access": "public"

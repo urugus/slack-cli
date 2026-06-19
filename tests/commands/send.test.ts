@@ -232,6 +232,16 @@ describe('send command', () => {
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
 
+    it('should fail when --blocks is invalid JSON', async () => {
+      await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '--blocks', '{']);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        ERROR_MESSAGES.INVALID_BLOCKS_JSON
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+
     it('should fail when a block does not have type', async () => {
       await program.parseAsync([
         'node',

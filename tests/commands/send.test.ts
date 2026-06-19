@@ -62,6 +62,7 @@ describe('send command', () => {
       expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
         'general',
         'Hello, World!',
+        undefined,
         undefined
       );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
@@ -112,7 +113,12 @@ describe('send command', () => {
       await program.parseAsync(['node', 'slack-cli', 'send', '-c', 'general', '-f', 'message.txt']);
 
       expect(fs.readFile).toHaveBeenCalledWith('message.txt', 'utf-8');
-      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith('general', fileContent, undefined);
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
+        'general',
+        fileContent,
+        undefined,
+        undefined
+      );
     });
   });
 
@@ -287,7 +293,8 @@ describe('send command', () => {
       expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
         'general',
         'Reply to thread',
-        '1719207629.000100'
+        '1719207629.000100',
+        undefined
       );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general'))
@@ -319,7 +326,8 @@ describe('send command', () => {
       expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
         'general',
         'Reply to thread',
-        '1719207629.000100'
+        '1719207629.000100',
+        undefined
       );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general'))
@@ -370,7 +378,8 @@ describe('send command', () => {
       expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
         'general',
         fileContent,
-        '1719207629.000100'
+        '1719207629.000100',
+        undefined
       );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining(SUCCESS_MESSAGES.MESSAGE_SENT('general'))
@@ -406,6 +415,7 @@ describe('send command', () => {
         'general',
         'Future message',
         2051258400,
+        undefined,
         undefined
       );
       expect(mockSlackClient.sendMessage).not.toHaveBeenCalled();
@@ -444,6 +454,7 @@ describe('send command', () => {
         'general',
         'Future message',
         1770855000,
+        undefined,
         undefined
       );
 
@@ -604,6 +615,7 @@ describe('send command', () => {
       expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
         'D9876543210',
         'Hello via DM!',
+        undefined,
         undefined
       );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('DM sent to @john'));
@@ -656,6 +668,7 @@ describe('send command', () => {
       expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
         'D9876543210',
         'Hello via email DM!',
+        undefined,
         undefined
       );
       expect(mockConsole.logSpy).toHaveBeenCalledWith(

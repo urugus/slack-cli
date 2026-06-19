@@ -83,11 +83,7 @@ export class SlackApiClient {
     thread_ts?: string,
     blocks?: SlackMessageBlock[]
   ): Promise<ChatPostMessageResponse> {
-    if (blocks) {
-      return this.messageOps.sendMessage(channel, text, thread_ts, blocks);
-    }
-
-    return this.messageOps.sendMessage(channel, text, thread_ts);
+    return this.messageOps.sendMessage(channel, text, thread_ts, blocks);
   }
 
   async sendEphemeralMessage(
@@ -106,11 +102,7 @@ export class SlackApiClient {
     thread_ts?: string,
     blocks?: SlackMessageBlock[]
   ): Promise<ChatScheduleMessageResponse> {
-    if (blocks) {
-      return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts, blocks);
-    }
-
-    return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts);
+    return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts, blocks);
   }
 
   async updateMessage(channel: string, ts: string, text: string): Promise<ChatUpdateResponse> {

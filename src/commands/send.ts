@@ -127,17 +127,13 @@ export function setupSendCommand(): Command {
         }
 
         if (postAt !== null) {
-          if (blocks) {
-            await client.scheduleMessage(
-              targetChannel,
-              messageContent,
-              postAt,
-              options.thread,
-              blocks
-            );
-          } else {
-            await client.scheduleMessage(targetChannel, messageContent, postAt, options.thread);
-          }
+          await client.scheduleMessage(
+            targetChannel,
+            messageContent,
+            postAt,
+            options.thread,
+            blocks
+          );
           const postAtIso = new Date(postAt * 1000).toISOString();
           if (options.user || options.email) {
             console.log(chalk.green(`✓ Message scheduled to ${targetLabel} at ${postAtIso}`));
@@ -149,11 +145,7 @@ export function setupSendCommand(): Command {
           return;
         }
 
-        if (blocks) {
-          await client.sendMessage(targetChannel, messageContent, options.thread, blocks);
-        } else {
-          await client.sendMessage(targetChannel, messageContent, options.thread);
-        }
+        await client.sendMessage(targetChannel, messageContent, options.thread, blocks);
         if (options.user || options.email) {
           console.log(chalk.green(`✓ DM sent to ${targetLabel}`));
         } else {

@@ -7,7 +7,7 @@ import {
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
-import type { ScheduledMessage } from '../../types/slack';
+import type { ScheduledMessage, SlackMessageBlock } from '../../types/slack';
 import { BaseSlackClient, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
 
@@ -22,13 +22,15 @@ export class MessageWriteOperations extends BaseSlackClient {
 
   async sendMessage(
     channel: string,
-    text: string,
-    thread_ts?: string
+    text?: string,
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatPostMessageResponse> {
-    const params: ChatPostMessageArguments = {
-      channel,
-      text,
-    };
+    const params = (
+      blocks
+        ? { channel, ...(text !== undefined ? { text } : {}), blocks }
+        : { channel, text: text ?? '' }
+    ) as ChatPostMessageArguments;
 
     if (thread_ts) {
       params.thread_ts = thread_ts;
@@ -58,15 +60,16 @@ export class MessageWriteOperations extends BaseSlackClient {
 
   async scheduleMessage(
     channel: string,
-    text: string,
+    text: string | undefined,
     post_at: number,
-    thread_ts?: string
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatScheduleMessageResponse> {
-    const params: ChatScheduleMessageArguments = {
-      channel,
-      text,
-      post_at,
-    };
+    const params = (
+      blocks
+        ? { channel, post_at, ...(text !== undefined ? { text } : {}), blocks }
+        : { channel, text: text ?? '', post_at }
+    ) as ChatScheduleMessageArguments;
 
     if (thread_ts) {
       params.thread_ts = thread_ts;

@@ -112,9 +112,15 @@ describe('SlackApiClient service facade', () => {
 
   it('delegates message operations', async () => {
     const { client, ops } = createClientWithOps();
+    const blocks = [{ type: 'divider' }];
 
     await expect(client.sendMessage('C1', 'hello', '1.2')).resolves.toBe('sendMessage-result');
     expect(ops.messageOps.sendMessage).toHaveBeenCalledWith('C1', 'hello', '1.2');
+
+    await expect(client.sendMessage('C1', undefined, undefined, blocks)).resolves.toBe(
+      'sendMessage-result'
+    );
+    expect(ops.messageOps.sendMessage).toHaveBeenCalledWith('C1', undefined, undefined, blocks);
 
     await expect(client.sendEphemeralMessage('C1', 'U1', 'hello', '1.2')).resolves.toBe(
       'sendEphemeralMessage-result'
@@ -125,6 +131,17 @@ describe('SlackApiClient service facade', () => {
       'scheduleMessage-result'
     );
     expect(ops.messageOps.scheduleMessage).toHaveBeenCalledWith('C1', 'later', 123, '1.2');
+
+    await expect(client.scheduleMessage('C1', undefined, 123, undefined, blocks)).resolves.toBe(
+      'scheduleMessage-result'
+    );
+    expect(ops.messageOps.scheduleMessage).toHaveBeenCalledWith(
+      'C1',
+      undefined,
+      123,
+      undefined,
+      blocks
+    );
 
     await expect(client.updateMessage('C1', '1.2', 'updated')).resolves.toBe(
       'updateMessage-result'

@@ -63,6 +63,28 @@ describe('MessageWriteOperations', () => {
     });
   });
 
+  it('sends Block Kit messages', async () => {
+    const blocks = [{ type: 'divider' }];
+    mockClient.chat.postMessage.mockResolvedValue({ ok: true, ts: '1.2' });
+
+    await expect(messageOps.sendMessage('C1', 'fallback', undefined, blocks)).resolves.toEqual({
+      ok: true,
+      ts: '1.2',
+    });
+    expect(mockClient.chat.postMessage).toHaveBeenCalledWith({
+      channel: 'C1',
+      text: 'fallback',
+      blocks,
+    });
+
+    await messageOps.sendMessage('C1', undefined, '1.2', blocks);
+    expect(mockClient.chat.postMessage).toHaveBeenLastCalledWith({
+      channel: 'C1',
+      blocks,
+      thread_ts: '1.2',
+    });
+  });
+
   it('sends regular and threaded ephemeral messages', async () => {
     mockClient.chat.postEphemeral.mockResolvedValue({ ok: true });
 
@@ -98,6 +120,19 @@ describe('MessageWriteOperations', () => {
       text: 'thread later',
       post_at: 123,
       thread_ts: '1.2',
+    });
+  });
+
+  it('schedules Block Kit messages', async () => {
+    const blocks = [{ type: 'divider' }];
+    mockClient.chat.scheduleMessage.mockResolvedValue({ ok: true, scheduled_message_id: 'Q1' });
+
+    await messageOps.scheduleMessage('C1', undefined, 123, undefined, blocks);
+
+    expect(mockClient.chat.scheduleMessage).toHaveBeenCalledWith({
+      channel: 'C1',
+      post_at: 123,
+      blocks,
     });
   });
 

@@ -12,7 +12,12 @@ export const ERROR_MESSAGES = {
 
   // Validation errors
   NO_MESSAGE_OR_FILE: 'You must specify either --message or --file',
+  NO_MESSAGE_FILE_OR_BLOCKS: 'You must specify --message, --file, --blocks, or --blocks-file',
   BOTH_MESSAGE_AND_FILE: 'Cannot use both --message and --file',
+  BOTH_BLOCKS_AND_BLOCKS_FILE: 'Cannot use both --blocks and --blocks-file',
+  INVALID_BLOCKS_JSON: 'Invalid Block Kit blocks JSON',
+  INVALID_BLOCKS_SHAPE: 'Block Kit blocks must be a JSON array',
+  INVALID_BLOCK_SHAPE: 'Each Block Kit block must be an object with a string type',
   INVALID_THREAD_TIMESTAMP: 'Invalid thread timestamp format',
   INVALID_SCHEDULE_AT:
     'Invalid schedule time format. Use Unix timestamp (seconds) or ISO 8601 date-time',

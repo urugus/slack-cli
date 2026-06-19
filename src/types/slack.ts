@@ -1,3 +1,7 @@
+import type { Block, KnownBlock } from '@slack/types';
+
+export type SlackMessageBlock = KnownBlock | Block;
+
 export interface CanvasSectionElement {
   type?: string;
   text?: string;

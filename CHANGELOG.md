@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0] - 2026-06-19
+
+### Added
+- Add Block Kit message support to `slack-cli send` with `--blocks` and `--blocks-file`
+
 ## [0.25.1] - 2026-06-14
 
 ### Added

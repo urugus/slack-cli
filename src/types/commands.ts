@@ -21,6 +21,8 @@ export interface SendOptions {
   email?: string;
   message?: string;
   file?: string;
+  blocks?: string;
+  blocksFile?: string;
   thread?: string;
   at?: string;
   after?: string;

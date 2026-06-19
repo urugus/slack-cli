@@ -116,6 +116,141 @@ describe('send command', () => {
     });
   });
 
+  describe('send Block Kit message', () => {
+    it('should send blocks from --blocks with fallback text', async () => {
+      const blocks = [{ type: 'section', text: { type: 'mrkdwn', text: '*Hello*' } }];
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '-c',
+        'general',
+        '--blocks',
+        JSON.stringify(blocks),
+        '-m',
+        'Hello',
+      ]);
+
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
+        'general',
+        'Hello',
+        undefined,
+        blocks
+      );
+    });
+
+    it('should send blocks from --blocks-file without fallback text', async () => {
+      const blocks = [{ type: 'divider' }];
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(blocks));
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.sendMessage).mockResolvedValue({
+        ok: true,
+        ts: '1234567890.123456',
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '-c',
+        'general',
+        '--blocks-file',
+        'blocks.json',
+      ]);
+
+      expect(fs.readFile).toHaveBeenCalledWith('blocks.json', 'utf-8');
+      expect(mockSlackClient.sendMessage).toHaveBeenCalledWith(
+        'general',
+        undefined,
+        undefined,
+        blocks
+      );
+    });
+
+    it('should schedule blocks from --blocks-file', async () => {
+      const blocks = [{ type: 'divider' }];
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(blocks));
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.scheduleMessage).mockResolvedValue({
+        ok: true,
+        scheduled_message_id: 'Q1298393284',
+        post_at: 2051258400,
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '-c',
+        'general',
+        '--blocks-file',
+        'blocks.json',
+        '--at',
+        '2035-01-01T10:00:00Z',
+      ]);
+
+      expect(mockSlackClient.scheduleMessage).toHaveBeenCalledWith(
+        'general',
+        undefined,
+        2051258400,
+        undefined,
+        blocks
+      );
+      expect(mockSlackClient.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('should fail when --blocks is not a JSON array', async () => {
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '-c',
+        'general',
+        '--blocks',
+        '{"type":"divider"}',
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        'Block Kit blocks must be a JSON array'
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('should fail when a block does not have type', async () => {
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'send',
+        '-c',
+        'general',
+        '--blocks',
+        '[{"text":"missing type"}]',
+      ]);
+
+      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error:'),
+        'Each Block Kit block must be an object with a string type'
+      );
+      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+    });
+  });
+
   describe('send reply to thread', () => {
     it('should send a reply to a thread with --thread option', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
@@ -312,7 +447,7 @@ describe('send command', () => {
       sendCommand.exitOverride();
 
       await expect(sendCommand.parseAsync(['-c', 'general'], { from: 'user' })).rejects.toThrow(
-        `Error: ${ERROR_MESSAGES.NO_MESSAGE_OR_FILE}`
+        `Error: ${ERROR_MESSAGES.NO_MESSAGE_FILE_OR_BLOCKS}`
       );
     });
 
@@ -325,6 +460,20 @@ describe('send command', () => {
           from: 'user',
         })
       ).rejects.toThrow(`Error: ${ERROR_MESSAGES.BOTH_MESSAGE_AND_FILE}`);
+    });
+
+    it('should fail when both --blocks and --blocks-file are provided', async () => {
+      const sendCommand = setupSendCommand();
+      sendCommand.exitOverride();
+
+      await expect(
+        sendCommand.parseAsync(
+          ['-c', 'general', '--blocks', '[{"type":"divider"}]', '--blocks-file', 'blocks.json'],
+          {
+            from: 'user',
+          }
+        )
+      ).rejects.toThrow(`Error: ${ERROR_MESSAGES.BOTH_BLOCKS_AND_BLOCKS_FILE}`);
     });
 
     it('should fail when both --at and --after are provided', async () => {

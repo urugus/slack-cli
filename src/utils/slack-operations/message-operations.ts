@@ -10,6 +10,7 @@ import type {
   HistoryResult,
   Message,
   ScheduledMessage,
+  SlackMessageBlock,
 } from '../../types/slack';
 import { BaseSlackClient, createSlackClientContext, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
@@ -42,10 +43,11 @@ export class MessageOperations extends BaseSlackClient {
 
   async sendMessage(
     channel: string,
-    text: string,
-    thread_ts?: string
+    text?: string,
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatPostMessageResponse> {
-    return await this.writeOps.sendMessage(channel, text, thread_ts);
+    return await this.writeOps.sendMessage(channel, text, thread_ts, blocks);
   }
 
   async sendEphemeralMessage(
@@ -59,11 +61,12 @@ export class MessageOperations extends BaseSlackClient {
 
   async scheduleMessage(
     channel: string,
-    text: string,
+    text: string | undefined,
     post_at: number,
-    thread_ts?: string
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatScheduleMessageResponse> {
-    return await this.writeOps.scheduleMessage(channel, text, post_at, thread_ts);
+    return await this.writeOps.scheduleMessage(channel, text, post_at, thread_ts, blocks);
   }
 
   async listScheduledMessages(channel?: string, limit = 50): Promise<ScheduledMessage[]> {

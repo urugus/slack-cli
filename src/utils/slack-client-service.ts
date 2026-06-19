@@ -22,6 +22,7 @@ import type {
   ScheduledMessage,
   SearchMessagesOptions,
   SearchResult,
+  SlackMessageBlock,
   SlackUser,
   StarListResult,
   UserPresence,
@@ -78,10 +79,11 @@ export class SlackApiClient {
 
   async sendMessage(
     channel: string,
-    text: string,
-    thread_ts?: string
+    text?: string,
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatPostMessageResponse> {
-    return this.messageOps.sendMessage(channel, text, thread_ts);
+    return this.messageOps.sendMessage(channel, text, thread_ts, blocks);
   }
 
   async sendEphemeralMessage(
@@ -95,11 +97,12 @@ export class SlackApiClient {
 
   async scheduleMessage(
     channel: string,
-    text: string,
+    text: string | undefined,
     post_at: number,
-    thread_ts?: string
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatScheduleMessageResponse> {
-    return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts);
+    return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts, blocks);
   }
 
   async updateMessage(channel: string, ts: string, text: string): Promise<ChatUpdateResponse> {

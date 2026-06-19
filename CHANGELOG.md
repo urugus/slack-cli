@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0] - 2026-06-19
+
+### Added
+- Add Block Kit message support to `slack-cli send` with `--blocks` and `--blocks-file`
+
+## [0.26.1] - 2026-06-18
+
+### Changed
+- Improve npm supply chain metadata and release provenance settings
+
+## [0.26.0] - 2026-06-18
+
+### Added
+- Add `status keep-alive --loading-message-file` for dynamic rotating loading messages
+
 ## [0.25.1] - 2026-06-14
 
 ### Added

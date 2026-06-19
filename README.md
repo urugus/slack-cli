@@ -93,6 +93,12 @@ slack-cli send --user @john -m "Hello via DM!"
 
 # Send DM by email
 slack-cli send --email john@example.com -m "Hello via DM!"
+
+# Send Block Kit blocks
+slack-cli send -c general --blocks '[{"type":"divider"}]'
+
+# Send Block Kit blocks from a file
+slack-cli send -c general --blocks-file ./blocks.json -m "fallback"
 ```
 
 ### Assistant Thread Status
@@ -480,6 +486,8 @@ slack-cli send -c general -t 1234567890.123456 --blocks '[{"type":"divider"}]'
 ```
 
 - `--blocks` と `--blocks-file` は排他
+- `-m` / `-f` は blocks と併用すると通知用 fallback text として送信される
+- `-m` / `-f` なしでも blocks のみ送信できる
 - blocks は「`type` を持つ object の JSON 配列」であることを送信前に検証する
 
 
@@ -808,4 +816,3 @@ Messages sent via the `send` command automatically support Slack's mrkdwn format
 ## License
 
 MIT
-

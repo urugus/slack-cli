@@ -1,3 +1,8 @@
+export interface SlackMessageBlock {
+  type: string;
+  [key: string]: unknown;
+}
+
 export interface CanvasSectionElement {
   type?: string;
   text?: string;

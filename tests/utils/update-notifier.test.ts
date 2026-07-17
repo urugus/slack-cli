@@ -141,6 +141,83 @@ describe('update notifier', () => {
     expect(console.error).not.toHaveBeenCalled();
   });
 
+  it('invalid cache entries are treated as cache misses', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ latestVersion: 123 }));
+
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ version: '1.0.1' }),
+    });
+
+    await checkForUpdates({
+      packageName: '@urugus/slack-cli',
+      currentVersion: '1.0.0',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    expect(fetchImpl).toHaveBeenCalled();
+    expect(fs.rename).toHaveBeenCalled();
+  });
+
+  it('cache read errors other than missing files are swallowed', async () => {
+    vi.mocked(fs.readFile).mockRejectedValue(
+      Object.assign(new Error('denied'), { code: 'EACCES' })
+    );
+    const fetchImpl = vi.fn();
+
+    await checkForUpdates({
+      packageName: '@urugus/slack-cli',
+      currentVersion: '1.0.0',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('registry error responses and invalid payloads are swallowed', async () => {
+    vi.mocked(fs.readFile).mockRejectedValue({ code: 'ENOENT' });
+
+    await checkForUpdates({
+      packageName: '@urugus/slack-cli',
+      currentVersion: '1.0.0',
+      fetchImpl: vi.fn().mockResolvedValue({ ok: false, status: 500 }) as unknown as typeof fetch,
+    });
+
+    await checkForUpdates({
+      packageName: '@urugus/slack-cli',
+      currentVersion: '1.0.0',
+      fetchImpl: vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ version: '' }),
+      }) as unknown as typeof fetch,
+    });
+
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('cleans up temp cache files when atomic rename fails', async () => {
+    vi.mocked(fs.readFile).mockRejectedValue({ code: 'ENOENT' });
+    vi.mocked(fs.rename).mockRejectedValue(new Error('rename failed'));
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ version: '1.0.1' }),
+    });
+
+    await checkForUpdates({
+      packageName: '@urugus/slack-cli',
+      currentVersion: '1.0.0',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    expect(fs.unlink).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^\/home\/test-user\/\.slack-cli\/update-notifier\.json\.\d+\.\d+\.tmp$/
+      )
+    );
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
   it('CI environment skips update checks', async () => {
     process.env.CI = '1';
     const fetchImpl = vi.fn();

@@ -3,6 +3,7 @@ import { channelResolver } from '../../../src/utils/channel-resolver';
 import { ChannelOperations } from '../../../src/utils/slack-operations/channel-operations';
 import { MessageHistoryOperations } from '../../../src/utils/slack-operations/message-history-operations';
 import { MessageOperations } from '../../../src/utils/slack-operations/message-operations';
+import { MAX_USER_INFO_LOOKUPS } from '../../../src/utils/slack-operations/message-user-resolver';
 
 vi.mock('@slack/web-api', () => ({
   WebClient: vi.fn().mockImplementation(function () {
@@ -91,6 +92,63 @@ describe('MessageOperations', () => {
   });
 
   describe('getHistory with mentions', () => {
+    it('should cap user info lookups and keep skipped mention IDs displayable', async () => {
+      const mentionedUserIds = Array.from(
+        { length: MAX_USER_INFO_LOOKUPS + 5 },
+        (_, index) => `U${index.toString().padStart(8, '0')}`
+      );
+      const skippedUserId = mentionedUserIds[MAX_USER_INFO_LOOKUPS];
+
+      mockClient.conversations.history.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: mentionedUserIds.map((userId) => `<@${userId}>`).join(' '),
+            ts: '1234567890.123456',
+          },
+        ],
+      });
+
+      mockClient.users.info.mockImplementation(({ user }: { user: string }) =>
+        Promise.resolve({ ok: true, user: { name: `name-${user}` } })
+      );
+
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+
+      const result = await messageOps.getHistory('test-channel', { limit: 10 });
+
+      expect(mockClient.users.info).toHaveBeenCalledTimes(MAX_USER_INFO_LOOKUPS);
+      expect(mockClient.users.info).not.toHaveBeenCalledWith({ user: skippedUserId });
+      expect(result.users.get(mentionedUserIds[0])).toBe(`name-${mentionedUserIds[0]}`);
+      expect(result.users.get(skippedUserId)).toBe(skippedUserId);
+    });
+
+    it('should cache failed user lookups within the resolver instance', async () => {
+      const unresolvedUserId = 'U123456789';
+
+      mockClient.conversations.history.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: `Hello <@${unresolvedUserId}>`,
+            ts: '1234567890.123456',
+          },
+        ],
+      });
+
+      mockClient.users.info.mockResolvedValue({ ok: false });
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+
+      const firstResult = await messageOps.getHistory('test-channel', { limit: 10 });
+      const secondResult = await messageOps.getHistory('test-channel', { limit: 10 });
+
+      expect(mockClient.users.info).toHaveBeenCalledTimes(1);
+      expect(firstResult.users.get(unresolvedUserId)).toBe(unresolvedUserId);
+      expect(secondResult.users.get(unresolvedUserId)).toBe(unresolvedUserId);
+    });
+
     it('should fetch user info for mentioned users in message text', async () => {
       const mockMessages = [
         {
@@ -244,7 +302,139 @@ describe('MessageOperations', () => {
     });
   });
 
+  describe('getMessage', () => {
+    it('should fetch a single channel message by timestamp', async () => {
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+      mockClient.conversations.history.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: 'Target message',
+            user: 'U111',
+            ts: '1234567890.000100',
+          },
+        ],
+      });
+
+      const result = await messageOps.getMessage('general', '1234567890.000100');
+
+      expect(mockClient.conversations.history).toHaveBeenCalledWith({
+        channel: 'C123456789',
+        latest: '1234567890.000100',
+        inclusive: true,
+        limit: 1,
+      });
+      expect(result.text).toBe('Target message');
+    });
+
+    it('should fetch a single thread reply by timestamp', async () => {
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+      mockClient.conversations.replies.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: 'Parent',
+            user: 'U111',
+            ts: '1234567890.000100',
+          },
+          {
+            type: 'message',
+            text: 'Target reply',
+            user: 'U222',
+            ts: '1234567891.000200',
+            thread_ts: '1234567890.000100',
+          },
+        ],
+        response_metadata: {
+          next_cursor: '',
+        },
+      });
+
+      const result = await messageOps.getMessage(
+        'general',
+        '1234567891.000200',
+        '1234567890.000100'
+      );
+
+      expect(mockClient.conversations.replies).toHaveBeenCalledWith({
+        channel: 'C123456789',
+        ts: '1234567890.000100',
+        cursor: undefined,
+      });
+      expect(result.text).toBe('Target reply');
+    });
+
+    it('should fetch user info for a single message and its mentions', async () => {
+      vi.mocked(channelResolver.resolveChannelId).mockResolvedValue('C123456789');
+      mockClient.conversations.history.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: 'Target message for <@U222222222>',
+            user: 'U111111111',
+            ts: '1234567890.000100',
+          },
+        ],
+      });
+
+      mockClient.users.info.mockImplementation(({ user }: { user: string }) => {
+        if (user === 'U111111111') return Promise.resolve({ ok: true, user: { name: 'alice' } });
+        if (user === 'U222222222') return Promise.resolve({ ok: true, user: { name: 'bob' } });
+        return Promise.resolve({ ok: false });
+      });
+
+      const result = await messageOps.getMessageWithUsers('general', '1234567890.000100');
+
+      expect(result.messages).toHaveLength(1);
+      expect(result.users.get('U111111111')).toBe('alice');
+      expect(result.users.get('U222222222')).toBe('bob');
+    });
+  });
+
   describe('getChannelUnread', () => {
+    it('should cap user info lookups and keep skipped unread message IDs displayable', async () => {
+      const mentionedUserIds = Array.from(
+        { length: MAX_USER_INFO_LOOKUPS + 5 },
+        (_, index) => `U${index.toString().padStart(8, '0')}`
+      );
+      const skippedUserId = mentionedUserIds[MAX_USER_INFO_LOOKUPS];
+
+      vi.spyOn(ChannelOperations.prototype, 'getChannelInfo').mockResolvedValue({
+        id: 'C123456789',
+        name: 'general',
+        is_private: false,
+        created: 1234567890,
+        last_read: '1234567889.000000',
+      });
+
+      mockClient.conversations.history.mockResolvedValue({
+        ok: true,
+        messages: [
+          {
+            type: 'message',
+            text: mentionedUserIds.map((userId) => `<@${userId}>`).join(' '),
+            ts: '1234567890.000100',
+          },
+        ],
+        response_metadata: {
+          next_cursor: '',
+        },
+      });
+
+      mockClient.users.info.mockImplementation(({ user }: { user: string }) =>
+        Promise.resolve({ ok: true, user: { name: `name-${user}` } })
+      );
+
+      const result = await messageOps.getChannelUnread('general');
+
+      expect(mockClient.users.info).toHaveBeenCalledTimes(MAX_USER_INFO_LOOKUPS);
+      expect(mockClient.users.info).not.toHaveBeenCalledWith({ user: skippedUserId });
+      expect(result.users.get(skippedUserId)).toBe(skippedUserId);
+    });
+
     it('should retry history fetches when Slack rate limits a page request', async () => {
       const delaySpy = vi
         .spyOn(MessageHistoryOperations.prototype, 'handleRateLimit')

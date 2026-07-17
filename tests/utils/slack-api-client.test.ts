@@ -6,6 +6,12 @@ vi.mock('@slack/web-api');
 
 describe('SlackApiClient', () => {
   type MockWebClient = {
+    assistant: {
+      threads: {
+        setStatus: ReturnType<typeof vi.fn>;
+      };
+    };
+    apiCall: ReturnType<typeof vi.fn>;
     chat: {
       postMessage: ReturnType<typeof vi.fn>;
       scheduleMessage: ReturnType<typeof vi.fn>;
@@ -33,6 +39,12 @@ describe('SlackApiClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWebClient = {
+      assistant: {
+        threads: {
+          setStatus: vi.fn(),
+        },
+      },
+      apiCall: vi.fn(),
       chat: {
         postMessage: vi.fn(),
         scheduleMessage: vi.fn(),
@@ -110,6 +122,20 @@ describe('SlackApiClient', () => {
       });
     });
 
+    it('should send Block Kit blocks', async () => {
+      const mockResponse = { ok: true, ts: '1234567890.123456' };
+      const blocks = [{ type: 'divider' }];
+      vi.mocked(mockWebClient.chat.postMessage).mockResolvedValue(mockResponse as never);
+
+      const result = await client.sendMessage('general', undefined, undefined, blocks);
+
+      expect(mockWebClient.chat.postMessage).toHaveBeenCalledWith({
+        channel: 'general',
+        blocks,
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
     it('should throw error on API failure', async () => {
       const mockError = new Error('channel_not_found');
       vi.mocked(mockWebClient.chat.postMessage).mockRejectedValue(mockError);
@@ -132,6 +158,27 @@ describe('SlackApiClient', () => {
       });
       expect(result).toEqual(mockResponse);
     });
+
+    it('should schedule Block Kit blocks', async () => {
+      const mockResponse = { ok: true, scheduled_message_id: 'Q123', post_at: 1770855000 };
+      const blocks = [{ type: 'divider' }];
+      vi.mocked(mockWebClient.chat.scheduleMessage).mockResolvedValue(mockResponse as never);
+
+      const result = await client.scheduleMessage(
+        'general',
+        undefined,
+        1770855000,
+        undefined,
+        blocks
+      );
+
+      expect(mockWebClient.chat.scheduleMessage).toHaveBeenCalledWith({
+        channel: 'general',
+        post_at: 1770855000,
+        blocks,
+      });
+      expect(result).toEqual(mockResponse);
+    });
   });
 
   describe('listScheduledMessages', () => {
@@ -148,6 +195,28 @@ describe('SlackApiClient', () => {
 
       expect(mockWebClient.chat.scheduledMessages.list).toHaveBeenCalledWith({ limit: 50 });
       expect(result).toEqual(mockResponse.scheduled_messages);
+    });
+  });
+
+  describe('setAssistantThreadStatus', () => {
+    it('should set assistant status for a thread', async () => {
+      const mockResponse = { ok: true };
+      vi.mocked(mockWebClient.assistant.threads.setStatus).mockResolvedValue(mockResponse as never);
+
+      const result = await client.setAssistantThreadStatus({
+        channel: 'C1234567890',
+        threadTs: '1234567890.123456',
+        status: 'Working',
+        loadingMessages: ['Reading context'],
+      });
+
+      expect(mockWebClient.assistant.threads.setStatus).toHaveBeenCalledWith({
+        channel_id: 'C1234567890',
+        thread_ts: '1234567890.123456',
+        status: 'Working',
+        loading_messages: ['Reading context'],
+      });
+      expect(result).toEqual(mockResponse);
     });
   });
 

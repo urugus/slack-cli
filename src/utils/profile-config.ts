@@ -4,6 +4,7 @@ import * as path from 'path';
 import type { Config, ConfigOptions, ConfigStore, Profile } from '../types/config';
 import { DEFAULT_PROFILE_NAME, ERROR_MESSAGES, FILE_PERMISSIONS } from './constants';
 import { ConfigurationError } from './errors';
+import { sanitizeTerminalText } from './terminal-sanitizer';
 import { TokenCryptoService } from './token-crypto-service';
 import { maskToken } from './token-utils';
 
@@ -44,6 +45,7 @@ export class ProfileConfigManager {
       return null;
     }
 
+    const wasLegacyEncrypted = this.cryptoService.isLegacyEncrypted(config.token);
     const decryptedToken = this.decryptToken(config.token);
 
     // Re-encrypt legacy or plaintext tokens and persist to disk.
@@ -53,6 +55,10 @@ export class ProfileConfigManager {
         token: this.cryptoService.encrypt(decryptedToken),
       };
       await this.saveConfigStore(store);
+
+      if (wasLegacyEncrypted) {
+        this.warnLegacyEncryptedTokenMigration(profileName);
+      }
     }
 
     return {
@@ -156,6 +162,7 @@ export class ProfileConfigManager {
 
   private async migrateOldConfig(oldData: unknown): Promise<ConfigStore> {
     const data = oldData as { token: string; updatedAt: string };
+    const wasLegacyEncrypted = this.cryptoService.isLegacyEncrypted(data.token);
     const plainToken = this.cryptoService.isEncrypted(data.token)
       ? this.cryptoService.decrypt(data.token)
       : data.token;
@@ -173,7 +180,17 @@ export class ProfileConfigManager {
 
     // Save migrated config
     await this.saveConfigStore(newStore);
+    if (wasLegacyEncrypted) {
+      this.warnLegacyEncryptedTokenMigration(DEFAULT_PROFILE_NAME);
+    }
     return newStore;
+  }
+
+  private warnLegacyEncryptedTokenMigration(profileName: string): void {
+    const safeProfileName = sanitizeTerminalText(profileName);
+    console.warn(
+      `Warning: Legacy Slack token encryption was migrated to the current v2 format for profile "${safeProfileName}". Please rotate your Slack token because the legacy encrypted value may have been exposed before migration.`
+    );
   }
 
   private async saveConfigStore(store: ConfigStore): Promise<void> {

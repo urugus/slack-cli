@@ -1,6 +1,6 @@
 {
   "name": "@urugus/slack-cli",
-  "version": "0.21.1",
+  "version": "0.27.1",
   "description": "A command-line tool for sending messages to Slack",
   "main": "dist/index.js",
   "bin": {
@@ -23,26 +23,34 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": ["slack", "cli", "command-line", "messaging", "api"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urugus/slack-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/urugus/slack-cli/issues"
+  },
+  "homepage": "https://github.com/urugus/slack-cli#readme",
   "author": "urugus",
   "publishConfig": {
     "access": "public"
   },
   "license": "MIT",
   "dependencies": {
-    "@slack/web-api": "7.15.0",
+    "@slack/web-api": "7.17.0",
     "chalk": "5.6.2",
-    "commander": "14.0.3",
+    "commander": "15.0.0",
     "p-limit": "7.3.0",
-    "semver": "7.7.4"
+    "semver": "7.8.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.10",
-    "@types/node": "25.5.0",
+    "@biomejs/biome": "2.4.16",
+    "@types/node": "25.9.1",
     "@types/semver": "7.7.1",
-    "@vitest/coverage-v8": "4.1.2",
+    "@vitest/coverage-v8": "4.1.7",
     "ts-node": "10.9.2",
-    "typescript": "6.0.2",
-    "vitest": "4.1.2"
+    "typescript": "6.0.3",
+    "vitest": "4.1.7"
   },
   "engines": {
     "node": ">=20.0.0"

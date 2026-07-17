@@ -194,14 +194,17 @@ export const optionValidators = {
   },
 
   /**
-   * Validates message/file options for send command
+   * Validates message/file/blocks options for send command
    */
   messageOrFile: (options: Record<string, unknown>): string | null => {
-    if (!options.message && !options.file) {
-      return ERROR_MESSAGES.NO_MESSAGE_OR_FILE;
+    if (!options.message && !options.file && options.blocks === undefined && !options.blocksFile) {
+      return ERROR_MESSAGES.NO_MESSAGE_FILE_OR_BLOCKS;
     }
     if (options.message && options.file) {
       return ERROR_MESSAGES.BOTH_MESSAGE_AND_FILE;
+    }
+    if (options.blocks !== undefined && options.blocksFile) {
+      return ERROR_MESSAGES.BOTH_BLOCKS_AND_BLOCKS_FILE;
     }
     return null;
   },
@@ -388,6 +391,29 @@ export const optionValidators = {
       if (!validFormats.includes(options.format as string)) {
         return `Invalid format '${options.format}'. Must be one of: ${validFormats.join(', ')}`;
       }
+    }
+    return null;
+  },
+
+  /**
+   * Validates Canvas write position option
+   */
+  canvasPosition: (options: Record<string, unknown>): string | null => {
+    if (options.position !== undefined) {
+      const validPositions = ['end', 'start', 'replace'];
+      if (typeof options.position !== 'string' || !validPositions.includes(options.position)) {
+        return `Invalid position '${options.position}'. Must be one of: ${validPositions.join(', ')}`;
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Requires explicit confirmation for destructive Canvas replacement
+   */
+  canvasReplaceConfirmation: (options: Record<string, unknown>): string | null => {
+    if (options.position === 'replace' && !options.yes) {
+      return '--yes is required when --position replace is used';
     }
     return null;
   },

@@ -21,9 +21,50 @@ export interface SendOptions {
   email?: string;
   message?: string;
   file?: string;
+  blocks?: string;
+  blocksFile?: string;
   thread?: string;
   at?: string;
   after?: string;
+  profile?: string;
+}
+
+export interface StatusSetOptions {
+  channel: string;
+  thread: string;
+  text: string;
+  loadingMessage?: string[];
+  profile?: string;
+}
+
+export interface StatusClearOptions {
+  channel: string;
+  thread: string;
+  profile?: string;
+}
+
+export interface StatusKeepAliveOptions {
+  channel: string;
+  thread: string;
+  text: string;
+  textFile?: string;
+  interval?: string;
+  maxDuration?: string;
+  stopFile?: string;
+  detach?: boolean;
+  pidFile?: string;
+  logFile?: string;
+  loadingMessage?: string[];
+  loadingMessageFile?: string;
+  profile?: string;
+}
+
+export interface StatusStopOptions {
+  channel: string;
+  thread: string;
+  stopFile?: string;
+  pidFile?: string;
+  timeout?: string;
   profile?: string;
 }
 
@@ -49,12 +90,15 @@ export interface ChannelsOptions {
 }
 
 export interface HistoryOptions {
-  channel: string;
+  channel?: string;
+  url?: string;
   number?: string;
   since?: string;
   thread?: string;
   withLink?: boolean;
   format?: 'table' | 'simple' | 'json';
+  tables?: boolean;
+  tableFormat?: 'markdown' | 'json' | 'tsv';
   profile?: string;
 }
 
@@ -76,6 +120,19 @@ export interface UploadOptions {
   message?: string;
   filetype?: string;
   thread?: string;
+  profile?: string;
+}
+
+export interface FileDownloadOptions {
+  id?: string;
+  url?: string;
+  channel?: string;
+  timestamp?: string;
+  thread?: string;
+  index?: string;
+  output?: string;
+  dir?: string;
+  force?: boolean;
   profile?: string;
 }
 
@@ -245,5 +302,15 @@ export interface CanvasReadOptions {
 export interface CanvasListOptions {
   channel: string;
   format?: 'table' | 'simple' | 'json';
+  profile?: string;
+}
+
+export type CanvasPosition = 'end' | 'start' | 'replace';
+
+export interface CanvasWriteOptions {
+  id: string;
+  message: string;
+  position?: CanvasPosition;
+  yes?: boolean;
   profile?: string;
 }

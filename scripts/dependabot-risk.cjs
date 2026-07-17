@@ -161,4 +161,5 @@ module.exports = {
   evaluateDependabotRisk,
   normalizeMetadata,
   parseChangedFiles,
+  runCli,
 };

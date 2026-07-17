@@ -4,6 +4,7 @@ import {
   ChatScheduleMessageResponse,
   ChatUpdateResponse,
 } from '@slack/web-api';
+import type { CanvasPosition } from '../types/commands';
 import type {
   CanvasFile,
   CanvasSection,
@@ -15,19 +16,30 @@ import type {
   HistoryOptions,
   HistoryResult,
   ListChannelsOptions,
+  Message,
   PinnedItem,
   Reminder,
   ScheduledMessage,
   SearchMessagesOptions,
   SearchResult,
+  SlackMessageBlock,
   SlackUser,
   StarListResult,
   UserPresence,
 } from '../types/slack';
+import {
+  AssistantOperations,
+  type AssistantThreadStatusOptions,
+  type AssistantThreadStatusResponse,
+} from './slack-operations/assistant-operations';
 import { createSlackClientContext } from './slack-operations/base-client';
 import { CanvasOperations } from './slack-operations/canvas-operations';
 import { ChannelOperations } from './slack-operations/channel-operations';
-import type { UploadFileOptions } from './slack-operations/file-operations';
+import type {
+  DownloadFileOptions,
+  DownloadFileResult,
+  UploadFileOptions,
+} from './slack-operations/file-operations';
 import { FileOperations } from './slack-operations/file-operations';
 import { MessageOperations } from './slack-operations/message-operations';
 import { PinOperations } from './slack-operations/pin-operations';
@@ -48,6 +60,7 @@ export class SlackApiClient {
   private reminderOps: ReminderOperations;
   private starOps: StarOperations;
   private canvasOps: CanvasOperations;
+  private assistantOps: AssistantOperations;
 
   constructor(token: string) {
     const sharedContext = createSlackClientContext(token);
@@ -61,14 +74,16 @@ export class SlackApiClient {
     this.reminderOps = new ReminderOperations(sharedContext);
     this.starOps = new StarOperations(sharedContext);
     this.canvasOps = new CanvasOperations(sharedContext, this.channelOps);
+    this.assistantOps = new AssistantOperations(sharedContext, this.channelOps);
   }
 
   async sendMessage(
     channel: string,
-    text: string,
-    thread_ts?: string
+    text?: string,
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatPostMessageResponse> {
-    return this.messageOps.sendMessage(channel, text, thread_ts);
+    return this.messageOps.sendMessage(channel, text, thread_ts, blocks);
   }
 
   async sendEphemeralMessage(
@@ -82,11 +97,12 @@ export class SlackApiClient {
 
   async scheduleMessage(
     channel: string,
-    text: string,
+    text: string | undefined,
     post_at: number,
-    thread_ts?: string
+    thread_ts?: string,
+    blocks?: SlackMessageBlock[]
   ): Promise<ChatScheduleMessageResponse> {
-    return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts);
+    return this.messageOps.scheduleMessage(channel, text, post_at, thread_ts, blocks);
   }
 
   async updateMessage(channel: string, ts: string, text: string): Promise<ChatUpdateResponse> {
@@ -129,6 +145,18 @@ export class SlackApiClient {
     return this.messageOps.getThreadHistory(channel, threadTs);
   }
 
+  async getMessage(channel: string, messageTs: string, threadTs?: string): Promise<Message> {
+    return this.messageOps.getMessage(channel, messageTs, threadTs);
+  }
+
+  async getMessageWithUsers(
+    channel: string,
+    messageTs: string,
+    threadTs?: string
+  ): Promise<HistoryResult> {
+    return this.messageOps.getMessageWithUsers(channel, messageTs, threadTs);
+  }
+
   async listUnreadChannels(): Promise<Channel[]> {
     try {
       const channels = await this.searchOps.listUnreadChannels();
@@ -156,6 +184,10 @@ export class SlackApiClient {
 
   async uploadFile(options: UploadFileOptions): Promise<void> {
     return this.fileOps.uploadFile(options);
+  }
+
+  async downloadFile(options: DownloadFileOptions): Promise<DownloadFileResult> {
+    return this.fileOps.downloadFile(options);
   }
 
   async addReaction(channel: string, timestamp: string, emoji: string): Promise<void> {
@@ -237,6 +269,19 @@ export class SlackApiClient {
     return this.reminderOps.listReminders();
   }
 
+  async setAssistantThreadStatus(
+    options: AssistantThreadStatusOptions
+  ): Promise<AssistantThreadStatusResponse> {
+    return this.assistantOps.setThreadStatus(options);
+  }
+
+  async clearAssistantThreadStatus(
+    channel: string,
+    threadTs: string
+  ): Promise<AssistantThreadStatusResponse> {
+    return this.assistantOps.clearThreadStatus(channel, threadTs);
+  }
+
   async deleteReminder(reminderId: string): Promise<void> {
     return this.reminderOps.deleteReminder(reminderId);
   }
@@ -263,6 +308,10 @@ export class SlackApiClient {
 
   async listCanvases(channel: string): Promise<CanvasFile[]> {
     return this.canvasOps.listCanvases(channel);
+  }
+
+  async writeCanvas(canvasId: string, markdown: string, position: CanvasPosition): Promise<void> {
+    return this.canvasOps.writeCanvas(canvasId, markdown, position);
   }
 }
 

@@ -23,7 +23,10 @@ export function mapChannelToInfo(channel: Channel): ChannelInfo {
     name: sanitizeTerminalText(channel.name || 'unnamed'),
     type,
     members: channel.num_members || 0,
-    created: formatUnixTimestamp(channel.created),
+    created:
+      typeof channel.created === 'number' && Number.isFinite(channel.created)
+        ? formatUnixTimestamp(channel.created)
+        : '',
     purpose: sanitizeTerminalText(channel.purpose?.value || ''),
   };
 }

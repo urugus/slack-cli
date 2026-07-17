@@ -128,6 +128,36 @@ describe('reminder command', () => {
       expect(SlackApiClient).toHaveBeenCalledWith('work-token');
     });
 
+    it('should sanitize reminder text in success output', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.addReminder).mockResolvedValue({
+        id: 'Rm01ABCDEF',
+        text: '\u001b[31mdeploy check\u001b[0m',
+        time: 1709290800,
+        complete_ts: 0,
+        recurring: false,
+      });
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'reminder',
+        'add',
+        '--text',
+        'deploy check',
+        '--at',
+        '2024-03-01 15:00',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Reminder created: "deploy check"')
+      );
+      expect(mockConsole.logSpy.mock.calls[0][0]).not.toContain('\u001b');
+    });
+
     it('should fail when neither --at nor --after is specified', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'test-token',
@@ -253,6 +283,28 @@ describe('reminder command', () => {
       expect(mockSlackClient.deleteReminder).toHaveBeenCalledWith('Rm01ABCDEF');
       expect(mockConsole.logSpy).toHaveBeenCalledWith(expect.stringContaining('Reminder deleted'));
     });
+
+    it('should sanitize reminder id in delete success output', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.deleteReminder).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'reminder',
+        'delete',
+        '--id',
+        'Rm01\u001b[31mABCDEF\u001b[0m',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Reminder deleted: Rm01ABCDEF')
+      );
+      expect(mockConsole.logSpy.mock.calls[0][0]).not.toContain('\u001b');
+    });
   });
 
   describe('complete subcommand', () => {
@@ -269,6 +321,28 @@ describe('reminder command', () => {
       expect(mockConsole.logSpy).toHaveBeenCalledWith(
         expect.stringContaining('Reminder completed')
       );
+    });
+
+    it('should sanitize reminder id in complete success output', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.completeReminder).mockResolvedValue();
+
+      await program.parseAsync([
+        'node',
+        'slack-cli',
+        'reminder',
+        'complete',
+        '--id',
+        'Rm01\u001b[31mABCDEF\u001b[0m',
+      ]);
+
+      expect(mockConsole.logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Reminder completed: Rm01ABCDEF')
+      );
+      expect(mockConsole.logSpy.mock.calls[0][0]).not.toContain('\u001b');
     });
   });
 

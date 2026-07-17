@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
@@ -56,6 +57,6 @@ jobs:
 
       - name: Publish to npm
         if: steps.check_tag.outputs.exists == 'false'
-        run: npm publish
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

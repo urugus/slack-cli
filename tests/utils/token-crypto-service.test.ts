@@ -2,9 +2,21 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigurationError, ValidationError } from '../../src/utils/errors';
 import { TokenCryptoService } from '../../src/utils/token-crypto-service';
+
+function createLegacyEncryptedToken(token: string): string {
+  const fixedSalt = 'slack-cli-salt-v1';
+  const key = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+
+  let encrypted = cipher.update(token, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  return `${iv.toString('hex')}:${encrypted}`;
+}
 
 describe('TokenCryptoService', () => {
   let service: TokenCryptoService;
@@ -16,6 +28,7 @@ describe('TokenCryptoService', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     if (originalMasterKey === undefined) {
       delete process.env.SLACK_CLI_MASTER_KEY;
     } else {
@@ -79,15 +92,7 @@ describe('TokenCryptoService', () => {
 
     it('should decrypt legacy AES-256-CBC encrypted token', () => {
       const token = 'legacy-token-value';
-      const fixedSalt = 'slack-cli-salt-v1';
-      const key = crypto.pbkdf2Sync('slack-cli-key', fixedSalt, 100000, 32, 'sha256');
-      const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-
-      let encrypted = cipher.update(token, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
-
-      const legacyEncryptedToken = `${iv.toString('hex')}:${encrypted}`;
+      const legacyEncryptedToken = createLegacyEncryptedToken(token);
 
       expect(service.isEncrypted(legacyEncryptedToken)).toBe(true);
       expect(service.isCurrentFormat(legacyEncryptedToken)).toBe(false);
@@ -193,6 +198,89 @@ describe('TokenCryptoService', () => {
         }
       }
     });
+
+    it('should use an injected master key without reading key files', () => {
+      delete process.env.SLACK_CLI_MASTER_KEY;
+      const injectedService = new TokenCryptoService({ masterKey: 'injected-master-key' });
+
+      const encrypted = injectedService.encrypt('injected-token');
+
+      expect(injectedService.decrypt(encrypted)).toBe('injected-token');
+    });
+
+    it('should fail clearly when a new key file cannot be initialized', () => {
+      let tempDir: string | undefined;
+
+      try {
+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slack-cli-key-init-fail-'));
+        const blockingFilePath = path.join(tempDir, 'secrets');
+        const newKeyFilePath = path.join(blockingFilePath, 'master.key');
+        const legacyKeyFilePath = path.join(tempDir, 'config', 'master.key');
+
+        delete process.env.SLACK_CLI_MASTER_KEY;
+        fs.writeFileSync(blockingFilePath, 'not a directory');
+
+        const failingService = new TokenCryptoService({
+          keyFilePath: newKeyFilePath,
+          legacyKeyFilePath,
+        });
+
+        expect(() => failingService.encrypt('token')).toThrow('Failed to encrypt token');
+      } finally {
+        if (tempDir) {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+      }
+    });
+
+    it('should fail clearly when legacy key migration cannot read a usable legacy key', () => {
+      let tempDir: string | undefined;
+
+      try {
+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slack-cli-key-migrate-fail-'));
+        const newKeyFilePath = path.join(tempDir, 'secrets', 'master.key');
+        const legacyKeyFilePath = path.join(tempDir, 'config', 'master.key');
+
+        delete process.env.SLACK_CLI_MASTER_KEY;
+        fs.mkdirSync(path.dirname(legacyKeyFilePath), { recursive: true });
+        fs.writeFileSync(legacyKeyFilePath, 'not-a-hex-key\n');
+
+        const migratedService = new TokenCryptoService({
+          keyFilePath: newKeyFilePath,
+          legacyKeyFilePath,
+        });
+
+        expect(() => migratedService.encrypt('token')).toThrow('Failed to encrypt token');
+      } finally {
+        if (tempDir) {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+      }
+    });
+
+    it('should fail clearly when the configured key file cannot be loaded', () => {
+      let tempDir: string | undefined;
+
+      try {
+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slack-cli-key-load-fail-'));
+        const newKeyFilePath = path.join(tempDir, 'secrets', 'master.key');
+        const legacyKeyFilePath = path.join(tempDir, 'config', 'master.key');
+
+        delete process.env.SLACK_CLI_MASTER_KEY;
+        fs.mkdirSync(newKeyFilePath, { recursive: true });
+
+        const fileKeyService = new TokenCryptoService({
+          keyFilePath: newKeyFilePath,
+          legacyKeyFilePath,
+        });
+
+        expect(() => fileKeyService.encrypt('token')).toThrow('Failed to encrypt token');
+      } finally {
+        if (tempDir) {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+      }
+    });
   });
 
   describe('decrypt error handling', () => {
@@ -252,6 +340,19 @@ describe('TokenCryptoService', () => {
         expect((error as ConfigurationError).message).toBe('Failed to decrypt token');
       }
     });
+
+    it('should reject invalid data passed directly to format-specific decryptors', () => {
+      expect(() =>
+        (
+          service as unknown as { decryptCurrentFormat: (value: string) => string }
+        ).decryptCurrentFormat('invalid')
+      ).toThrow(ValidationError);
+      expect(() =>
+        (
+          service as unknown as { decryptLegacyFormat: (value: string) => string }
+        ).decryptLegacyFormat('invalid')
+      ).toThrow(ValidationError);
+    });
   });
 
   describe('isEncrypted', () => {
@@ -269,6 +370,18 @@ describe('TokenCryptoService', () => {
 
     it('should return false for empty string', () => {
       expect(service.isEncrypted('')).toBe(false);
+    });
+  });
+
+  describe('isLegacyEncrypted', () => {
+    it('should return true only for legacy AES-256-CBC encrypted tokens', () => {
+      const legacyEncryptedToken = createLegacyEncryptedToken('legacy-token-value');
+      const currentEncryptedToken = service.encrypt('current-token-value');
+
+      expect(service.isLegacyEncrypted(legacyEncryptedToken)).toBe(true);
+      expect(service.isLegacyEncrypted(currentEncryptedToken)).toBe(false);
+      expect(service.isLegacyEncrypted('xoxb-plain-token')).toBe(false);
+      expect(service.isLegacyEncrypted('')).toBe(false);
     });
   });
 });

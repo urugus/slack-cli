@@ -40,7 +40,7 @@ class ChannelsJsonFormatter extends JsonFormatter<ChannelsListFormatterOptions> 
       name: channel.name,
       type: channel.type,
       members: channel.members,
-      created: channel.created + 'T00:00:00Z',
+      created: channel.created ? `${channel.created}T00:00:00Z` : null,
       purpose: channel.purpose,
     }));
   }

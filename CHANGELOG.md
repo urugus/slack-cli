@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0] - 2026-06-19
+
+### Added
+- Add Block Kit message support to `slack-cli send` with `--blocks` and `--blocks-file`
+
+## [0.26.1] - 2026-06-18
+
+### Changed
+- Improve npm supply chain metadata and release provenance settings
+
+## [0.26.0] - 2026-06-18
+
+### Added
+- Add `status keep-alive --loading-message-file` for dynamic rotating loading messages
+
+## [0.25.1] - 2026-06-14
+
+### Added
+- Expand test coverage across command validation, Slack operation wrappers, formatter helpers, update checks, token encryption, and Dependabot risk evaluation
+
+### Fixed
+- Preserve valid channel creation timestamps when `created` is `0`, and emit `null` in channels JSON output when Slack omits the creation timestamp
+- Reject using the same path for `status keep-alive --pid-file` and `--log-file`
+
+## [0.25.0] - 2026-06-12
+
+### Added
+- Add `status keep-alive --log-file` to append timestamped activity logs (start, setStatus success/failure, text changes, stop reason) for observability of detached keep-alive processes
+
+## [0.24.0] - 2026-06-12
+
+### Added
+- Add `status keep-alive --text-file` for dynamic status text with `--text` fallback
+- Refresh keep-alive status immediately when text-file content changes during the 5-second poll loop
+
+## [0.23.1] - 2026-06-12
+
+### Added
+- Add `status keep-alive --detach` and `--pid-file` for CLI-managed background keep-alive processes
+- Add `status stop` to touch stop files, terminate keep-alive PIDs, and clear status as a backstop
+- Check keep-alive stop files at least every 5 seconds even when refresh intervals are longer
+
+## [0.23.0] - 2026-06-12
+
+### Added
+- Add `status` command for Slack `assistant.threads.setStatus`
+- Support `status set`, `status clear`, and `status keep-alive`
+- Support repeated `--loading-message` values, up to Slack's 10 message limit
+
 ## [0.4.4] - 2026-02-22
 
 ### Changed

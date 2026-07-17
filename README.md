@@ -1,5 +1,8 @@
 # Slack CLI
 
+[![npm version](https://img.shields.io/npm/v/@urugus/slack-cli)](https://www.npmjs.com/package/@urugus/slack-cli)
+[![npm downloads](https://img.shields.io/npm/dm/@urugus/slack-cli)](https://www.npmjs.com/package/@urugus/slack-cli)
+
 A command-line tool for sending messages to Slack using the Slack API.
 
 ## Installation
@@ -27,6 +30,8 @@ Token storage security:
 - A local master key is created at `~/.slack-cli-secrets/master.key` with owner-only permissions.
 - Existing `~/.slack-cli/master.key` files are migrated automatically on first use.
 - For ephemeral environments, you can supply `SLACK_CLI_MASTER_KEY` to override the local key.
+- Local encryption is defense in depth for token-at-rest storage. It does not protect tokens from compromise of the same local user account, because that user can read the config and key material needed to decrypt them.
+- If a legacy encrypted token is migrated, the CLI will warn you to rotate the Slack token because the old stored value may have been copied, backed up, or exposed before migration.
 
 ## Usage
 
@@ -88,6 +93,59 @@ slack-cli send --user @john -m "Hello via DM!"
 
 # Send DM by email
 slack-cli send --email john@example.com -m "Hello via DM!"
+
+# Send Block Kit blocks
+slack-cli send -c general --blocks '[{"type":"divider"}]'
+
+# Send Block Kit blocks from a file
+slack-cli send -c general --blocks-file ./blocks.json -m "fallback"
+```
+
+### Assistant Thread Status
+
+Slack's `assistant.threads.setStatus` API can show a temporary loading status such as
+`<App name> is thinking...` on a normal channel thread. Since Slack's 2026-03-05
+change, this works with the `chat:write` scope.
+
+```bash
+# Set status on a thread
+slack-cli status set -c channel-name -t 1719207629.000100 --text "Working on it"
+
+# Set status with rotating loading messages
+slack-cli status set -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --loading-message "Reading context" \
+  --loading-message "Calling tools"
+
+# Clear status
+slack-cli status clear -c channel-name -t 1719207629.000100
+
+# Keep status alive until max duration, stop file, or SIGINT/SIGTERM
+slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --interval 80 \
+  --max-duration 600 \
+  --stop-file /tmp/slack-cli-status.stop
+
+# Keep status alive with dynamic status text from a file
+slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --text-file /tmp/slack-cli-status.txt \
+  --loading-message-file /tmp/slack-cli-loading-message.txt \
+  --interval 80 \
+  --max-duration 600 \
+  --stop-file /tmp/slack-cli-status.stop
+
+# Run keep-alive in the background, record its PID, and log activity to a file
+slack-cli status keep-alive -c channel-name -t 1719207629.000100 --text "Working on it" \
+  --interval 80 \
+  --max-duration 600 \
+  --stop-file /tmp/slack-cli-status.stop \
+  --detach \
+  --pid-file /tmp/slack-cli-status.pid \
+  --log-file /tmp/slack-cli-status.log
+
+# Stop a background keep-alive process and clear status as a backstop
+slack-cli status stop -c channel-name -t 1719207629.000100 \
+  --stop-file /tmp/slack-cli-status.stop \
+  --pid-file /tmp/slack-cli-status.pid
 ```
 
 ### List Channels
@@ -150,6 +208,15 @@ slack-cli history -c general --since "2024-01-01 00:00:00"
 
 # Get complete conversation of a thread
 slack-cli history -c general --thread 1719207629.000100
+
+# Get a single message from a Slack permalink
+slack-cli history --url "https://example.slack.com/archives/C123/p1780638511660849"
+
+# Extract table blocks from a Slack permalink
+slack-cli history --url "https://example.slack.com/archives/C123/p1780638511660849" --tables
+
+# Extract table blocks as JSON
+slack-cli history --url "https://example.slack.com/archives/C123/p1780638511660849" --tables --table-format json
 
 # Output in different formats
 slack-cli history -c general --format json
@@ -253,6 +320,19 @@ slack-cli upload -c general --content 'console.log("hello")' --filename snippet.
 slack-cli upload -c general -f ./logs.txt -t 1234567890.123456
 ```
 
+### Download Files
+
+```bash
+# Download the first file attached to a Slack message URL
+slack-cli file download --url "https://example.slack.com/archives/C123/p1780530261218279?thread_ts=1780527015.228619" --dir ./downloads
+
+# Download by Slack file ID
+slack-cli file download --id F012ABCDEF --output ./image.png
+
+# Download a file from a message timestamp
+slack-cli file download -c C123 -t 1780530261.218279 --thread 1780527015.228619 --index 1
+```
+
 ### Reactions
 
 ```bash
@@ -340,9 +420,20 @@ slack-cli canvas list -c general
 slack-cli canvas list -c general --format json
 slack-cli canvas list -c general --format simple
 
+# Append markdown to an existing Canvas
+slack-cli canvas write -i F01234567890 -m "追記する内容"
+
+# Insert markdown at the start of an existing Canvas
+slack-cli canvas write -i F01234567890 -m "先頭に追加" --position start
+
+# Replace the entire Canvas content
+# This discards the current Canvas content and requires --yes.
+slack-cli canvas write -i F01234567890 -m "全体を置換" --position replace --yes
+
 # Use specific profile
 slack-cli canvas read -i F01234567890 --profile work
 slack-cli canvas list -c general --profile work
+slack-cli canvas write -i F01234567890 -m "追記する内容" --profile work
 ```
 
 ### Other Commands
@@ -377,8 +468,109 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 | --message | -m    | Message to send                          |
 | --file    | -f    | File containing message content          |
 | --thread  | -t    | Thread timestamp to reply to             |
+| --blocks  |       | Block Kit blocks as a JSON array         |
+| --blocks-file |   | File containing Block Kit blocks JSON    |
 | --at      |       | Schedule time (Unix seconds or ISO 8601) |
 | --after   |       | Schedule message after N minutes         |
+### Block Kit メッセージ送信
+
+```bash
+# blocks を直接指定 (-m は通知用 fallback text になる)
+slack-cli send -c general --blocks '[{"type":"section","text":{"type":"mrkdwn","text":"*hello*"}}]' -m "hello"
+
+# ファイルから読み込み
+slack-cli send -c general --blocks-file ./blocks.json -m "fallback"
+
+# スレッド返信・予約送信とも併用可能
+slack-cli send -c general -t 1234567890.123456 --blocks '[{"type":"divider"}]'
+```
+
+- `--blocks` と `--blocks-file` は排他
+- `-m` / `-f` は blocks と併用すると通知用 fallback text として送信される
+- `-m` / `-f` なしでも blocks のみ送信できる
+- blocks は「`type` を持つ object の JSON 配列」であることを送信前に検証する
+
+
+### status command
+
+Subcommands: `set`, `clear`, `keep-alive`, `stop`
+
+#### status set
+
+| Option            | Short | Description                                      |
+| ----------------- | ----- | ------------------------------------------------ |
+| --channel         | -c    | Target channel name or ID (required)             |
+| --thread          | -t    | Thread parent timestamp (required)               |
+| --text            |       | Status text (required)                           |
+| --loading-message |       | Optional loading message; repeatable up to 10    |
+| --profile         |       | Use specific workspace profile                   |
+
+#### status clear
+
+| Option    | Short | Description                          |
+| --------- | ----- | ------------------------------------ |
+| --channel | -c    | Target channel name or ID (required) |
+| --thread  | -t    | Thread parent timestamp (required)   |
+| --profile |       | Use specific workspace profile       |
+
+#### status keep-alive
+
+Refreshes status immediately and then every `--interval` seconds because Slack clears assistant
+thread status after roughly two minutes. It stops when `--max-duration` elapses, `--stop-file`
+exists, or SIGINT/SIGTERM is received. Stop-file checks run at least every 5 seconds even when
+the refresh interval is longer. Every exit path sends a final clear request; clear failures are
+ignored.
+
+With `--text-file`, the CLI reads status text from the file on each 5-second poll. Non-empty
+file content overrides `--text`; missing, empty, or unreadable files fall back to `--text`.
+When the resolved text changes, keep-alive sends the new status immediately instead of waiting
+for the next `--interval` refresh.
+
+With `--loading-message-file`, the CLI reads a loading message from the file on each refresh.
+Non-empty file content is sent as one `loading_messages` entry and overrides any
+`--loading-message` arguments. Missing, empty, or unreadable files fall back to the repeatable
+`--loading-message` values.
+
+With `--detach`, the CLI starts the same keep-alive command in a detached child process without
+`--detach`, writes the child PID to `--pid-file`, and exits immediately. Without `--detach`,
+`--pid-file` writes the foreground process PID and is removed when keep-alive exits.
+
+With `--log-file`, keep-alive appends timestamped activity logs to the file: startup parameters,
+each `setStatus` success or failure with the error message, status text changes detected from
+`--text-file`, and the stop reason. The option is passed through to the detached child, so
+`--detach` runs stay traceable even though the child runs with `stdio: 'ignore'`. Log writes are
+best-effort and never interrupt keep-alive.
+
+| Option                 | Short | Description                                           |
+| ---------------------- | ----- | ----------------------------------------------------- |
+| --channel              | -c    | Target channel name or ID (required)                  |
+| --thread               | -t    | Thread parent timestamp (required)                    |
+| --text                 |       | Status text (required)                                |
+| --text-file            |       | Read dynamic status text from this file               |
+| --interval             |       | Refresh interval in seconds (default: 80)             |
+| --max-duration         |       | Maximum duration in seconds (default: 600)            |
+| --stop-file            |       | Stop when this path exists                            |
+| --detach               |       | Run keep-alive in a detached background process       |
+| --pid-file             |       | Write the keep-alive process ID to this file          |
+| --log-file             |       | Append timestamped activity logs to this file         |
+| --loading-message      |       | Optional loading message; repeatable up to 10         |
+| --loading-message-file |       | Read dynamic loading message from this file           |
+| --profile              |       | Use specific workspace profile                        |
+
+#### status stop
+
+Creates the optional stop-file, terminates the optional pid-file process with SIGTERM and then
+SIGKILL after `--timeout`, removes the pid-file, and finally clears status as a backstop. Missing
+files, dead processes, kill failures, and clear failures only print warnings; the command exits 0.
+
+| Option      | Short | Description                                   |
+| ----------- | ----- | --------------------------------------------- |
+| --channel   | -c    | Target channel name or ID (required)          |
+| --thread    | -t    | Thread parent timestamp (required)            |
+| --stop-file |       | Create this stop file before stopping         |
+| --pid-file  |       | Read and stop the process ID from this file   |
+| --timeout   |       | Seconds before SIGKILL after SIGTERM (default: 5) |
+| --profile   |       | Use specific workspace profile                |
 
 ### channels command
 
@@ -391,13 +583,16 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 
 ### history command
 
-| Option    | Short | Description                                            |
-| --------- | ----- | ------------------------------------------------------ |
-| --channel | -c    | Target channel name or ID (required)                   |
-| --number  | -n    | Number of messages to retrieve (default: 10)           |
-| --since   |       | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
-| --thread  | -t    | Thread timestamp to retrieve complete thread messages   |
-| --format  |       | Output format: table, simple, json (default: table)    |
+| Option         | Short | Description                                            |
+| -------------- | ----- | ------------------------------------------------------ |
+| --url          |       | Slack message permalink to retrieve                    |
+| --channel      | -c    | Target channel name or ID                              |
+| --number       | -n    | Number of messages to retrieve (default: 10)           |
+| --since        |       | Get messages since specific date (YYYY-MM-DD HH:MM:SS) |
+| --thread       | -t    | Thread timestamp to retrieve complete thread messages   |
+| --format       |       | Output format: table, simple, json (default: table)    |
+| --tables       |       | Extract table blocks from retrieved messages           |
+| --table-format |       | Table output format: markdown, json, tsv               |
 
 ### unread command
 
@@ -447,6 +642,19 @@ printf '%s\n' "$NEW_TOKEN" | slack-cli config set --token-stdin
 | --message  | -m    | Initial comment with the file                    |
 | --filetype |       | Snippet type (e.g. python, javascript, csv)      |
 | --thread   | -t    | Thread timestamp to upload as reply              |
+
+### file download command
+
+| Option      | Short | Description                                      |
+| ----------- | ----- | ------------------------------------------------ |
+| --id        |       | Slack file ID                                    |
+| --url       |       | Slack message permalink containing the file      |
+| --channel   | -c    | Channel name or ID                               |
+| --timestamp | -t    | Message timestamp containing the file            |
+| --thread    |       | Thread timestamp when downloading from a reply   |
+| --index     |       | 1-based file index for messages with many files  |
+| --output    | -o    | Output file path                                 |
+| --dir       | -d    | Output directory                                 |
 
 ### reaction command
 
@@ -522,7 +730,7 @@ Subcommands: `list`, `cancel`
 
 ### canvas command
 
-Subcommands: `read`, `list`
+Subcommands: `read`, `list`, `write`
 
 #### canvas read
 
@@ -538,11 +746,23 @@ Subcommands: `read`, `list`
 | --channel | -c    | Channel name or ID (required)                       |
 | --format  |       | Output format: table, simple, json (default: table) |
 
+#### canvas write
+
+Writes markdown to an existing Canvas. It does not create a new Canvas.
+
+| Option     | Short | Description                                                       |
+| ---------- | ----- | ----------------------------------------------------------------- |
+| --id       | -i    | Canvas ID (required)                                              |
+| --message  | -m    | Markdown content to write (required)                              |
+| --position |       | Write position: end, start, replace (default: end)                |
+| --yes      |       | Required when --position replace discards the whole Canvas content |
+| --profile  |       | Use specific workspace profile                                    |
+
 ## Required Permissions
 
 Your Slack API token needs the following scopes:
 
-- `chat:write` - Send and edit messages
+- `chat:write` - Send and edit messages; also required for `status` commands using Slack's `assistant.threads.setStatus` API
 - `channels:read` - List public channels and get channel info
 - `channels:write` - Set topic/purpose for public channels
 - `groups:read` - List private channels and get channel info
@@ -558,8 +778,9 @@ Your Slack API token needs the following scopes:
 - `pins:read` - List pinned items in a channel
 - `pins:write` - Pin and unpin messages
 - `files:write` - Upload files and snippets
-- `files:read` - List canvases linked to a channel
+- `files:read` - Download Slack files and list canvases linked to a channel
 - `canvases:read` - Read Canvas sections
+- `canvases:write` - Write Canvas content
 
 ## Advanced Features
 

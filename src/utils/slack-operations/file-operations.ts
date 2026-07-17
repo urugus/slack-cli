@@ -1,6 +1,10 @@
-import { basename } from 'path';
-import { BaseSlackClient, SlackClientDependency } from './base-client';
+import * as fs from 'fs/promises';
+import { basename, dirname, join } from 'path';
+import { SlackFile } from '../../types/slack';
+import { FileError } from '../errors';
+import { BaseSlackClient, createSlackClientContext, SlackClientDependency } from './base-client';
 import { ChannelOperations } from './channel-operations';
+import { MessageHistoryOperations } from './message-history-operations';
 
 export interface UploadFileOptions {
   channel: string;
@@ -13,12 +17,34 @@ export interface UploadFileOptions {
   threadTs?: string;
 }
 
+export interface DownloadFileOptions {
+  fileId?: string;
+  channel?: string;
+  messageTs?: string;
+  threadTs?: string;
+  fileIndex?: number;
+  outputPath?: string;
+  outputDir?: string;
+  force?: boolean;
+}
+
+export interface DownloadFileResult {
+  file: SlackFile;
+  path: string;
+  bytes: number;
+}
+
 export class FileOperations extends BaseSlackClient {
   private channelOps: ChannelOperations;
+  private historyOps: MessageHistoryOperations;
 
   constructor(dependency: SlackClientDependency, channelOps?: ChannelOperations) {
-    super(dependency);
-    this.channelOps = channelOps ?? new ChannelOperations(dependency);
+    const sharedDependency =
+      typeof dependency === 'string' ? createSlackClientContext(dependency) : dependency;
+
+    super(sharedDependency);
+    this.channelOps = channelOps ?? new ChannelOperations(sharedDependency);
+    this.historyOps = new MessageHistoryOperations(sharedDependency, this.channelOps);
   }
 
   async uploadFile(options: UploadFileOptions): Promise<void> {
@@ -43,6 +69,146 @@ export class FileOperations extends BaseSlackClient {
 
     await this.client.files.uploadV2(
       params as unknown as Parameters<typeof this.client.files.uploadV2>[0]
+    );
+  }
+
+  async downloadFile(options: DownloadFileOptions): Promise<DownloadFileResult> {
+    const file = options.fileId
+      ? await this.getFileInfo(options.fileId)
+      : await this.getMessageFile(options);
+    const outputPath = await this.resolveOutputPath(file, options);
+    const url = file.url_private_download || file.url_private;
+
+    if (!url) {
+      throw new FileError('Selected Slack file does not include a private download URL');
+    }
+
+    const response = await this.fetchSlackFile(url);
+    if (!response.ok) {
+      throw new FileError(
+        `Failed to download Slack file: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      throw new FileError(
+        'Slack returned HTML instead of the file. Verify the token has files:read and access to the file.'
+      );
+    }
+
+    const bytes = Buffer.from(await response.arrayBuffer());
+    await fs.mkdir(dirname(outputPath), { recursive: true });
+    try {
+      if (options.force) {
+        await fs.writeFile(outputPath, bytes);
+      } else {
+        await fs.writeFile(outputPath, bytes, { flag: 'wx' });
+      }
+    } catch (error: unknown) {
+      if (this.isFileExistsError(error)) {
+        throw new FileError(`Output file already exists: ${outputPath}. Use --force to overwrite.`);
+      }
+      throw error;
+    }
+
+    return { file, path: outputPath, bytes: bytes.length };
+  }
+
+  private async getFileInfo(fileId: string): Promise<SlackFile> {
+    const response = await this.client.files.info({ file: fileId });
+    const file = response.file as SlackFile | undefined;
+
+    if (!file) {
+      throw new FileError(`Slack file not found: ${fileId}`);
+    }
+
+    return file;
+  }
+
+  private async getMessageFile(options: DownloadFileOptions): Promise<SlackFile> {
+    if (!options.channel || !options.messageTs) {
+      throw new FileError(
+        'Channel and message timestamp are required when file id is not specified'
+      );
+    }
+
+    const message = await this.historyOps.getMessage(
+      options.channel,
+      options.messageTs,
+      options.threadTs
+    );
+    const files = message.files || [];
+
+    if (files.length === 0) {
+      throw new FileError(`No files found on message ${options.messageTs}`);
+    }
+
+    const fileIndex = options.fileIndex ?? 1;
+    const file = files[fileIndex - 1];
+
+    if (!file) {
+      throw new FileError(
+        `File index ${fileIndex} is out of range. Message has ${files.length} file(s).`
+      );
+    }
+
+    return file;
+  }
+
+  private async resolveOutputPath(file: SlackFile, options: DownloadFileOptions): Promise<string> {
+    if (options.outputPath) {
+      return options.outputPath;
+    }
+
+    const outputDir = options.outputDir || '.';
+    const filename = basename(file.name || file.title || file.id || 'slack-file');
+    await fs.mkdir(outputDir, { recursive: true });
+
+    return join(outputDir, filename);
+  }
+
+  private async fetchSlackFile(url: string, redirectCount = 0): Promise<Response> {
+    if (!this.token) {
+      throw new FileError('Slack token is required to download private files');
+    }
+
+    const headers = this.shouldSendAuth(url)
+      ? { Authorization: `Bearer ${this.token}` }
+      : undefined;
+    const response = await fetch(url, {
+      headers,
+      redirect: 'manual',
+    });
+
+    if (!this.isRedirect(response.status)) {
+      return response;
+    }
+
+    if (redirectCount >= 5) {
+      throw new FileError('Too many redirects while downloading Slack file');
+    }
+
+    const location = response.headers.get('location');
+    if (!location) {
+      throw new FileError('Slack file download redirected without a Location header');
+    }
+
+    return this.fetchSlackFile(new URL(location, url).toString(), redirectCount + 1);
+  }
+
+  private shouldSendAuth(url: string): boolean {
+    const hostname = new URL(url).hostname;
+    return hostname === 'slack.com' || hostname.endsWith('.slack.com');
+  }
+
+  private isRedirect(status: number): boolean {
+    return [301, 302, 303, 307, 308].includes(status);
+  }
+
+  private isFileExistsError(error: unknown): error is NodeJS.ErrnoException {
+    return Boolean(
+      error && typeof error === 'object' && 'code' in error && error.code === 'EEXIST'
     );
   }
 }

@@ -9,6 +9,7 @@ import { setupChannelsCommand } from './commands/channels';
 import { setupConfigCommand } from './commands/config';
 import { setupDeleteCommand } from './commands/delete';
 import { setupEditCommand } from './commands/edit';
+import { setupFileCommand } from './commands/file';
 import { setupHistoryCommand } from './commands/history';
 import { setupInviteCommand } from './commands/invite';
 import { setupJoinCommand } from './commands/join';
@@ -21,6 +22,7 @@ import { setupScheduledCommand } from './commands/scheduled';
 import { setupSearchCommand } from './commands/search';
 import { setupSendCommand } from './commands/send';
 import { setupSendEphemeralCommand } from './commands/send-ephemeral';
+import { setupStatusCommand } from './commands/status';
 import { setupUnreadCommand } from './commands/unread';
 import { setupUploadCommand } from './commands/upload';
 import { setupUsersCommand } from './commands/users';
@@ -56,6 +58,7 @@ export function createProgram(): Command {
   program.addCommand(setupEditCommand());
   program.addCommand(setupDeleteCommand());
   program.addCommand(setupUploadCommand());
+  program.addCommand(setupFileCommand());
   program.addCommand(setupReactionCommand());
   program.addCommand(setupPinCommand());
   program.addCommand(setupUsersCommand());
@@ -68,6 +71,7 @@ export function createProgram(): Command {
   program.addCommand(setupReminderCommand());
   program.addCommand(setupBookmarkCommand());
   program.addCommand(setupCanvasCommand());
+  program.addCommand(setupStatusCommand());
 
   return program;
 }

@@ -221,9 +221,17 @@ describe('validators', () => {
         expect(optionValidators.messageOrFile({ file: 'path.txt' })).toBeNull();
       });
 
+      it('should pass when blocks are provided', () => {
+        expect(optionValidators.messageOrFile({ blocks: '[{"type":"divider"}]' })).toBeNull();
+      });
+
+      it('should pass when blocks file is provided', () => {
+        expect(optionValidators.messageOrFile({ blocksFile: 'blocks.json' })).toBeNull();
+      });
+
       it('should fail when neither is provided', () => {
         expect(optionValidators.messageOrFile({})).toBe(
-          'You must specify either --message or --file'
+          'You must specify --message, --file, --blocks, or --blocks-file'
         );
       });
 
@@ -231,6 +239,15 @@ describe('validators', () => {
         expect(optionValidators.messageOrFile({ message: 'text', file: 'path.txt' })).toBe(
           'Cannot use both --message and --file'
         );
+      });
+
+      it('should fail when both blocks sources are provided', () => {
+        expect(
+          optionValidators.messageOrFile({
+            blocks: '[{"type":"divider"}]',
+            blocksFile: 'blocks.json',
+          })
+        ).toBe('Cannot use both --blocks and --blocks-file');
       });
     });
 

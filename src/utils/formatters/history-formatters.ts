@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { Message as SlackMessage } from '../../types/slack';
+import { SlackFile, Message as SlackMessage } from '../../types/slack';
 import { formatTimestampFixed } from '../date-utils';
 import { formatMessageWithMentions, resolveUsername } from '../format-utils';
 import { sanitizeTerminalText } from '../terminal-sanitizer';
@@ -10,6 +10,30 @@ export interface HistoryFormatterOptions {
   messages: SlackMessage[];
   users: Map<string, string>;
   permalinks?: Map<string, string>;
+}
+
+interface HistoryFileOutput {
+  id?: string;
+  name?: string;
+  title?: string;
+  mimetype?: string;
+  filetype?: string;
+  size?: number;
+  url_private?: string;
+  url_private_download?: string;
+}
+
+function formatFile(file: SlackFile): HistoryFileOutput {
+  return {
+    id: file.id,
+    name: file.name,
+    title: file.title,
+    mimetype: file.mimetype,
+    filetype: file.filetype,
+    size: file.size,
+    url_private: file.url_private,
+    url_private_download: file.url_private_download,
+  };
 }
 
 class TableHistoryFormatter extends AbstractFormatter<HistoryFormatterOptions> {
@@ -67,15 +91,20 @@ class JsonHistoryFormatter extends JsonFormatter<HistoryFormatterOptions> {
 
     return {
       channel: channelName,
-      messages: messages.map((message) => ({
-        ts: message.ts,
-        timestamp: formatTimestampFixed(message.ts),
-        user: resolveUsername(message, users),
-        text: message.text || '(no text)',
-        ...(message.thread_ts !== undefined && { thread_ts: message.thread_ts }),
-        ...(message.reply_count !== undefined && { reply_count: message.reply_count }),
-        ...(permalinks?.has(message.ts) && { permalink: permalinks.get(message.ts) }),
-      })),
+      messages: messages.map((message) => {
+        const files = message.files ?? [];
+
+        return {
+          ts: message.ts,
+          timestamp: formatTimestampFixed(message.ts),
+          user: resolveUsername(message, users),
+          text: message.text || '(no text)',
+          ...(message.thread_ts !== undefined && { thread_ts: message.thread_ts }),
+          ...(message.reply_count !== undefined && { reply_count: message.reply_count }),
+          ...(files.length > 0 ? { files: files.map(formatFile) } : {}),
+          ...(permalinks?.has(message.ts) && { permalink: permalinks.get(message.ts) }),
+        };
+      }),
       total: messages.length,
     };
   }

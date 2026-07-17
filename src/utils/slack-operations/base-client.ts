@@ -5,6 +5,7 @@ import { RATE_LIMIT } from '../constants';
 export interface SharedSlackClientContext {
   client: WebClient;
   rateLimiter: ReturnType<typeof pLimit>;
+  token?: string;
 }
 
 export type SlackClientDependency = string | WebClient | SharedSlackClientContext;
@@ -18,24 +19,28 @@ export function createSlackClientContext(token: string): SharedSlackClientContex
       logLevel: LogLevel.ERROR, // Reduce noise from WebClient logs
     }),
     rateLimiter: pLimit(RATE_LIMIT.CONCURRENT_REQUESTS),
+    token,
   };
 }
 
 export class BaseSlackClient {
   protected client: WebClient;
   protected rateLimiter: ReturnType<typeof pLimit>;
+  protected token?: string;
 
   constructor(dependency: SlackClientDependency) {
     if (typeof dependency === 'string') {
       const context = createSlackClientContext(dependency);
       this.client = context.client;
       this.rateLimiter = context.rateLimiter;
+      this.token = context.token;
       return;
     }
 
     if ('client' in dependency && 'rateLimiter' in dependency) {
       this.client = dependency.client;
       this.rateLimiter = dependency.rateLimiter;
+      this.token = dependency.token;
       return;
     }
 

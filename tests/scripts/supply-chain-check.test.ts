@@ -9,6 +9,8 @@ import {
   type PackageMetadata,
   parseNpmAuditJson,
   type RiskSignal,
+  resolveLockedVersion,
+  runNpmAudit,
 } from '../../scripts/supply-chain-check';
 
 describe('supply-chain-check', () => {
@@ -350,6 +352,66 @@ describe('supply-chain-check', () => {
     });
   });
 
+  describe('resolveLockedVersion', () => {
+    it('returns the exact version resolved for an unscoped package', () => {
+      expect(
+        resolveLockedVersion('chalk', {
+          packages: { 'node_modules/chalk': { version: '5.6.2' } },
+        })
+      ).toBe('5.6.2');
+    });
+
+    it('returns the exact version resolved for a scoped package', () => {
+      expect(
+        resolveLockedVersion('@slack/web-api', {
+          packages: { 'node_modules/@slack/web-api': { version: '7.15.0' } },
+        })
+      ).toBe('7.15.0');
+    });
+
+    it('returns undefined when the lockfile does not contain an exact version', () => {
+      expect(resolveLockedVersion('chalk', { packages: {} })).toBeUndefined();
+    });
+  });
+
+  describe('runNpmAudit', () => {
+    it('returns parsed audit data when npm exits successfully', async () => {
+      const result = await runNpmAudit(() =>
+        JSON.stringify({
+          metadata: { vulnerabilities: { critical: 0, high: 1, moderate: 0, low: 0 } },
+        })
+      );
+
+      expect(result.vulnerabilities).toMatchObject({ total: 1, high: 1 });
+    });
+
+    it('returns parsed audit data from stdout when npm exits non-zero', async () => {
+      const stdout = JSON.stringify({
+        metadata: { vulnerabilities: { critical: 1, high: 0, moderate: 0, low: 0 } },
+      });
+
+      const result = await runNpmAudit(() => {
+        throw { stdout };
+      });
+
+      expect(result.vulnerabilities).toMatchObject({ total: 1, critical: 1 });
+    });
+
+    it('fails when npm audit cannot produce valid JSON', async () => {
+      await expect(runNpmAudit(() => 'not JSON')).rejects.toThrow(
+        'npm audit did not return valid JSON'
+      );
+    });
+
+    it('fails when npm audit exits without JSON output', async () => {
+      await expect(
+        runNpmAudit(() => {
+          throw new Error('network unavailable');
+        })
+      ).rejects.toThrow('npm audit failed without valid JSON output');
+    });
+  });
+
   describe('fetchPackageMetadata', () => {
     let fetchSpy: MockInstance;
 
@@ -440,7 +502,7 @@ describe('supply-chain-check', () => {
       expect(metadata.weeklyDownloads).toBe(0);
     });
 
-    it('handles missing version in registry data', async () => {
+    it('rejects a version that is not resolved in registry data', async () => {
       const registryResponse = {
         name: 'test-pkg',
         maintainers: [],
@@ -462,9 +524,9 @@ describe('supply-chain-check', () => {
         } as Response);
       });
 
-      const metadata = await fetchPackageMetadata('test-pkg', '99.0.0');
-      expect(metadata.publishedAt).toBe('2022-01-01T00:00:00.000Z');
-      expect(metadata.hasTypes).toBe(false);
+      await expect(fetchPackageMetadata('test-pkg', '99.0.0')).rejects.toThrow(
+        'Package version test-pkg@99.0.0 was not found in the npm registry'
+      );
     });
   });
 });

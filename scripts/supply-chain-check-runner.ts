@@ -16,6 +16,7 @@ import {
   fetchPackageMetadata,
   findDependencyChanges,
   generateReport,
+  resolveLockedVersion,
   runNpmAudit,
 } from './supply-chain-check';
 
@@ -28,6 +29,7 @@ async function main() {
 
   const basePackage = JSON.parse(fs.readFileSync(basePackageJsonPath, 'utf-8'));
   const headPackage = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+  const headLockfile = JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'));
 
   // Find all dependency changes (production + dev)
   const prodChanges = findDependencyChanges(basePackage.dependencies, headPackage.dependencies);
@@ -46,8 +48,23 @@ async function main() {
   const riskResults: { pkg: string; risks: ReturnType<typeof analyzePackageRisk> }[] = [];
 
   for (const pkg of packagesToCheck) {
+    const resolvedVersion = resolveLockedVersion(pkg.name, headLockfile);
+    if (!resolvedVersion) {
+      riskResults.push({
+        pkg: pkg.name,
+        risks: [
+          {
+            type: 'metadata-fetch-failed' as const,
+            severity: 'high' as const,
+            message: 'No exact version was found in package-lock.json',
+          },
+        ],
+      });
+      continue;
+    }
+
     try {
-      const metadata = await fetchPackageMetadata(pkg.name, pkg.newVersion);
+      const metadata = await fetchPackageMetadata(pkg.name, resolvedVersion);
       const risks = analyzePackageRisk(metadata);
       riskResults.push({ pkg: pkg.name, risks });
     } catch (error) {

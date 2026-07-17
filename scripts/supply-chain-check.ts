@@ -49,6 +49,8 @@ const DOWNLOAD_THRESHOLD_LOW = 100;
 const NEW_VERSION_DAYS = 7;
 
 type JsonRecord = Record<string, unknown>;
+type Lockfile = { packages?: Record<string, unknown> };
+type NpmAuditExecutor = () => string | Buffer;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -95,6 +97,15 @@ export function findDependencyChanges(
   }
 
   return changes;
+}
+
+/** Returns the exact top-level dependency version selected by npm's lockfile. */
+export function resolveLockedVersion(packageName: string, lockfile: Lockfile): string | undefined {
+  const packages = lockfile.packages;
+  if (!packages) return undefined;
+
+  const entry = packages[`node_modules/${packageName}`];
+  return isRecord(entry) ? getString(entry.version) : undefined;
 }
 
 export function analyzePackageRisk(metadata: PackageMetadata): RiskSignal[] {
@@ -275,7 +286,10 @@ export async function fetchPackageMetadata(
 
   const versions = getRecord(registryData, 'versions');
   const versionValue = versions[version];
-  const versionData = isRecord(versionValue) ? versionValue : {};
+  if (!isRecord(versionValue)) {
+    throw new Error(`Package version ${packageName}@${version} was not found in the npm registry`);
+  }
+  const versionData = versionValue;
   const timeData = getRecord(registryData, 'time');
 
   const downloadsUrl = `https://api.npmjs.org/downloads/point/last-week/${encodeURIComponent(packageName)}`;
@@ -298,8 +312,7 @@ export async function fetchPackageMetadata(
   return {
     name: packageName,
     version,
-    publishedAt:
-      getString(timeData[version]) ?? getString(timeData.created) ?? new Date().toISOString(),
+    publishedAt: getString(timeData[version]) ?? getString(timeData.created) ?? '',
     maintainerCount: Array.isArray(maintainers) ? maintainers.length : 0,
     weeklyDownloads,
     hasTypes: typeof versionData.types === 'string' || typeof versionData.typings === 'string',
@@ -309,26 +322,38 @@ export async function fetchPackageMetadata(
   };
 }
 
-export async function runNpmAudit(): Promise<NpmAuditResult> {
-  const { execSync } = await import('node:child_process');
+export async function runNpmAudit(executor?: NpmAuditExecutor): Promise<NpmAuditResult> {
+  let run = executor;
+  if (!run) {
+    const { execSync } = await import('node:child_process');
+    run = () =>
+      execSync('npm audit --json', {
+        encoding: 'utf-8',
+        timeout: 60000,
+      });
+  }
+
   try {
-    const output = execSync('npm audit --json 2>/dev/null', {
-      encoding: 'utf-8',
-      timeout: 60000,
-    });
-    const parsed = parseNpmAuditJson(output);
+    const parsed = parseNpmAuditJson(run().toString());
     if (parsed) {
       return parsed;
     }
+
+    throw new Error('npm audit did not return valid JSON');
   } catch (error: unknown) {
     // npm audit exits with non-zero when vulnerabilities are found
-    const err = error as { stdout?: string };
+    if (error instanceof Error && error.message === 'npm audit did not return valid JSON') {
+      throw error;
+    }
+
+    const err = error as { stdout?: string | Buffer };
     if (err.stdout) {
-      const parsed = parseNpmAuditJson(err.stdout);
+      const parsed = parseNpmAuditJson(err.stdout.toString());
       if (parsed) {
         return parsed;
       }
     }
   }
-  return { vulnerabilities: { total: 0 } };
+
+  throw new Error('npm audit failed without valid JSON output');
 }

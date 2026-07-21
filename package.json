@@ -20,7 +20,8 @@
     "format:check": "biome check .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "generate:chart": "tsx scripts/generate-download-chart.ts"
   },
   "keywords": ["slack", "cli", "command-line", "messaging", "api"],
   "repository": {
@@ -49,6 +50,7 @@
     "@types/semver": "7.7.1",
     "@vitest/coverage-v8": "4.1.7",
     "ts-node": "10.9.2",
+    "tsx": "4.22.4",
     "typescript": "6.0.3",
     "vitest": "4.1.7"
   },

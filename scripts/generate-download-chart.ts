@@ -95,6 +95,7 @@ export async function generateChart(labels: string[], data: number[]): Promise<B
     signal: AbortSignal.timeout(30000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      version: '4',
       chart: chartConfig,
       width: 800,
       height: 400,

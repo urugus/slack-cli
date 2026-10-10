@@ -94,6 +94,7 @@ describe('download chart', () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
     const request = JSON.parse(init.body);
     expect(request.format).toBe('png');
+    expect(request.version).toBe('4');
     expect(request.chart.data.labels).toEqual(['2026-09']);
     expect(request.chart.data.datasets[0].data).toEqual([7]);
   });

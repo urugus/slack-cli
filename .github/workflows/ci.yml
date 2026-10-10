@@ -36,6 +36,9 @@ jobs:
     
     - name: Run type check
       run: npm run build
+
+    - name: Verify compiled CLI and real SDK compatibility
+      run: node --test scripts/runtime-compatibility.cjs
     
     - name: Run tests
       run: npm test

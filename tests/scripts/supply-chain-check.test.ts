@@ -344,11 +344,14 @@ describe('supply-chain-check', () => {
       expect(result).toBeNull();
     });
 
-    it('handles missing metadata gracefully', () => {
-      const json = JSON.stringify({});
-      const result = parseNpmAuditJson(json);
-      expect(result).not.toBeNull();
-      expect(result?.vulnerabilities.total).toBe(0);
+    it.each([
+      {},
+      { error: { code: 'ENOAUDIT', summary: 'Registry unavailable' } },
+      { metadata: { vulnerabilities: { high: 0 } } },
+      { metadata: { vulnerabilities: { critical: 0, high: '0', moderate: 0, low: 0 } } },
+      { metadata: { vulnerabilities: { critical: 0, high: -1, moderate: 0, low: 0 } } },
+    ])('rejects incomplete or invalid audit data: %j', (data) => {
+      expect(parseNpmAuditJson(JSON.stringify(data))).toBeNull();
     });
   });
 
@@ -407,6 +410,14 @@ describe('supply-chain-check', () => {
       await expect(
         runNpmAudit(() => {
           throw new Error('network unavailable');
+        })
+      ).rejects.toThrow('npm audit failed without valid JSON output');
+    });
+
+    it('fails when the registry returns error JSON instead of an audit report', async () => {
+      await expect(
+        runNpmAudit(() => {
+          throw { stdout: JSON.stringify({ error: { code: 'ENOAUDIT' } }) };
         })
       ).rejects.toThrow('npm audit failed without valid JSON output');
     });

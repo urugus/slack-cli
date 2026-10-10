@@ -171,6 +171,7 @@ export interface ListChannelsOptions {
   types: string;
   exclude_archived: boolean;
   limit: number;
+  member_only?: boolean;
 }
 
 export interface HistoryOptions {

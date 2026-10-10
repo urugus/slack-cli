@@ -259,6 +259,23 @@ describe('channels command', () => {
       });
     });
 
+    it('should list only member channels when --member-only is set', async () => {
+      vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
+        token: 'test-token',
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(mockSlackClient.listChannels).mockResolvedValue(mockChannels);
+
+      await program.parseAsync(['node', 'slack-cli', 'channels', '--member-only']);
+
+      expect(mockSlackClient.listChannels).toHaveBeenCalledWith({
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 100,
+        member_only: true,
+      });
+    });
+
     it('should use specified profile', async () => {
       vi.mocked(mockConfigManager.getConfig).mockResolvedValue({
         token: 'work-token',

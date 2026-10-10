@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.0] - 2026-10-05
+
+### Added
+- Add `channels --member-only` to list only the channels the user is a member of
+
 ## [0.27.0] - 2026-06-19
 
 ### Added

@@ -668,6 +668,57 @@ describe('ChannelOperations', () => {
     });
   });
 
+  describe('listChannels with member_only', () => {
+    it('should use users.conversations instead of conversations.list', async () => {
+      mockClient.users.conversations.mockResolvedValue({
+        channels: [{ id: 'C123', name: 'general' }],
+      });
+
+      const result = await channelOps.listChannels({
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 100,
+        member_only: true,
+      });
+
+      expect(result).toEqual([{ id: 'C123', name: 'general' }]);
+      expect(mockClient.users.conversations).toHaveBeenCalledWith({
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 100,
+        cursor: undefined,
+      });
+      expect(mockClient.conversations.list).not.toHaveBeenCalled();
+    });
+
+    it('should handle pagination for users.conversations', async () => {
+      mockClient.users.conversations
+        .mockResolvedValueOnce({
+          channels: [{ id: 'C001', name: 'ch1' }],
+          response_metadata: { next_cursor: 'cursor2' },
+        })
+        .mockResolvedValueOnce({
+          channels: [{ id: 'C002', name: 'ch2' }],
+          response_metadata: { next_cursor: '' },
+        });
+
+      const result = await channelOps.listChannels({
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 100,
+        member_only: true,
+      });
+
+      expect(result.map((channel) => channel.id)).toEqual(['C001', 'C002']);
+      expect(mockClient.users.conversations).toHaveBeenNthCalledWith(2, {
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 100,
+        cursor: 'cursor2',
+      });
+    });
+  });
+
   describe('getChannelInfo', () => {
     it('should resolve names and fetch channel info without member counts', async () => {
       mockClient.conversations.list.mockResolvedValue({

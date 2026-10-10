@@ -3,6 +3,12 @@
 [![npm version](https://img.shields.io/npm/v/@urugus/slack-cli)](https://www.npmjs.com/package/@urugus/slack-cli)
 [![npm downloads](https://img.shields.io/npm/dm/@urugus/slack-cli)](https://www.npmjs.com/package/@urugus/slack-cli)
 
+## Download Statistics
+
+![npm monthly downloads](https://raw.githubusercontent.com/urugus/slack-cli/codex/download-statistics/assets/downloads.png)
+
+The chart shows the last 12 complete calendar months in UTC and is updated weekly.
+
 A command-line tool for sending messages to Slack using the Slack API.
 
 ## Installation

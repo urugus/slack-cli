@@ -1,6 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 const PACKAGE_NAME = '@urugus/slack-cli';
 const QUICKCHART_URL = 'https://quickchart.io/chart';
@@ -22,17 +21,36 @@ interface MonthlyData {
   downloads: number;
 }
 
-async function fetchDownloads(startDate: string, endDate: string): Promise<NpmDownloadPoint[]> {
+export async function fetchDownloads(
+  startDate: string,
+  endDate: string
+): Promise<NpmDownloadPoint[]> {
   const url = `https://api.npmjs.org/downloads/range/${startDate}:${endDate}/${encodeURIComponent(PACKAGE_NAME)}`;
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!response.ok) {
-    throw new Error(`Failed to fetch downloads: ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch downloads: HTTP ${response.status} ${response.statusText} (${url})`
+    );
   }
   const data = (await response.json()) as NpmDownloadRange;
+  if (
+    !Array.isArray(data?.downloads) ||
+    !data.downloads.every(
+      (point) =>
+        point !== null &&
+        typeof point === 'object' &&
+        typeof point.day === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(point.day) &&
+        Number.isSafeInteger(point.downloads) &&
+        point.downloads >= 0
+    )
+  ) {
+    throw new Error('Invalid npm download response');
+  }
   return data.downloads;
 }
 
-function aggregateByMonth(points: NpmDownloadPoint[]): MonthlyData[] {
+export function aggregateByMonth(points: NpmDownloadPoint[]): MonthlyData[] {
   const monthMap = new Map<string, number>();
   for (const point of points) {
     const month = point.day.slice(0, 7);
@@ -43,7 +61,7 @@ function aggregateByMonth(points: NpmDownloadPoint[]): MonthlyData[] {
     .map(([month, downloads]) => ({ month, downloads }));
 }
 
-async function generateChart(labels: string[], data: number[]): Promise<Buffer> {
+export async function generateChart(labels: string[], data: number[]): Promise<Buffer> {
   const chartConfig = {
     type: 'bar',
     data: {
@@ -62,7 +80,7 @@ async function generateChart(labels: string[], data: number[]): Promise<Buffer> 
       plugins: {
         title: {
           display: true,
-          text: `${PACKAGE_NAME} - Monthly Downloads (past 12 months)`,
+          text: `${PACKAGE_NAME} - Monthly Downloads (last 12 complete months)`,
         },
         legend: { display: false },
       },
@@ -74,6 +92,7 @@ async function generateChart(labels: string[], data: number[]): Promise<Buffer> 
 
   const response = await fetch(QUICKCHART_URL, {
     method: 'POST',
+    signal: AbortSignal.timeout(30000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chart: chartConfig,
@@ -85,19 +104,33 @@ async function generateChart(labels: string[], data: number[]): Promise<Buffer> 
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to generate chart: ${response.statusText}`);
+    throw new Error(
+      `Failed to generate chart: HTTP ${response.status} ${response.statusText} (${QUICKCHART_URL})`
+    );
   }
 
   const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  const png = Buffer.from(arrayBuffer);
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (
+    !response.headers.get('content-type')?.startsWith('image/png') ||
+    !png.subarray(0, 8).equals(signature)
+  ) {
+    throw new Error('Chart service did not return a PNG image');
+  }
+  return png;
 }
 
-async function main(): Promise<void> {
-  const today = new Date();
-  const endDate = today.toISOString().slice(0, 10);
-  const oneYearAgo = new Date(today);
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const startDate = oneYearAgo.toISOString().slice(0, 10);
+export function getDownloadRange(now: Date): readonly [string, string] {
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const start = new Date(Date.UTC(year - 1, month, 1));
+  const end = new Date(Date.UTC(year, month, 1) - 86400000);
+  return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+}
+
+export async function main(): Promise<void> {
+  const [startDate, endDate] = getDownloadRange(new Date());
 
   console.log(`Fetching downloads for ${PACKAGE_NAME} (${startDate} to ${endDate})...`);
   const dailyDownloads = await fetchDownloads(startDate, endDate);
@@ -109,8 +142,7 @@ async function main(): Promise<void> {
   console.log('Generating chart via quickchart.io...');
   const chartBuffer = await generateChart(labels, data);
 
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const assetsDir = join(__dirname, '..', 'assets');
+  const assetsDir = join(process.cwd(), 'assets');
   mkdirSync(assetsDir, { recursive: true });
   writeFileSync(join(assetsDir, 'downloads.png'), chartBuffer);
 
@@ -118,7 +150,9 @@ async function main(): Promise<void> {
   console.log(`Chart saved to assets/downloads.png (total: ${total.toLocaleString()} downloads)`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

@@ -14,6 +14,7 @@ export function setupChannelsCommand(): Command {
     .description('List Slack channels')
     .option('--type <type>', 'Channel type: public, private, im, mpim, all', 'public')
     .option('--include-archived', 'Include archived channels', false)
+    .option('--member-only', 'List only channels you are a member of', false)
     .option('--format <format>', 'Output format: table, simple, json', 'table')
     .option('--limit <number>', 'Maximum number of channels to list', '100')
     .option('--profile <profile>', 'Use specific workspace profile')
@@ -26,6 +27,7 @@ export function setupChannelsCommand(): Command {
             types,
             exclude_archived: !parseBoolean(options.includeArchived),
             limit,
+            ...(parseBoolean(options.memberOnly) && { member_only: true }),
           });
 
           if (channels.length === 0) {

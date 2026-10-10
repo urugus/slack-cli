@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Message } from '../../../src/types/slack';
+import type { Message } from '../../../src/types/slack';
 import {
   createHistoryFormatter,
-  HistoryFormatterOptions,
+  type HistoryFormatterOptions,
 } from '../../../src/utils/formatters/history-formatters';
 
 describe('JsonHistoryFormatter', () => {

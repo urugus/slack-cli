@@ -3,7 +3,7 @@
  * Invoked by the GitHub Actions workflow to analyze dependency changes,
  * fetch package metadata, run npm audit, and output a markdown report.
  *
- * Usage: npx ts-node scripts/supply-chain-check-runner.ts <base-package-json-path>
+ * Usage: npx --no-install tsx scripts/supply-chain-check-runner.ts <base-package-json-path>
  *   base-package-json-path: Path to the base branch's package.json file
  *
  * Outputs the markdown report to stdout.

@@ -37,7 +37,7 @@ jobs:
       - name: Run supply chain security check
         id: check
         run: |
-          npx --no-install ts-node scripts/supply-chain-check-runner.ts /tmp/base-package.json > /tmp/supply-chain-report.md
+          npx --no-install tsx scripts/supply-chain-check-runner.ts /tmp/base-package.json > /tmp/supply-chain-report.md
 
       - name: Publish report to job summary
         if: success() || failure()

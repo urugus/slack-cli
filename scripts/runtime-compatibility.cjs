@@ -3,11 +3,23 @@ const { execFileSync } = require('node:child_process');
 const { createServer } = require('node:http');
 const { join } = require('node:path');
 const { test } = require('node:test');
+const semver = require('semver');
 const { LogLevel, WebClient, ErrorCode } = require('@slack/web-api');
 const { FileOperations } = require('../dist/utils/slack-operations/file-operations');
 const {
   MessageWriteOperations,
 } = require('../dist/utils/slack-operations/message-write-operations');
+
+test('production dependency engines support the current Node.js runtime', () => {
+  const lock = require('../package-lock.json');
+  for (const [name, dependency] of Object.entries(lock.packages)) {
+    if (!name || dependency.dev || !dependency.engines?.node) continue;
+    assert.ok(
+      semver.satisfies(process.versions.node, dependency.engines.node),
+      `${name}@${dependency.version} requires Node.js ${dependency.engines.node}`
+    );
+  }
+});
 
 test('compiled CLI starts and exposes its version and command help', () => {
   const cli = join(__dirname, '..', 'dist', 'index.js');

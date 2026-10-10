@@ -825,6 +825,21 @@ Messages sent via the `send` command automatically support Slack's mrkdwn format
 - User mentions: `<@USER_ID>`
 - Channel mentions: `<#CHANNEL_ID>`
 
+## Development
+
+Use Node.js 22.12 or later from the Node.js 22 or 24 release lines for development and tests. The published CLI continues to support Node.js 20 and later.
+
+```bash
+npm ci
+npm run check
+npm run build
+npm test -- --run
+npm run test:coverage -- --run
+npm run dev -- --help
+```
+
+CI runs the full test suite and coverage on Node.js 22, then builds and checks the compiled CLI and real Slack SDK on Node.js 20 with development dependencies removed.
+
 ## License
 
 MIT

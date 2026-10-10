@@ -10,68 +10,104 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  unit-tests:
     runs-on: ubuntu-slim
-    
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Biome checks
+        run: npm run check
+
+      - name: Run type check
+        run: npm run build
+
+      - name: Verify compiled CLI and real SDK compatibility
+        run: node --test scripts/runtime-compatibility.cjs
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run test coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        if: matrix.node-version == '22.x'
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  test:
+    # Keep the required Node 20 check and require the full Node 22 suite to succeed.
+    needs: unit-tests
+    if: ${{ always() }}
+    runs-on: ubuntu-slim
     strategy:
       matrix:
         node-version: [20.x]
-    
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run Biome checks
-      run: npm run check
-    
-    - name: Run type check
-      run: npm run build
+      - name: Require unit tests and coverage to pass
+        env:
+          UNIT_TEST_RESULT: ${{ needs.unit-tests.result }}
+        run: test "$UNIT_TEST_RESULT" = success
 
-    - name: Verify compiled CLI and real SDK compatibility
-      run: node --test scripts/runtime-compatibility.cjs
-    
-    - name: Run tests
-      run: npm test
-    
-    - name: Run test coverage
-      run: npm run test:coverage
-    
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-      if: matrix.node-version == '20.x'
-      with:
-        files: ./coverage/coverage-final.json
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build on Node.js 20
+        run: npm run build
+
+      - name: Remove development dependencies
+        run: npm prune --omit=dev --ignore-scripts --no-audit --no-fund
+
+      - name: Verify compiled CLI and real SDK on Node.js 20
+        run: node --test scripts/runtime-compatibility.cjs
 
   build:
     runs-on: ubuntu-slim
     needs: test
-    
+
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-    
-    - name: Use Node.js
-      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build
-      run: npm run build
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build

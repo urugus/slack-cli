@@ -829,7 +829,7 @@ Messages sent via the `send` command automatically support Slack's mrkdwn format
 
 ## Development
 
-Use Node.js 22.12 or later from the Node.js 22 or 24 release lines for development and tests. The published CLI continues to support Node.js 20 and later.
+Use Node.js 22.12 or later from the Node.js 22 or 24 release lines for development and tests. The published CLI supports Node.js 20.19 or later in the 20.x release line, and Node.js 22.12 or later.
 
 ```bash
 npm ci

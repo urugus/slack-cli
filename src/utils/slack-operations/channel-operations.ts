@@ -47,12 +47,16 @@ export class ChannelOperations extends BaseSlackClient {
     let cursor: string | undefined;
 
     do {
-      const response = await this.client.conversations.list({
+      const params = {
         types: options.types,
         exclude_archived: options.exclude_archived,
         limit: options.limit,
         cursor,
-      });
+      };
+      // users.conversations returns only conversations the authenticated user belongs to
+      const response = options.member_only
+        ? await this.client.users.conversations(params)
+        : await this.client.conversations.list(params);
 
       if (response.channels) {
         channels.push(...(response.channels as Channel[]));

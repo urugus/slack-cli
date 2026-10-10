@@ -84,6 +84,7 @@ export interface ScheduledCancelOptions {
 export interface ChannelsOptions {
   type: 'public' | 'private' | 'im' | 'mpim' | 'all';
   includeArchived: boolean;
+  memberOnly?: boolean;
   format: 'table' | 'simple' | 'json';
   limit: string;
   profile?: string;

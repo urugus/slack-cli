@@ -87,6 +87,11 @@ async function main() {
   // Generate report
   const report = generateReport(allChanges, riskResults, auditResult);
   console.log(report);
+
+  if ((auditResult.vulnerabilities.high ?? 0) + (auditResult.vulnerabilities.critical ?? 0) > 0) {
+    console.error('Supply chain check failed: high or critical vulnerabilities found.');
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {

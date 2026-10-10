@@ -169,6 +169,13 @@ slack-cli channels --type all
 # Include archived channels
 slack-cli channels --include-archived
 
+# List only the channels you are a member of
+# (Members is always 0 here: users.conversations does not return member counts)
+slack-cli channels --member-only
+
+# Combine with --type to include private channels, IMs and MPIMs you are a member of
+slack-cli channels --member-only --type all
+
 # Limit number of channels displayed
 slack-cli channels --limit 20
 
@@ -578,6 +585,7 @@ files, dead processes, kill failures, and clear failures only print warnings; th
 | ------------------ | ----- | -------------------------------------------------------------- |
 | --type             |       | Channel type: public, private, im, mpim, all (default: public) |
 | --include-archived |       | Include archived channels                                      |
+| --member-only      |       | List only channels you are a member of (Members is always 0)   |
 | --format           |       | Output format: table, simple, json (default: table)            |
 | --limit            |       | Maximum number of channels to list (default: 100)              |
 

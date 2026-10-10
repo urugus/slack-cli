@@ -247,26 +247,26 @@ describe('file command', () => {
       expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
     });
 
-    it.each([
-      '1.5',
-      '2abc',
-    ])('should fail when index is not an integer string: %s', async (index) => {
-      await program.parseAsync([
-        'node',
-        'slack-cli',
-        'file',
-        'download',
-        '--id',
-        'F123',
-        '--index',
-        index,
-      ]);
+    it.each(['1.5', '2abc'])(
+      'should fail when index is not an integer string: %s',
+      async (index) => {
+        await program.parseAsync([
+          'node',
+          'slack-cli',
+          'file',
+          'download',
+          '--id',
+          'F123',
+          '--index',
+          index,
+        ]);
 
-      expect(mockConsole.errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Error:'),
-        expect.stringContaining('--index must be a positive integer')
-      );
-      expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
-    });
+        expect(mockConsole.errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Error:'),
+          expect.stringContaining('--index must be a positive integer')
+        );
+        expect(mockConsole.exitSpy).toHaveBeenCalledWith(1);
+      }
+    );
   });
 });

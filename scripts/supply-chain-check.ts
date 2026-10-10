@@ -246,6 +246,20 @@ export function parseNpmAuditJson(json: string): NpmAuditResult | null {
     const vuln = getRecord(metadata, 'vulnerabilities');
     const advisories = getRecord(resultRecord, 'advisories');
 
+    // An npm registry error can be valid JSON without being an audit report.
+    // Never interpret missing or invalid counts as a clean security check.
+    if (
+      resultRecord.error ||
+      ['critical', 'high', 'moderate', 'low'].some(
+        (severity) =>
+          typeof vuln[severity] !== 'number' ||
+          !Number.isSafeInteger(vuln[severity]) ||
+          (vuln[severity] as number) < 0
+      )
+    ) {
+      return null;
+    }
+
     return {
       vulnerabilities: {
         total:

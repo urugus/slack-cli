@@ -93,6 +93,8 @@ class JsonHistoryFormatter extends JsonFormatter<HistoryFormatterOptions> {
       channel: channelName,
       messages: messages.map((message) => {
         const files = message.files ?? [];
+        const blocks = message.blocks ?? [];
+        const attachments = message.attachments ?? [];
 
         return {
           ts: message.ts,
@@ -102,6 +104,8 @@ class JsonHistoryFormatter extends JsonFormatter<HistoryFormatterOptions> {
           ...(message.thread_ts !== undefined && { thread_ts: message.thread_ts }),
           ...(message.reply_count !== undefined && { reply_count: message.reply_count }),
           ...(files.length > 0 ? { files: files.map(formatFile) } : {}),
+          ...(blocks.length > 0 ? { blocks } : {}),
+          ...(attachments.length > 0 ? { attachments } : {}),
           ...(permalinks?.has(message.ts) && { permalink: permalinks.get(message.ts) }),
         };
       }),

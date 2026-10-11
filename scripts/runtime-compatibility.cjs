@@ -10,6 +10,21 @@ const {
   MessageWriteOperations,
 } = require('../dist/utils/slack-operations/message-write-operations');
 
+test('published minimum Node.js version supports every production dependency', () => {
+  const lock = require('../package-lock.json');
+  const declared = require('../package.json').engines.node;
+  assert.equal(lock.packages[''].engines.node, declared);
+  const minimum = semver.minVersion(declared);
+  assert.ok(minimum, 'The published Node.js requirement must be valid');
+  for (const [name, dependency] of Object.entries(lock.packages)) {
+    if (!name || dependency.dev || !dependency.engines?.node) continue;
+    assert.ok(
+      semver.satisfies(minimum, dependency.engines.node),
+      `Published minimum ${minimum} does not support ${name}@${dependency.version}: ${dependency.engines.node}`
+    );
+  }
+});
+
 test('production dependency engines support the current Node.js runtime', () => {
   const lock = require('../package-lock.json');
   for (const [name, dependency] of Object.entries(lock.packages)) {

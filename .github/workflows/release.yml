@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: npm-release
+  group: npm-release-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:

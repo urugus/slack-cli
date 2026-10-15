@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.31.0] - 2026-10-15
+
+### Added
+- Use `SLACK_CLI_TOKEN` as the token for commands when no `--profile` is given, without reading the stored config
+
 ## [0.28.0] - 2026-10-05
 
 ### Added

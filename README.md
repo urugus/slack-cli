@@ -29,7 +29,12 @@ slack-cli config set
 
 # Non-interactive (CI/scripts)
 printf '%s\n' "$SLACK_API_TOKEN" | slack-cli config set --token-stdin
+
+# Without storing the token (e.g. injected by a secret manager)
+SLACK_CLI_TOKEN="$SLACK_API_TOKEN" slack-cli history -c general
 ```
+
+When `SLACK_CLI_TOKEN` is set and `--profile` is not given, commands use it and do not read the stored config. An explicit `--profile` still uses the stored profile.
 
 Token storage security:
 - Tokens are encrypted with AES-256-GCM before being written to disk.

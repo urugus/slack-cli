@@ -42,7 +42,7 @@
     "chalk": "6.0.1",
     "commander": "15.0.0",
     "p-limit": "7.3.3",
-    "semver": "7.8.5"
+    "semver": "7.8.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",

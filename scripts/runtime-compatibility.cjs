@@ -110,3 +110,34 @@ test('real Slack SDK preserves message, error and file upload behavior', async (
   assert.equal(completion.get('channel_id'), 'C123');
   assert.equal(JSON.parse(completion.get('files'))[0].id, 'F123');
 });
+
+test('Slack SDK retries a response interrupted while reading its body', async (t) => {
+  let attempts = 0;
+  const server = createServer((_req, res) => {
+    attempts += 1;
+    if (attempts === 1) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': '100' });
+      res.write('{"ok":');
+      setTimeout(() => res.destroy(), 20);
+    } else {
+      res.setHeader('Content-Type', 'application/json');
+      res.end('{"ok":true,"ts":"123.456","channel":"C123"}');
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(
+    () =>
+      new Promise((resolve) => {
+        server.closeAllConnections();
+        server.close(resolve);
+      })
+  );
+  const client = new WebClient('synthetic-test-token', {
+    slackApiUrl: `http://127.0.0.1:${server.address().port}/`,
+    logLevel: LogLevel.ERROR,
+    retryConfig: { retries: 1, minTimeout: 1, maxTimeout: 1, factor: 1, randomize: false },
+  });
+  const result = await client.chat.postMessage({ channel: 'C123', text: 'test' });
+  assert.equal(attempts, 2);
+  assert.equal(result.ts, '123.456');
+});
